@@ -256,6 +256,8 @@ class MainWindow(Gtk.ApplicationWindow):
             for addr_str, val in memory.items():
                 addr = int(addr_str)
                 if 0 <= addr < 65536:
+                    if isinstance(val, str) and val.startswith("0x"):
+                        val = int(val, 16)
                     self.engine._memory[addr] = val & 0xFFFF
 
             self._connect_engine()
