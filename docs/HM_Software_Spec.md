@@ -135,8 +135,7 @@ hmsim/
 ├── tests/                  # TDD Suite
 │   ├── unit/               # Opcode and logic verification
 │   └── integration/        # GUI/CLI end-to-end tests
-├── requirements.txt        # Dependency tracking (PyGObject, pytest, etc.)
-└── pyproject.toml          # Build system configuration
+└── pyproject.toml          # Build system & dependencies
 ```
 
 ### 5.1 Module Responsibilities

@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hmsim"
+version = "0.1.0"
+description = "Multi-version simulator for HM 16-bit processor family"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "HMSim Contributors"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
+gui = [
+    "PyGObject>=3.44",
+]
+
+all = [
+    "PyGObject>=3.44",
+    "pytest>=7.0",
+]
+
+[project.scripts]
+hmasm = "hmsim.tools.hmasm:main"
+hmdas = "hmsim.tools.hmdas:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
