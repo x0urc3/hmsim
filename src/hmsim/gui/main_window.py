@@ -129,10 +129,26 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _on_version_changed(self, dropdown, pspec):
         index = dropdown.get_selected()
-        self.current_version = VERSIONS[index]
-        self.engine = HMEngine(self.current_version)
-        self._connect_engine()
-        self._update_ui()
+        new_version = VERSIONS[index]
+
+        if new_version != self.current_version:
+            old_memory = self.engine._memory.copy()
+            old_pc = self.engine.pc
+            old_ac = self.engine.ac
+            old_ir = self.engine.ir
+            old_sr = self.engine.sr
+
+            self.current_version = new_version
+            self.engine = HMEngine(self.current_version)
+
+            self.engine._memory = old_memory
+            self.engine.pc = old_pc
+            self.engine.ac = old_ac
+            self.engine.ir = old_ir
+            self.engine.sr = old_sr
+
+            self._connect_engine()
+            self._update_ui()
 
     def _connect_engine(self):
         self.engine.register_observer(self._update_ui)
