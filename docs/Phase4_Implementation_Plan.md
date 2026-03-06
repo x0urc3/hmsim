@@ -89,6 +89,44 @@ engine._memory[1] = 0x0005  # Data: 5
 
 ---
 
+## Step 4.x: File I/O (JSON State)
+
+### Actions
+1. Add File menu to HeaderBar with: New, Open, Save
+2. Create `src/hmsim/gui/widgets/file_dialog.py`:
+   - `save_dialog(parent_window)` - Returns file path or None
+   - `open_dialog(parent_window)` - Returns file path or None
+3. Implement JSON state format:
+   ```json
+   {
+     "version": "HMv1",
+     "pc": 0,
+     "ac": 0,
+     "ir": 0,
+     "sr": 0,
+     "memory": [0, 0, 1234, 0, ...]  // 65536 values
+   }
+   ```
+4. Add save functionality in main_window.py:
+   - Serialize engine state to JSON
+   - Write to file
+5. Add load functionality in main_window.py:
+   - Read JSON file, validate, load into engine
+   - Update UI after load
+
+### Verification
+```bash
+# Create sample.json with test program
+# Launch GUI: python3 src/hmsim/gui/hm_gui.py
+# File > Open > select sample.json
+# Verify memory grid shows instructions
+# Click Step, observe register updates
+# File > Save > save to new file
+# Verify saved JSON contains correct state
+```
+
+---
+
 ## Step 4.5: Dual-Mode Editor (Assembly & Hex)
 
 ### Actions

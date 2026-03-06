@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """HM Simulator - Main Window."""
 
+import json
 import sys
 import os
 
@@ -80,6 +81,21 @@ class MainWindow(Gtk.ApplicationWindow):
         title_label = Gtk.Label(label="HM Simulator")
         header.set_title_widget(title_label)
 
+        file_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        header.pack_start(file_box)
+
+        btn_new = Gtk.Button(label="New")
+        btn_new.connect("clicked", self._on_new)
+        file_box.append(btn_new)
+
+        btn_open = Gtk.Button(label="Open")
+        btn_open.connect("clicked", self._on_open)
+        file_box.append(btn_open)
+
+        btn_save = Gtk.Button(label="Save")
+        btn_save.connect("clicked", self._on_save)
+        file_box.append(btn_save)
+
         version_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
         header.pack_start(version_box)
 
@@ -131,3 +147,75 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _on_reset(self, button):
         self.engine.reset()
+
+    def _on_new(self, button):
+        self.engine.reset()
+
+    def _on_save(self, button):
+        dialog = Gtk.FileDialog(title="Save State")
+        dialog.set_initial_name("program.json")
+
+        def on_response(dialog, result):
+            try:
+                file = dialog.save_finish(result)
+                if file:
+                    file_path = file.get_path()
+                    self._save_state(file_path)
+            except Exception as e:
+                print(f"Save error: {e}")
+
+        dialog.save(None, None, on_response)
+
+    def _on_open(self, button):
+        dialog = Gtk.FileDialog(title="Open State")
+
+        def on_response(dialog, result):
+            try:
+                file = dialog.open_finish(result)
+                if file:
+                    file_path = file.get_path()
+                    self._load_state(file_path)
+            except Exception as e:
+                print(f"Open error: {e}")
+
+        dialog.open(None, None, on_response)
+
+    def _save_state(self, file_path):
+        state = {
+            "version": self.current_version,
+            "pc": self.engine.pc,
+            "ac": self.engine.ac,
+            "ir": self.engine.ir,
+            "sr": self.engine.sr,
+            "memory": list(self.engine._memory)
+        }
+        with open(file_path, 'w') as f:
+            json.dump(state, f, indent=2)
+
+    def _load_state(self, file_path):
+        try:
+            with open(file_path, 'r') as f:
+                state = json.load(f)
+
+            version = state.get("version", "HMv1")
+            if version not in ["HMv1", "HMv2"]:
+                print(f"Warning: Version {version} not fully supported, loading as HMv2")
+                version = "HMv2"
+
+            self.current_version = version
+            self.engine = HMEngine(version)
+
+            self.engine.pc = state.get("pc", 0)
+            self.engine.ac = state.get("ac", 0)
+            self.engine.ir = state.get("ir", 0)
+            self.engine.sr = state.get("sr", 0)
+
+            memory = state.get("memory", [])
+            for i, val in enumerate(memory[:65536]):
+                self.engine._memory[i] = val & 0xFFFF
+
+            self._connect_engine()
+            self._update_ui()
+
+        except Exception as e:
+            print(f"Error loading state: {e}")
