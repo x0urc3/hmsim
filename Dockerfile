@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /build
 
 COPY pyproject.toml ./
+COPY src ./src
 
 RUN python3 -m venv --system-site-packages /opt/venv && \
     . /opt/venv/bin/activate && \
