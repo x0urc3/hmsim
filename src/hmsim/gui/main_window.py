@@ -38,11 +38,10 @@ class MainWindow(Gtk.ApplicationWindow):
         self._setup_ui()
 
     def _setup_ui(self):
+        self.set_titlebar(self._create_header_bar())
+
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.set_child(main_box)
-
-        header = self._create_header_bar()
-        main_box.append(header)
 
         content = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
         content.set_hexpand(True)
