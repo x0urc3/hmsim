@@ -74,6 +74,13 @@ class MainWindow(Gtk.ApplicationWindow):
         self.memory_view.set_vexpand(True)
         right_pane.append(self.memory_view)
 
+        self.status_bar = Gtk.Label(label="Ready")
+        self.status_bar.set_margin_top(5)
+        self.status_bar.set_margin_bottom(5)
+        self.status_bar.set_margin_start(10)
+        self.status_bar.set_margin_end(10)
+        right_pane.append(self.status_bar)
+
     def _create_header_bar(self) -> Gtk.HeaderBar:
         header = Gtk.HeaderBar()
         header.set_show_title_buttons(True)
@@ -140,18 +147,32 @@ class MainWindow(Gtk.ApplicationWindow):
         self.memory_view.set_memory(self.engine._memory)
 
     def _on_step(self, button):
+        self._clear_error()
         try:
             self.engine.step()
         except Exception as e:
-            print(f"Execution error: {e}")
+            self._show_error(str(e), self.engine.pc)
 
     def _on_reset(self, button):
+        self._clear_error()
         self.engine.reset()
 
     def _on_new(self, button):
+        self._clear_error()
         self.engine.reset()
 
+    def _show_error(self, message, address):
+        self.status_bar.set_label(f"Error at 0x{address:04X}: {message}")
+        self.status_bar.add_css_class("error")
+        self.memory_view.highlight_address(address)
+
+    def _clear_error(self):
+        self.status_bar.set_label("Ready")
+        self.status_bar.remove_css_class("error")
+        self.memory_view.clear_highlight()
+
     def _on_save(self, button):
+        self._clear_error()
         dialog = Gtk.FileDialog(title="Save State")
         dialog.set_initial_name("program.json")
 
@@ -167,6 +188,7 @@ class MainWindow(Gtk.ApplicationWindow):
         dialog.save(None, None, on_response)
 
     def _on_open(self, button):
+        self._clear_error()
         dialog = Gtk.FileDialog(title="Open State")
 
         def on_response(dialog, result):

@@ -89,8 +89,20 @@ class MemoryView(Gtk.Box):
     def set_memory(self, memory):
         self._memory = memory
         self._populate_model()
+        self._highlighted_path = None
+
+    def highlight_address(self, address):
+        if 0 <= address < 65536:
+            path = Gtk.TreePath.new_from_string(str(address))
+            self.tree_view.scroll_to_cell(path, None, True, 0.5)
+            self.tree_view.get_selection().select_path(path)
+            self._highlighted_path = path
+
+    def clear_highlight(self):
+        self._highlighted_path = None
+        self.tree_view.get_selection().unselect_all()
 
     def update(self, address=None):
         if address is not None and 0 <= address < 65536:
             value = self._memory[address]
-            self._model[address] = [f"0x{address:04X}", f"0x{value:04X}", f"??? 0x{value & 0x0FFF:03X}"]
+            self._model[address] = [f"0x{address:04X}", f"0x{value:04X}"]
