@@ -203,13 +203,14 @@ class MainWindow(Gtk.ApplicationWindow):
         dialog.open(None, None, on_response)
 
     def _save_state(self, file_path):
+        memory = {str(addr): val for addr, val in enumerate(self.engine._memory) if val != 0}
         state = {
             "version": self.current_version,
             "pc": self.engine.pc,
             "ac": self.engine.ac,
             "ir": self.engine.ir,
             "sr": self.engine.sr,
-            "memory": list(self.engine._memory)
+            "memory": memory
         }
         with open(file_path, 'w') as f:
             json.dump(state, f, indent=2)
@@ -221,7 +222,6 @@ class MainWindow(Gtk.ApplicationWindow):
 
             version = state.get("version", "HMv1")
             if version not in ["HMv1", "HMv2"]:
-                print(f"Warning: Version {version} not fully supported, loading as HMv2")
                 version = "HMv2"
 
             self.current_version = version
@@ -232,9 +232,11 @@ class MainWindow(Gtk.ApplicationWindow):
             self.engine.ir = state.get("ir", 0)
             self.engine.sr = state.get("sr", 0)
 
-            memory = state.get("memory", [])
-            for i, val in enumerate(memory[:65536]):
-                self.engine._memory[i] = val & 0xFFFF
+            memory = state.get("memory", {})
+            for addr_str, val in memory.items():
+                addr = int(addr_str)
+                if 0 <= addr < 65536:
+                    self.engine._memory[addr] = val & 0xFFFF
 
             self._connect_engine()
             self._update_ui()
