@@ -71,7 +71,7 @@ The CLI tools must be cross-platform compatible:
 
 * **`hmasm` (Assembler):**
   * Generates machine code based on the selected version profile.
-  * Supports symbolic labels and hex/decimal literals.
+  * Supports symbolic labels and integer (decimal), hexadecimal (`0x`), and binary (`0b`) literals.
   * Validates opcodes and address ranges.
 
 * **`hmdas` (Disassembler):**
