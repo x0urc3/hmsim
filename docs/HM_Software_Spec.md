@@ -81,33 +81,30 @@ The CLI tools must be cross-platform compatible:
 
 ### 3.4 Graphical User Interface (GTK 4)
 
-* **Version Toggle:** A global selector to switch between HMv1–HMv4 logic.
+* **Version Toggle:** A global selector to switch between HMv1–HMv4 logic (preserves state when switching).
 * **Integrated Code Editor:** A dual-mode text editor that supports:
   * **Assembly Input:** Direct writing of mnemonics with basic syntax highlighting.
   * **Machine Code Input:** A hex-editor mode for direct manipulation of the 16-bit binary memory image.
   * **Real-time Assembly:** Automated translation between the assembly view and the machine code view.
-* **Execution Controls:** Step, Run, Pause, and Reset functionality.
+* **Execution Controls:** Step and Reset functionality.
 * **Visual State Monitoring:** Real-time display of **PC**, **AC**, **IR**, and a scrollable memory grid.
-* **Persistence:** Load/Save memory images (.bin) and assembly files (.asm).
+* **Persistence:** Load/Save state as JSON files (.json).
+* **Error Handling:** Error messages displayed in status bar with memory address highlighting.
 
 ### 3.5 GUI Layout & Interaction Specification
 
 The GUI is designed as a professional IDE for architectural exploration, prioritizing clarity and real-time feedback.
 
 #### 3.5.1 Layout Topology
-*   **Header (Adw.HeaderBar or Gtk.HeaderBar):**
-    *   **Left:** File Operations (New, Open, Save).
-    *   **Center:** Execution Controls (Reset [⏮], Step [➡], Run/Pause [▶/⏸]).
-    *   **Right:** Version Toggle (HMv1–HMv4) and Speed Slider (1Hz – 100Hz).
+*   **Header (Gtk.HeaderBar):**
+    *   **Left:** File Operations (New, Open, Save), Version Selector (HMv1–HMv4).
+    *   **Right:** Execution Controls (Reset, Step).
 *   **Main Content (Gtk.Paned - Horizontal):**
-    *   **Left Pane (Editor):** A notebook with two tabs:
-        1. **Assembly:** Syntax-highlighted text editor for HM mnemonics.
-        2. **Machine Code:** Hexadecimal representation of the current program.
+    *   **Left Pane (Editor):** Placeholder for future dual-mode editor.
     *   **Right Pane (State):** A vertical stack containing:
         1. **Register View:** Real-time display of PC, AC, IR, and SR.
-        2. **Status Flags:** Individual toggle indicators for SF, ZF, EF, OF.
-*   **Bottom Section (Memory):**
-    *   A scrollable grid showing the entire 64KB address space with "Go to Address" search functionality.
+        2. **Memory Grid:** Scrollable grid showing 64KB memory with Address and Value columns.
+        3. **Status Bar:** Displays "Ready" or error messages (e.g., "Error at 0x0000: Invalid opcode").
 
 #### 3.5.2 State Synchronization (Observer Pattern)
 *   **Engine-to-GUI:** Any change in the `HMEngine` state (registers or memory) emits a `state-changed` signal. Visual widgets subscribe to this signal to update their buffers.
@@ -117,10 +114,11 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
 
 #### 3.5.3 Component Architecture
 *   **`src/hmsim/gui/hm_gui.py`**: Application entry point (`Gtk.Application`). Initializes the event loop and main window.
-*   **`src/hmsim/gui/main_window.py`**: Main container managing the HeaderBar, Paned layout, and widget coordination.
+*   **`src/hmsim/gui/main_window.py`**: Main container managing the HeaderBar, Paned layout, and widget coordination. Handles file I/O (New/Open/Save) with sparse JSON state format.
 *   **`src/hmsim/gui/widgets/register_view.py`**: Displays PC, AC, IR, SR in monospace hex format.
-*   **`src/hmsim/gui/widgets/memory_view.py`**: `Gtk.ColumnView` grid with lazy-loaded rows for 64KB memory.
-*   **`src/hmsim/gui/widgets/editor_view.py`**: Dual-pane `Gtk.Notebook` with real-time assembly/disassembly sync.
+*   **`src/hmsim/gui/widgets/memory_view.py`**: `Gtk.TreeView` grid showing 64KB memory with Address and Value columns. Supports "Go to Address" search and error highlighting.
+*   **`src/hmsim/gui/widgets/file_dialog.py`**: GTK4 FileDialog utilities for Open/Save operations.
+*   **`src/hmsim/gui/widgets/editor_view.py`**: (Future) Dual-pane `Gtk.Notebook` with real-time assembly/disassembly sync.
 
 ---
 
@@ -221,7 +219,7 @@ The development is divided into verifiable phases. At the end of each phase, the
     ```
 
 ### Phase 4: GTK 4 Graphical Interface (IN PROGRESS)
-**Objective:** Provide a visual debugger for real-time architectural exploration. The disassembler from Phase 3 enables the dual-mode editor with real-time assembly/machine-code sync.
+**Objective:** Provide a visual debugger for real-time architectural exploration.
 
 *   **Reference:** See `docs/Phase4_Implementation_Plan.md` for detailed step-by-step implementation.
 *   **Deliverables:**
@@ -229,14 +227,18 @@ The development is divided into verifiable phases. At the end of each phase, the
     *   `src/hmsim/gui/main_window.py` - Main window container with HeaderBar
     *   `src/hmsim/gui/widgets/register_view.py` - Register display widget
     *   `src/hmsim/gui/widgets/memory_view.py` - Scrollable memory grid
-    *   `src/hmsim/gui/widgets/editor_view.py` - Dual-mode editor
+    *   `src/hmsim/gui/widgets/file_dialog.py` - File dialog utilities
+    *   `src/hmsim/gui/widgets/editor_view.py` - (Future) Dual-mode editor
 *   **Verification:**
-    *   Step 4.1: `python3 src/hmsim/gui/hm_gui.py` shows window with HeaderBar and version dropdown
-    *   Step 4.2: Register panel displays PC, AC, IR, SR with default values `0x0000`
-    *   Step 4.3: Memory grid shows all 65536 addresses
-    *   Step 4.4: Clicking "Step" executes one instruction and updates register values
-    *   Step 4.5: Typing `LOAD 0x100` in ASM pane shows `0x1100` in HEX pane
-    *   Step 4.6: Run mode advances PC automatically; Open/Save preserves memory content
+    *   Launch GUI: `python3 src/hmsim/gui/hm_gui.py`
+    *   Header shows: New, Open, Save, Version dropdown, Reset, Step buttons
+    *   Right pane shows: Registers (PC, AC, IR, SR), Memory grid, Status bar
+    *   Memory grid displays 65536 addresses with Address and Value columns
+    *   Clicking "Step" executes one instruction and updates register values
+    *   Clicking "Reset" clears registers and memory
+    *   File > Open loads JSON state file; File > Save exports sparse JSON (non-zero memory only)
+    *   Error at invalid instruction shows message in status bar and highlights address in memory
+    *   Switching version dropdown preserves current memory and register state
 
 ### Phase 5: ISA Expansion II (HMv3 & HMv4)
 **Objective:** Implement advanced architectural features and update GUI to support them.

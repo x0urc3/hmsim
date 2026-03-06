@@ -89,14 +89,13 @@ engine._memory[1] = 0x0005  # Data: 5
 
 ---
 
-## Step 4.x: File I/O (JSON State)
+## Step 4.x: File I/O (JSON State) - COMPLETED
 
 ### Actions
-1. Add File menu to HeaderBar with: New, Open, Save
+1. Add File menu to HeaderBar with: New, Open, Save buttons
 2. Create `src/hmsim/gui/widgets/file_dialog.py`:
-   - `save_dialog(parent_window)` - Returns file path or None
-   - `open_dialog(parent_window)` - Returns file path or None
-3. Implement JSON state format:
+   - GTK4 FileDialog utilities
+3. Implement sparse JSON state format (only non-zero memory):
    ```json
    {
      "version": "HMv1",
@@ -104,26 +103,60 @@ engine._memory[1] = 0x0005  # Data: 5
      "ac": 0,
      "ir": 0,
      "sr": 0,
-     "memory": [0, 0, 1234, 0, ...]  // 65536 values
+     "memory": {
+       "0": 4352,
+       "256": 5
+     }
    }
    ```
-4. Add save functionality in main_window.py:
+4. Add save functionality:
    - Serialize engine state to JSON
-   - Write to file
-5. Add load functionality in main_window.py:
-   - Read JSON file, validate, load into engine
+   - Only store non-zero memory values
+5. Add load functionality:
+   - Read JSON file, validate version
    - Update UI after load
+   - Show "Loaded HMv1 state" or "Warning: HMv3 state loaded as HMv2" in status bar
 
 ### Verification
 ```bash
-# Create sample.json with test program
-# Launch GUI: python3 src/hmsim/gui/hm_gui.py
-# File > Open > select sample.json
-# Verify memory grid shows instructions
-# Click Step, observe register updates
-# File > Save > save to new file
-# Verify saved JSON contains correct state
+python3 src/hmsim/gui/hm_gui.py
+# File > Open > tests/fixtures/sample_state.json
+# Verify memory shows instructions at addresses 0 and 256
+# Click Step - AC changes to 5, PC changes to 1
+# File > Save > save.json
+# Verify JSON contains only non-zero memory entries
 ```
+
+---
+
+## Step 4.x: Error Handling - COMPLETED
+
+### Actions
+1. Add status bar to main window (below memory grid)
+2. Update `_on_step()` to catch exceptions:
+   - Show error message in status bar: "Error at 0x<addr>: <message>"
+   - Highlight error address in memory grid
+3. Clear errors on: Step, Reset, New, Open, Save
+
+### Verification
+- Launch GUI with empty memory
+- Click Step - error message appears, address 0 highlighted in memory
+- Click Reset - error clears, "Ready" shown in status bar
+
+---
+
+## Step 4.x: Version Switch Preserves State - COMPLETED
+
+### Actions
+1. Update `_on_version_changed()` to:
+   - Save current engine state (memory, PC, AC, IR, SR)
+   - Create new engine with different version
+   - Restore saved state to new engine
+
+### Verification
+- Open a JSON file with instructions
+- Switch version dropdown from HMv1 to HMv2
+- Verify memory and registers remain unchanged
 
 ---
 
@@ -175,12 +208,13 @@ engine._memory[1] = 0x0005  # Data: 5
 src/hmsim/gui/
 ├── __init__.py
 ├── hm_gui.py              # Entry point
-├── main_window.py         # Main window + HeaderBar
+├── main_window.py         # Main window + HeaderBar + file I/O
 └── widgets/
     ├── __init__.py
     ├── register_view.py  # PC, AC, IR, SR display
-    ├── memory_view.py    # Scrollable memory grid
-    └── editor_view.py    # Dual-mode editor
+    ├── memory_view.py    # Scrollable memory grid + highlighting
+    ├── file_dialog.py    # File dialog utilities
+    └── editor_view.py    # (Future) Dual-mode editor
 ```
 
 ---
