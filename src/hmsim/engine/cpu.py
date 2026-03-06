@@ -1,6 +1,6 @@
 """HM CPU Engine - Core simulation for HM processor family."""
 
-from typing import Optional
+from typing import Callable, List, Optional
 
 from .isa import VERSION_ISA, HMV1_ISA
 from .strategies import get_strategy
@@ -21,6 +21,35 @@ class HMEngine:
         self.sr: int = 0x0000
         self._memory: list[int] = [0] * 65536
         self._strategy = get_strategy(version)
+        self._observers: List[Callable[[], None]] = []
+
+    def register_observer(self, callback: Callable[[], None]) -> None:
+        """Register a callback to be notified on state changes."""
+        self._observers.append(callback)
+
+    def _notify_observers(self) -> None:
+        """Notify all observers of state change."""
+        for callback in self._observers:
+            callback()
+
+    def write_memory(self, address: int, value: int) -> None:
+        """Write a 16-bit value to memory."""
+        if 0 <= address < 65536:
+            self._memory[address] = value & 0xFFFF
+            self._notify_observers()
+
+    def read_memory(self, address: int) -> int:
+        """Read a 16-bit value from memory."""
+        return self._memory[address] if 0 <= address < 65536 else 0
+
+    def reset(self) -> None:
+        """Reset the engine to initial state."""
+        self.pc = 0x0000
+        self.ir = 0x0000
+        self.ac = 0x0000
+        self.sr = 0x0000
+        self._memory = [0] * 65536
+        self._notify_observers()
 
     @property
     def isa(self) -> dict:
@@ -90,11 +119,13 @@ class HMEngine:
             Number of cycles consumed.
         """
         instruction = self._memory[self.pc]
+        self.ir = instruction
         opcode, address = self.decode(instruction)
         old_pc = self.pc
         cycles = self.execute(opcode, address)
         if self.pc == old_pc:
             self.pc = (self.pc + 1) & 0xFFFF
+        self._notify_observers()
         return cycles
 
 
