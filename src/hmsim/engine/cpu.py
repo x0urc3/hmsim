@@ -19,6 +19,7 @@ class HMEngine:
         self.ir: int = 0x0000
         self.ac: int = 0x0000
         self.sr: int = 0x0000
+        self.total_cycles: int = 0
         self._memory: list[int] = [0] * 65536
         self._strategy = get_strategy(version)
         self._observers: List[Callable[[], None]] = []
@@ -48,6 +49,7 @@ class HMEngine:
         self.ir = 0x0000
         self.ac = 0x0000
         self.sr = 0x0000
+        self.total_cycles = 0
         self._memory = [0] * 65536
         self._notify_observers()
 
@@ -109,11 +111,14 @@ class HMEngine:
         self._check_version_support(opcode)
         return self._strategy.execute(self, opcode, address)
 
-    def step(self) -> int:
+    def step(self, notify: bool = True) -> int:
         """Execute one instruction cycle.
 
         Fetches instruction at PC, decodes it, executes it,
         and increments PC (unless changed by JMP/JMPZ).
+
+        Args:
+            notify: If True, notify observers after execution.
 
         Returns:
             Number of cycles consumed.
@@ -123,10 +128,28 @@ class HMEngine:
         opcode, address = self.decode(instruction)
         old_pc = self.pc
         cycles = self.execute(opcode, address)
+        self.total_cycles += cycles
         if self.pc == old_pc:
             self.pc = (self.pc + 1) & 0xFFFF
-        self._notify_observers()
+        if notify:
+            self._notify_observers()
         return cycles
+
+    def run_batch(self, count: int = 1000) -> int:
+        """Execute multiple instructions without UI updates.
+
+        Args:
+            count: Number of instructions to execute.
+
+        Returns:
+            Total number of cycles consumed in this batch.
+        """
+        batch_cycles = 0
+        for _ in range(count):
+            cycles = self.step(notify=False)
+            batch_cycles += cycles
+        self._notify_observers()
+        return batch_cycles
 
 
 class HMv1Engine(HMEngine):

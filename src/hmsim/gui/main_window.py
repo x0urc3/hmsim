@@ -30,6 +30,8 @@ VERSIONS = ["HMv1", "HMv2", "HMv3", "HMv4"]
 
 
 class MainWindow(Gtk.ApplicationWindow):
+    RUN_BATCH_SIZE = 1000
+
     def __init__(self, application=None):
         super().__init__(
             application=application,
@@ -165,7 +167,8 @@ class MainWindow(Gtk.ApplicationWindow):
             pc=self.engine.pc,
             ac=self.engine.ac,
             ir=self.engine.ir,
-            sr=self.engine.sr
+            sr=self.engine.sr,
+            cycles=self.engine.total_cycles
         )
         self.memory_view.set_memory(self.engine._memory)
 
@@ -205,7 +208,7 @@ class MainWindow(Gtk.ApplicationWindow):
         if not self._is_running:
             return GLib.SOURCE_REMOVE
         try:
-            self.engine.step()
+            self.engine.run_batch(self.RUN_BATCH_SIZE)
         except Exception as e:
             self._stop_run()
             self._show_error(str(e), self.engine.pc)

@@ -188,6 +188,7 @@ class TestRunLoop:
     """Test the run loop functionality."""
 
     def test_run_loop_returns_continue_when_running(self, main_window):
+        main_window.RUN_BATCH_SIZE = 1
         main_window.engine._memory[0] = 0x1100
         main_window._start_run()
         result = main_window._run_loop()
@@ -195,6 +196,7 @@ class TestRunLoop:
         assert result == GLib.SOURCE_CONTINUE
 
     def test_run_loop_returns_remove_when_stopped(self, main_window):
+        main_window.RUN_BATCH_SIZE = 1
         main_window.engine._memory[0] = 0x1100
         main_window._start_run()
         main_window._stop_run()
@@ -239,3 +241,32 @@ class TestVersionDropdown:
         main_window.version_dropdown.set_selected(1)
         main_window._on_version_changed(main_window.version_dropdown, None)
         assert id(main_window.engine) != old_engine_id
+
+
+class TestFileOperations:
+    """Test file open/save operations and UI updates."""
+
+    def test_load_state_updates_engine_and_ui(self, main_window):
+        state = {
+            "version": "HMv1",
+            "pc": 0x0100,
+            "ac": 0xABCD,
+            "ir": 0x0000,
+            "sr": 0x0000,
+            "memory": {
+                "80": 0x1234
+            }
+        }
+
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(state, f)
+            temp_path = f.name
+
+        try:
+            main_window._load_state(temp_path)
+
+            assert main_window.engine.pc == 0x0100
+            assert main_window.engine.ac == 0xABCD
+            assert main_window.engine._memory[80] == 0x1234
+        finally:
+            os.unlink(temp_path)
