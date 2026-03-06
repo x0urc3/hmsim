@@ -20,6 +20,8 @@ if not GTK_AVAILABLE:
     print("Install with: pip install PyGObject", file=sys.stderr)
     sys.exit(1)
 
+from hmsim.gui.widgets.register_view import RegisterView
+
 
 VERSIONS = ["HMv1", "HMv2", "HMv3", "HMv4"]
 
@@ -42,13 +44,23 @@ class MainWindow(Gtk.ApplicationWindow):
         header = self._create_header_bar()
         main_box.append(header)
 
-        content = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True, vexpand=True)
+        content = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        content.set_hexpand(True)
+        content.set_vexpand(True)
         main_box.append(content)
+
+        left_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
+        content.set_start_child(left_pane)
+        content.set_resize_start_child(True)
 
         label = Gtk.Label(label="Welcome to HM Simulator")
         label.set_hexpand(True)
         label.set_vexpand(True)
-        content.append(label)
+        left_pane.append(label)
+
+        right_pane = RegisterView()
+        content.set_end_child(right_pane)
+        content.set_resize_end_child(False)
 
     def _create_header_bar(self) -> Gtk.HeaderBar:
         header = Gtk.HeaderBar()
