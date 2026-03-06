@@ -34,12 +34,14 @@ class MainWindow(Gtk.ApplicationWindow):
         super().__init__(
             application=application,
             title="HM Simulator",
-            default_width=1200,
+            default_width=1400,
             default_height=800
         )
-        self.set_resizable(False)
+        self.set_resizable(True)
         self.current_version = "HMv1"
         self.engine = HMEngine(self.current_version)
+        self._is_running = False
+        self._run_source_id = None
         self._setup_ui()
         self._connect_engine()
 
@@ -121,6 +123,11 @@ class MainWindow(Gtk.ApplicationWindow):
         self.btn_reset.connect("clicked", self._on_reset)
         control_box.append(self.btn_reset)
 
+        self.btn_run = Gtk.Button(label="Run")
+        self.btn_run.set_size_request(60, -1)
+        self.btn_run.connect("clicked", self._on_run)
+        control_box.append(self.btn_run)
+
         self.btn_step = Gtk.Button(label="Step")
         self.btn_step.connect("clicked", self._on_step)
         control_box.append(self.btn_step)
@@ -169,8 +176,46 @@ class MainWindow(Gtk.ApplicationWindow):
         except Exception as e:
             self._show_error(str(e), self.engine.pc)
 
+    def _on_run(self, button):
+        if self._is_running:
+            self._stop_run()
+        else:
+            self._start_run()
+
+    def _start_run(self):
+        self._is_running = True
+        self.btn_run.set_label("Stop")
+        self.btn_step.set_sensitive(False)
+        self.btn_reset.set_sensitive(False)
+        self.status_bar.set_label("Running...")
+        self._run_source_id = GLib.idle_add(self._run_loop)
+
+    def _stop_run(self):
+        self._is_running = False
+        if self._run_source_id is not None:
+            GLib.source_remove(self._run_source_id)
+            self._run_source_id = None
+        self.btn_run.set_label("Run")
+        self.btn_step.set_sensitive(True)
+        self.btn_reset.set_sensitive(True)
+        self.status_bar.set_label("Ready")
+        self.status_bar.remove_css_class("error")
+
+    def _run_loop(self):
+        if not self._is_running:
+            return GLib.SOURCE_REMOVE
+        try:
+            self.engine.step()
+        except Exception as e:
+            self._stop_run()
+            self._show_error(str(e), self.engine.pc)
+            return GLib.SOURCE_REMOVE
+        return GLib.SOURCE_CONTINUE
+
     def _on_reset(self, button):
         self._clear_error()
+        if self._is_running:
+            self._stop_run()
         self.engine.reset()
 
     def _on_new(self, button):
