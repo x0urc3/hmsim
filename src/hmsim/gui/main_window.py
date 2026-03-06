@@ -21,6 +21,7 @@ if not GTK_AVAILABLE:
     sys.exit(1)
 
 from hmsim.gui.widgets.register_view import RegisterView
+from hmsim.gui.widgets.memory_view import MemoryView
 
 
 VERSIONS = ["HMv1", "HMv2", "HMv3", "HMv4"]
@@ -34,32 +35,40 @@ class MainWindow(Gtk.ApplicationWindow):
             default_width=1200,
             default_height=800
         )
+        self.set_resizable(False)
         self.current_version = "HMv1"
         self._setup_ui()
 
     def _setup_ui(self):
         self.set_titlebar(self._create_header_bar())
 
-        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        main_box = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        main_box.set_hexpand(True)
+        main_box.set_vexpand(True)
         self.set_child(main_box)
 
-        content = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        content.set_hexpand(True)
-        content.set_vexpand(True)
-        main_box.append(content)
+        left_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
+        main_box.set_start_child(left_pane)
+        main_box.set_resize_start_child(True)
+        main_box.set_shrink_start_child(False)
 
-        left_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
-        content.set_start_child(left_pane)
-        content.set_resize_start_child(True)
-
-        label = Gtk.Label(label="Welcome to HM Simulator")
+        label = Gtk.Label(label="Editor (Coming Soon)")
         label.set_hexpand(True)
         label.set_vexpand(True)
         left_pane.append(label)
 
-        right_pane = RegisterView()
-        content.set_end_child(right_pane)
-        content.set_resize_end_child(False)
+        right_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=False, vexpand=True)
+        right_pane.set_size_request(360, -1)
+        main_box.set_end_child(right_pane)
+        main_box.set_resize_end_child(False)
+        main_box.set_shrink_end_child(False)
+
+        register_view = RegisterView()
+        right_pane.append(register_view)
+
+        memory_view = MemoryView()
+        memory_view.set_vexpand(True)
+        right_pane.append(memory_view)
 
     def _create_header_bar(self) -> Gtk.HeaderBar:
         header = Gtk.HeaderBar()
