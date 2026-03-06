@@ -223,8 +223,12 @@ class MainWindow(Gtk.ApplicationWindow):
             version = state.get("version", "HMv1")
             if version not in ["HMv1", "HMv2"]:
                 version = "HMv2"
+                self.status_bar.set_label(f"Warning: HMv{version[-1]} state loaded as HMv2")
+            else:
+                self.status_bar.set_label(f"Loaded {version} state")
 
             self.current_version = version
+            self.version_dropdown.set_selected(VERSIONS.index(version))
             self.engine = HMEngine(version)
 
             self.engine.pc = state.get("pc", 0)
