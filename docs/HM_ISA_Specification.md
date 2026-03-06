@@ -30,8 +30,15 @@ The HMv1 utilizes a 16-bit signed magnitude representation for integer arithmeti
 
 The following table outlines the supported machine instructions and their respective timing requirements:
 
-| Opcode | Mnemonic | Operand | Description | Cycles |
-| --- | --- | --- | --- | --- |
-| `0x1` | **LOAD** | memory | Load AC with the contents of the specified memory address.  | 5 |
-| `0x2` | **STORE** | memory | Store the current AC value to the specified memory address.  | 15 |
-| `0x5` | **ADD** | memory | Add the value at the specified memory address to the AC.  | 10 |
+| Version | Opcode | Mnemonic | Description                           | Cycles |
+|---------|--------|----------|---------------------------------------|--------|
+| HMv1    | 0x1    | LOAD     | Load AC from memory                   | 5      |
+| HMv1    | 0x2    | STORE    | Store AC to memory                    | 15     |
+| HMv1    | 0x5    | ADD      | Add to AC from memory                 | 10     |
+| HMv2    | 0x6    | SUB      | Subtract AC from memory               | 10     |
+| HMv2    | 0x8    | JMP      | Jump to memory address                | 5      |
+| HMv2    | 0x9    | JMPZ     | Jump to memory if ZF=1               | 5      |
+| HMv3    | 0xa    | CALL     | Store PC+1 in AC; Load PC with memory | 5      |
+| HMv3    | 0xb    | RETURN   | Load PC with AC                        | 1      |
+| HMv4    | 0x3    | LOAD     | Load AC from indirect memory          | 10     |
+| HMv4    | 0x4    | STORE    | Store AC to indirect memory           | 25     |
