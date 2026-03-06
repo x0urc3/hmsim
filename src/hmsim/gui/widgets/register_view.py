@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 try:
     import gi
     gi.require_version('Gtk', '4.0')
-    from gi.repository import Gtk, Pango
+    from gi.repository import Gtk
 except ImportError:
     pass
 
@@ -44,8 +44,7 @@ class RegisterView(Gtk.Box):
         value = Gtk.Label(label="0x0000")
         value.set_width_chars(7)
         value.set_xalign(0)
-        value.set_monospace(True)
-        value.set_css_classes(["monospace"])
+        value.add_css_class("monospace")
         box.append(value)
 
         return {"box": box, "value": value}
