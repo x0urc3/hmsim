@@ -30,4 +30,4 @@ jobs:
           pip install pytest-xvfb
 
       - name: Run tests
-        run: xvfb-run -a pytest -v
+        run: pytest -v
