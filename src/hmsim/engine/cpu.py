@@ -1,5 +1,7 @@
 """HMv1 CPU Engine - Core simulation for HM processor."""
 
+from .isa import OP_LOAD, OP_STORE, OP_ADD, HMV1_ISA
+
 
 class HMv1Engine:
     """Engine for HMv1 processor simulation."""
@@ -27,21 +29,21 @@ class HMv1Engine:
         """Execute instruction and return cycle count.
 
         Args:
-            opcode: 4-bit opcode (0x1=LOAD, 0x2=STORE, 0x5=ADD).
+            opcode: 4-bit opcode (from isa.py).
             address: 12-bit memory address.
 
         Returns:
             Number of cycles consumed.
         """
-        if opcode == 0x1:
+        if opcode == OP_LOAD:
             self.ac = self._memory[address]
-            return 5
-        elif opcode == 0x2:
+            return HMV1_ISA["LOAD"][1]
+        elif opcode == OP_STORE:
             self._memory[address] = self.ac
-            return 15
-        elif opcode == 0x5:
+            return HMV1_ISA["STORE"][1]
+        elif opcode == OP_ADD:
             self.ac = (self.ac + self._memory[address]) & 0xFFFF
-            return 10
+            return HMV1_ISA["ADD"][1]
         else:
             raise ValueError(f"Unknown opcode: {opcode:#x}")
 

@@ -4,12 +4,7 @@
 import sys
 from typing import Optional
 
-
-OPCODES = {
-    "LOAD": 0x1,
-    "STORE": 0x2,
-    "ADD": 0x5,
-}
+from hmsim.engine.isa import HMV1_ISA
 
 
 def assemble(instruction: str) -> int:
@@ -31,10 +26,10 @@ def assemble(instruction: str) -> int:
     mnemonic = parts[0].upper()
     address_str = parts[1]
 
-    if mnemonic not in OPCODES:
+    if mnemonic not in HMV1_ISA:
         raise ValueError(f"Unknown mnemonic: {mnemonic}")
 
-    opcode = OPCODES[mnemonic]
+    opcode = HMV1_ISA[mnemonic][0]
     address = int(address_str, 0)
 
     if not 0 <= address <= 0xFFF:
