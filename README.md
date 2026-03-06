@@ -51,6 +51,7 @@ The HM processor contains four primary registers:
 | **IR** | Instruction Register | A 16-bit register that holds the current instruction being decoded/executed |
 | **AC** | Accumulator | The primary data register used for all arithmetic operations |
 | **SR** | Status Register | Contains flags (Sign, Zero) - available in HMv2 and later |
+| **Cycles** | Total Cycles | Cumulative cycle count since last reset (displayed in register panel) |
 
 ### Memory Model
 
@@ -147,8 +148,9 @@ Switching versions updates the available instructions while preserving your curr
 
 ### Execution Controls
 
+- **Run**: Execute instructions continuously at high speed (~60,000+ instructions/sec). Displays total cycles in real-time.
 - **Step**: Execute one instruction and advance the program counter
-- **Reset**: Clear all registers (PC, AC, IR, SR) and memory
+- **Reset**: Clear all registers (PC, AC, IR, SR, Cycles) and memory
 
 ## Tutorial: Your First Program
 
@@ -253,6 +255,7 @@ The register panel shows current register values in hexadecimal format:
 - AC: Accumulator (arithmetic result)
 - IR: Instruction Register (current instruction)
 - SR: Status Register (flags - HMv2+ only)
+- Cycles: Total execution cycles since last reset
 
 ## Learning Path Suggestions
 

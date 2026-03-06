@@ -86,7 +86,7 @@ The CLI tools must be cross-platform compatible:
   * **Assembly Input:** Direct writing of mnemonics with basic syntax highlighting.
   * **Machine Code Input:** A hex-editor mode for direct manipulation of the 16-bit binary memory image.
   * **Real-time Assembly:** Automated translation between the assembly view and the machine code view.
-* **Execution Controls:** Step and Reset functionality.
+* **Execution Controls:** Step, Run (continuous), and Reset functionality.
 * **Visual State Monitoring:** Real-time display of **PC**, **AC**, **IR**, and a scrollable memory grid.
 * **Persistence:** Load/Save state as JSON files (.json).
 * **Error Handling:** Error messages displayed in status bar with memory address highlighting.
@@ -98,11 +98,11 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
 #### 3.5.1 Layout Topology
 *   **Header (Gtk.HeaderBar):**
     *   **Left:** File Operations (New, Open, Save), Version Selector (HMv1–HMv4).
-    *   **Right:** Execution Controls (Reset, Step).
+    *   **Right:** Execution Controls (Reset, Step, Run).
 *   **Main Content (Gtk.Paned - Horizontal):**
     *   **Left Pane (Editor):** Placeholder for future dual-mode editor.
     *   **Right Pane (State):** A vertical stack containing:
-        1. **Register View:** Real-time display of PC, AC, IR, and SR.
+        1. **Register View:** Real-time display of PC, AC, IR, SR, and Cycles.
         2. **Memory Grid:** Scrollable grid showing 64KB memory with Address and Value columns.
         3. **Status Bar:** Displays "Ready" or error messages (e.g., "Error at 0x0000: Invalid opcode").
 

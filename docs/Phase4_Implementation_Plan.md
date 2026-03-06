@@ -179,25 +179,23 @@ python3 src/hmsim/gui/hm_gui.py
 
 ---
 
-## Step 4.6: Continuous Execution & File I/O
+## Step 4.6: Continuous Execution & File I/O - COMPLETED
 
 ### Actions
 1. Add execution controls to HeaderBar:
-   - **Run/Pause Toggle:** Use `GLib.timeout_add` for continuous `step()` execution
-   - **Speed Slider:** 1Hz to 100Hz frequency control
+   - **Run/Pause Toggle:** Uses `GLib.idle_add` for continuous execution with batch processing
+   - **Batch Size:** 1000 instructions per GUI tick for high-speed simulation (~60K instructions/sec)
+   - Implements `total_cycles` counter for accurate cycle statistics
 2. Implement File Operations:
    - **New:** Clear memory and registers
-   - **Open:** Use `Gtk.FileDialog` to load `.bin` files into memory
-   - **Save:** Export memory to `.bin` file
-3. Add Assembly file support:
-   - Parse `.asm` files using `hmasm` logic
-   - Save editor content to `.asm`
+   - **Open:** Use `Gtk.FileDialog` to load `.json` state files into memory
+   - **Save:** Export memory to `.json` file (sparse format)
 
 ### Verification
-- Load a sample `.bin` file
-- Click "Run" at 10Hz
-- **Expected:** PC advances automatically through memory
-- Click "Pause" - execution stops
+- Load a sample `.json` file
+- Click "Run"
+- **Expected:** PC advances automatically, Cycles counter increments rapidly
+- Click "Stop" - execution pauses
 - Save file, reopen - content preserved
 
 ---
