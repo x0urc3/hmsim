@@ -1,12 +1,30 @@
-"""Unit tests for version handling and state loading."""
+"""Tests for version handling and state loading."""
 
-import json
-import os
-import tempfile
-import pytest
+
+class TestVersionDropdown:
+    """Test version dropdown functionality."""
+
+    def test_version_change_to_hmv2(self, main_window):
+        main_window.version_dropdown.set_selected(1)
+        main_window._on_version_changed(main_window.version_dropdown, None)
+        assert main_window.current_version == "HMv2"
+
+    def test_version_preserves_memory(self, main_window):
+        main_window.engine._memory[0x0100] = 0x1234
+        main_window.version_dropdown.set_selected(1)
+        main_window._on_version_changed(main_window.version_dropdown, None)
+        assert main_window.engine._memory[0x0100] == 0x1234
+
+    def test_version_change_creates_new_engine(self, main_window):
+        old_engine_id = id(main_window.engine)
+        main_window.version_dropdown.set_selected(1)
+        main_window._on_version_changed(main_window.version_dropdown, None)
+        assert id(main_window.engine) != old_engine_id
 
 
 class TestVersionMismatchHandling:
+    """Test version loading logic."""
+
     def test_hmv3_defaults_to_hmv2(self):
         state = {
             "version": "HMv3",
