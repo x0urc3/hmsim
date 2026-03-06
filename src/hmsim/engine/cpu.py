@@ -3,6 +3,7 @@
 from typing import Optional
 
 from .isa import VERSION_ISA, HMV1_ISA
+from .strategies import get_strategy
 
 
 class HMEngine:
@@ -19,6 +20,7 @@ class HMEngine:
         self.ac: int = 0x0000
         self.sr: int = 0x0000
         self._memory: list[int] = [0] * 65536
+        self._strategy = get_strategy(version)
 
     @property
     def isa(self) -> dict:
@@ -75,33 +77,8 @@ class HMEngine:
         Returns:
             Number of cycles consumed.
         """
-        from .isa import OP_LOAD, OP_STORE, OP_ADD, OP_SUB, OP_JMP, OP_JMPZ
-
         self._check_version_support(opcode)
-
-        if opcode == OP_LOAD:
-            self.ac = self._memory[address]
-            return self.isa["LOAD"][1]
-        elif opcode == OP_STORE:
-            self._memory[address] = self.ac
-            return self.isa["STORE"][1]
-        elif opcode == OP_ADD:
-            self.ac = (self.ac + self._memory[address]) & 0xFFFF
-            self._update_sr(self.ac)
-            return self.isa["ADD"][1]
-        elif opcode == OP_SUB:
-            self.ac = (self.ac - self._memory[address]) & 0xFFFF
-            self._update_sr(self.ac)
-            return self.isa["SUB"][1]
-        elif opcode == OP_JMP:
-            self.pc = address
-            return self.isa["JMP"][1]
-        elif opcode == OP_JMPZ:
-            if self.sr & 0x4000:
-                self.pc = address
-            return self.isa["JMPZ"][1]
-        else:
-            raise ValueError(f"Unknown opcode: {opcode:#x}")
+        return self._strategy.execute(self, opcode, address)
 
     def step(self) -> int:
         """Execute one instruction cycle.
