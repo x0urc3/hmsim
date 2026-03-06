@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """HM Assembler - CLI tool to assemble HM instructions."""
 
+import argparse
 import sys
 from typing import Optional
 
-from hmsim.engine.isa import HMV1_ISA
+from hmsim.engine.isa import VERSION_ISA
 
 
-def assemble(instruction: str) -> int:
+def assemble(instruction: str, version: str = "HMv1") -> int:
     """Assemble an instruction string into machine code.
 
     Args:
         instruction: String like "LOAD 100", "STORE 0x200", "ADD 0b1010"
+        version: HM version (HMv1 or HMv2)
 
     Returns:
         16-bit machine code word.
@@ -26,10 +28,11 @@ def assemble(instruction: str) -> int:
     mnemonic = parts[0].upper()
     address_str = parts[1]
 
-    if mnemonic not in HMV1_ISA:
-        raise ValueError(f"Unknown mnemonic: {mnemonic}")
+    isa = VERSION_ISA[version]
+    if mnemonic not in isa:
+        raise ValueError(f"Unknown mnemonic '{mnemonic}' for {version}")
 
-    opcode = HMV1_ISA[mnemonic][0]
+    opcode = isa[mnemonic][0]
     address = int(address_str, 0)
 
     if not 0 <= address <= 0xFFF:
@@ -40,16 +43,29 @@ def assemble(instruction: str) -> int:
 
 def main(argv: Optional[list[str]] = None) -> int:
     """Main entry point."""
-    argv = argv or sys.argv[1:]
+    parser = argparse.ArgumentParser(
+        description="HM Assembler - Convert mnemonics to machine code"
+    )
+    parser.add_argument(
+        "-v", "--version",
+        default="HMv1",
+        choices=["HMv1", "HMv2"],
+        help="HM processor version (default: HMv1)"
+    )
+    parser.add_argument(
+        "instruction",
+        nargs="?",
+        help="Instruction to assemble (e.g., 'LOAD 100')"
+    )
+    args = parser.parse_args(argv)
 
-    if not argv:
-        print("Usage: hmasm <instruction>", file=sys.stderr)
-        print("Example: hmasm 'LOAD 100'", file=sys.stderr)
+    if not args.instruction:
+        print("Usage: hmasm [-v HMv1|HMv2] <instruction>", file=sys.stderr)
+        print("Example: hmasm -v HMv2 'SUB 100'", file=sys.stderr)
         return 1
 
-    instruction = " ".join(argv)
     try:
-        result = assemble(instruction)
+        result = assemble(args.instruction, args.version)
         print(f"0x{result:04X}")
         return 0
     except ValueError as e:
