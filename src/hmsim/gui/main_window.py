@@ -2,13 +2,18 @@
 """HM Simulator - Main Window."""
 
 import sys
+import os
 
-import gi
-gi.require_version('Gtk', '4.0')
-gi.require_version('Gio', '2.0')
-from gi.repository import Gtk, Gio, GLib
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from . import GTK_AVAILABLE
+try:
+    import gi
+    gi.require_version('Gtk', '4.0')
+    gi.require_version('Gio', '2.0')
+    from gi.repository import Gtk, Gio, GLib
+    GTK_AVAILABLE = True
+except ImportError:
+    GTK_AVAILABLE = False
 
 if not GTK_AVAILABLE:
     print("Error: PyGObject (GTK 4) is not installed.", file=sys.stderr)
