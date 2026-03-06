@@ -177,18 +177,8 @@ The development is divided into verifiable phases. At the end of each phase, the
     # Output: 0x6064
     ```
 
-### Phase 3: GTK 4 Graphical Interface
-**Objective:** Provide a visual debugger for real-time architectural exploration.
-*   **Deliverables:** `hm_gui.py`, `main_window.py`, and Register/Memory widgets.
-*   **Verification:**
-    ```bash
-    # Launch the GUI
-    python3 src/hmsim/gui/hm_gui.py
-    # User Action: Load a .bin file, click 'Step', and observe Register updates.
-    ```
-
-### Phase 4: Disassembler & Tooling Refinement
-**Objective:** Complete the CLI suite with reverse-engineering capabilities.
+### Phase 3: Disassembler & Tooling Refinement
+**Objective:** Complete the CLI suite with reverse-engineering capabilities. Finalizing CLI tools first ensures the core engine and ISA logic is solid before building the GUI on top.
 *   **Deliverables:** `hmdas.py`.
 *   **Verification:**
     ```bash
@@ -198,7 +188,29 @@ The development is divided into verifiable phases. At the end of each phase, the
     # Output should return: ADD 0x300
     ```
 
-### Phase 5: Distribution & Packaging
+### Phase 4: GTK 4 Graphical Interface
+**Objective:** Provide a visual debugger for real-time architectural exploration. The disassembler from Phase 3 enables the dual-mode editor with real-time assembly/machine-code sync.
+*   **Deliverables:** `hm_gui.py`, `main_window.py`, and Register/Memory widgets.
+*   **Verification:**
+    ```bash
+    # Launch the GUI
+    python3 src/hmsim/gui/hm_gui.py
+    # User Action: Load a .bin file, click 'Step', and observe Register updates.
+    ```
+
+### Phase 5: ISA Expansion II (HMv3 & HMv4)
+**Objective:** Implement advanced architectural features and update GUI to support them.
+*   **Deliverables:**
+    *   HMv3: `CALL` (0xA) and `RETURN` (0xB) with stack support.
+    *   HMv4: Indirect `LOAD` (0x3) and `STORE` (0x4).
+    *   GUI updates: Stack visualization for subroutines, address redirection highlighting.
+*   **Verification:**
+    ```bash
+    pytest tests/unit/test_cpu.py
+    # All tests pass including HMv3 and HMv4 opcodes
+    ```
+
+### Phase 6: Distribution & Packaging
 **Objective:** Produce standalone executables for Linux and Windows.
 *   **Deliverables:** `pyinstaller` build scripts and `dist/hmsim` binaries.
 *   **Verification:**
