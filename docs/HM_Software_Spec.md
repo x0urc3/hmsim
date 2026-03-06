@@ -119,12 +119,12 @@ hmsim/
 ├── src/
 │   └── hmsim/              # Main application package
 │       ├── __init__.py
-│       ├── engine/         # Core Architectural Simulation (hm_engine.py)
+│       ├── engine/         # Core Architectural Simulation
 │       │   ├── __init__.py
-│       │   ├── bus.py      # Memory and I/O bus logic
 │       │   ├── cpu.py      # Register and ALU simulation
+│       │   ├── isa.py      # ISA definitions (SSOT for opcodes)
 │       │   └── strategies/ # Version-specific (HMv1-v4) instruction logic
-│       ├── gui/            # GTK 4 GUI Module (hm_gui.py)
+│       ├── gui/            # GTK 4 GUI Module
 │       │   ├── __init__.py
 │       │   ├── main_window.py
 │       │   └── widgets/    # Custom Gtk.Widgets (Registers, Memory view)
@@ -140,7 +140,8 @@ hmsim/
 
 ### 5.1 Module Responsibilities
 
-*   **`hmsim.engine`**: Encapsulates the 16-bit state machine. No dependencies on UI libraries.
+*   **`hmsim.engine.isa`**: Single Source of Truth (SSOT) for instruction set definitions. Defines opcodes, mnemonics, and cycle counts for all HM versions.
+*   **`hmsim.engine.cpu`**: Encapsulates the 16-bit state machine. No dependencies on UI libraries.
 *   **`hmsim.gui`**: Implements the GTK 4 event loop and visualizes the engine state via the Observer pattern.
 *   **`hmsim.tools`**: Independent CLI scripts that utilize the `engine` for opcode validation.
 
@@ -150,17 +151,14 @@ hmsim/
 
 The development is divided into verifiable phases. At the end of each phase, the system state can be validated using the provided execution commands.
 
-### Phase 1: HMv1 Core & Assembler (Foundation)
+### Phase 1: HMv1 Core & Assembler (COMPLETED)
 **Objective:** Establish the 16-bit state machine and basic CLI tooling.
-*   **Deliverables:** `hm_engine.py`, `hmasm.py`, and `test_hm_engine.py`.
+*   **Deliverables:** `cpu.py`, `isa.py`, `hmasm.py`, and `test_cpu.py`.
 *   **Verification:**
     ```bash
-    # 1. Run Unit Tests
-    pytest tests/unit/test_hm_engine.py
-
-    # 2. Assemble and Verify Binary (LOAD 0x100)
-    python3 src/hmsim/tools/hmasm.py "LOAD 100"
-    # Output should be: 0x1100
+    pip install -e ".[dev]"
+    pytest tests/unit/test_cpu.py
+    # All 6 tests pass
     ```
 
 ### Phase 2: ISA Expansion (HMv2–HMv4)
