@@ -94,27 +94,30 @@ Use Google-style docstrings for all public functions.
 
 ```
 hmsim/
+├── .github/
+│   └── workflows/
+│       └── ci.yml      # GitHub Actions CI
 ├── src/hmsim/
 │   ├── __init__.py
-│   ├── engine/           # Core simulation (no UI deps)
+│   ├── engine/         # Core simulation (no UI deps)
 │   │   ├── __init__.py
-│   │   ├── bus.py       # Memory and I/O bus
-│   │   ├── cpu.py       # Register and ALU
-│   │   └── strategies/  # Version-specific logic
+│   │   ├── cpu.py       # HMEngine, HMv1Engine
+│   │   ├── isa.py       # SSOT for opcodes
+│   │   └── strategies/  # ExecutionStrategy, HMv1Strategy, HMv2Strategy
 │   ├── gui/             # GTK 4 GUI Module
 │   │   ├── __init__.py
 │   │   ├── main_window.py
 │   │   └── widgets/     # Custom Gtk.Widgets
 │   └── tools/           # CLI Tools
 │       ├── __init__.py
-│       ├── hmasm.py     # Assembler
+│       ├── hmasm.py     # Assembler (supports -v flag)
 │       └── hmdas.py     # Disassembler
 ├── tests/
 │   ├── __init__.py
-│   ├── unit/            # Opcode and logic tests
-│   └── integration/     # GUI/CLI end-to-end tests
+│   └── unit/            # Opcode and logic tests (15 tests)
 ├── docs/
-└── pyproject.toml
+├── pyproject.toml
+└── AGENTS.md
 ```
 
 ---
@@ -165,4 +168,4 @@ class TestHMv1Engine:
 
 - ISA Specification: `docs/HM_ISA_Specification.md`
 - Software Specification: `docs/HM_Software_Spec.md`
-- Implementation Plan: `docs/Phase1_Implementation_Plan.md`
+- GitHub CI: `.github/workflows/ci.yml`

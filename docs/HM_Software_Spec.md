@@ -113,6 +113,9 @@ To ensure scalability and maintain clear separation of concerns, the project wil
 
 ```text
 hmsim/
+├── .github/
+│   └── workflows/
+│       └── ci.yml          # GitHub Actions CI
 ├── docs/                   # Engineering specifications and ISA documentation
 │   ├── HM_Software_Spec.md
 │   └── HM_ISA_Specification.md
@@ -135,7 +138,8 @@ hmsim/
 ├── tests/                  # TDD Suite
 │   ├── unit/               # Opcode and logic verification
 │   └── integration/        # GUI/CLI end-to-end tests
-└── pyproject.toml          # Build system & dependencies
+├── pyproject.toml          # Build system & dependencies
+└── AGENTS.md              # Development guide for AI agents
 ```
 
 ### 5.1 Module Responsibilities
@@ -161,13 +165,16 @@ The development is divided into verifiable phases. At the end of each phase, the
     # All 6 tests pass
     ```
 
-### Phase 2: ISA Expansion (HMv2–HMv4)
+### Phase 2: ISA Expansion (COMPLETED)
 **Objective:** Implement the Strategy pattern to support multiple instruction sets.
-*   **Deliverables:** `strategies/` directory with version-specific decoding logic.
+*   **Deliverables:** `strategies/` directory with version-specific decoding logic, HMv2 support in engine and assembler.
 *   **Verification:**
     ```bash
-    # Load the engine with HMv2 profile and attempt a v2-specific opcode
-    python3 -c "from hmsim.engine import Engine; e = Engine(version='HMv2'); e.execute(0x7, 0x001)"
+    pip install -e ".[dev]"
+    pytest tests/unit/test_cpu.py
+    # All 15 tests pass (HMv1 + HMv2)
+    python3 src/hmsim/tools/hmasm.py -v HMv2 "SUB 100"
+    # Output: 0x6064
     ```
 
 ### Phase 3: GTK 4 Graphical Interface
