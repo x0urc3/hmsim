@@ -247,7 +247,8 @@ class MainWindow(Gtk.ApplicationWindow):
             ac=self.engine.ac,
             ir=self.engine.ir,
             sr=self.engine.sr,
-            cycles=self.engine.total_cycles
+            cycles=self.engine.total_cycles,
+            instructions=self.engine.total_instructions
         )
         self.memory_view.set_memory(self.engine._memory)
 

@@ -21,6 +21,7 @@ class HMEngine:
         self.ac: int = 0x0000
         self.sr: int = 0x0000
         self.total_cycles: int = 0
+        self.total_instructions: int = 0
         self.comments: Dict[int, str] = {}
         self._memory: list[int] = [0] * 65536
         self._strategy = get_strategy(version)
@@ -73,6 +74,7 @@ class HMEngine:
         self.ac = 0x0000
         self.sr = 0x0000
         self.total_cycles = 0
+        self.total_instructions = 0
         self.comments = {}
         self._memory = [0] * 65536
         self._notify_observers()
@@ -153,6 +155,7 @@ class HMEngine:
         old_pc = self.pc
         cycles = self.execute(opcode, address)
         self.total_cycles += cycles
+        self.total_instructions += 1
         if self.pc == old_pc:
             self.pc = (self.pc + 1) & 0xFFFF
         if notify:
