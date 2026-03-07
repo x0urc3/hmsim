@@ -12,7 +12,7 @@ This document outlines the step-by-step implementation plan for Phase 4 of the H
 
 ---
 
-## Step 4.1: Foundation & Header Bar
+## Step 4.1: Foundation & Header Bar - COMPLETED
 
 ### Actions
 1. Create `src/hmsim/gui/__init__.py` - Package init with optional GTK check
@@ -21,19 +21,18 @@ This document outlines the step-by-step implementation plan for Phase 4 of the H
    - Create main window with `Gtk.ApplicationWindow`
 3. Create `src/hmsim/gui/main_window.py` - Main window container
    - Setup `Gtk.HeaderBar` with title "HM Simulator"
-   - Add Version Selector (`Gtk.DropDown`) for HMv1/HMv2
-   - Add basic menu (About, Quit)
+   - HeaderBar will primarily act as the title bar, as controls will move to Toolbar/Menus.
 
 ### Verification
 ```bash
 pip install -e ".[gui]"
 python3 src/hmsim/gui/hm_gui.py
 ```
-**Expected:** Window appears with HeaderBar and functional version dropdown.
+**Expected:** Window appears with HeaderBar title.
 
 ---
 
-## Step 4.2: Register & Status Panel
+## Step 4.2: Register & Status Panel - COMPLETED
 
 ### Actions
 1. Create `src/hmsim/gui/widgets/__init__.py` - Widgets package init
@@ -49,7 +48,7 @@ python3 src/hmsim/gui/hm_gui.py
 
 ---
 
-## Step 4.3: Memory Visualization Grid
+## Step 4.3: Memory Visualization Grid - COMPLETED
 
 ### Actions
 1. Create `src/hmsim/gui/widgets/memory_view.py`
@@ -64,139 +63,105 @@ python3 src/hmsim/gui/hm_gui.py
 
 ---
 
-## Step 4.4: Engine Integration & Step Control
+## Step 4.4: Engine Integration & State Metadata - COMPLETED
 
 ### Actions
 1. Update `src/hmsim/engine/cpu.py`:
    - Add `observers: List[Callable]` to `HMEngine.__init__`
    - Add `register_observer(callback)` method
+   - Add `comments: Dict[int, str]` for storing inline comments from `.hm` files
    - Create `_notify_observers()` called after `step()`, `execute()`, and memory writes
 2. Update `src/hmsim/gui/main_window.py`:
    - Instantiate `HMEngine(version)` in MainWindow
-   - Connect HeaderBar buttons to engine actions:
-     - **Step:** Call `engine.step()`, refresh UI
-     - **Reset:** Re-initialize engine, refresh UI
 
 ### Verification
-```python
-# Hardcode test in main_window.py:
-engine._memory[0] = 0x1100  # LOAD 0x000
-engine._memory[1] = 0x0005  # Data: 5
-```
 - Launch GUI
-- Click "Step"
-- **Expected:** AC changes to `0x0005`, PC changes to `0x0002`
+- No crashes; engine initializes with default version (HMv1).
 
 ---
 
-## Step 4.x: File I/O (JSON State) - COMPLETED
+## Step 4.5: Menus, Keyboard Shortcuts, and Toolbar
 
 ### Actions
-1. Add File menu to HeaderBar with: New, Open, Save buttons
-2. Create `src/hmsim/gui/widgets/file_dialog.py`:
-   - GTK4 FileDialog utilities
-3. Implement sparse JSON state format (only non-zero memory):
+1. Implement MenuBar using `GMenu` model in `src/hmsim/gui/hm_gui.py`:
+   - **File:** New, Open (Ctrl+O), Save (Ctrl+S), Quit (Ctrl+Q)
+   - **Run:** Reset, Step (F10), Run (F5)
+   - **Help:** About
+2. Add a `Gtk.Box` (Toolbar) below the HeaderBar:
+   - **Version Selector:** `Gtk.DropDown` for HMv1/HMv2
+   - **Execution Controls:** Reset, Step, Run buttons with icons.
+3. Use `Gtk.ShortcutController` to map keyboard shortcuts to application actions.
+
+### Verification
+- Launch GUI
+- Verify MenuBar is functional and keyboard shortcuts (e.g., Ctrl+Q) work.
+- Toolbar buttons should be visible and clickable.
+
+---
+
+## Step 4.6: Assembly Editor
+
+### Actions
+1. Create `src/hmsim/gui/widgets/editor_view.py`:
+   - Single-pane `Gtk.TextView` for assembly mnemonics and comments.
+   - Integration with `engine.text` from `.hm` files.
+2. Implement parsing logic:
+   - When text in the editor changes, attempt to assemble each line using `hmsim.tools.hmasm.assemble()`.
+   - Update `engine._memory` and `engine.comments` in real-time (with a slight debounce).
+
+### Verification
+- Type `LOAD 0x100 ; initialize` in the editor.
+- **Expected:** Memory grid updates at 0x0000 with the correct machine code, and the comment is stored.
+
+---
+
+## Step 4.x: File I/O (.hm State) - COMPLETED
+
+### Actions
+1. Create `src/hmsim/gui/widgets/file_dialog.py`:
+   - GTK4 FileDialog utilities configured for `.hm` files.
+2. Implement structured `.hm` format (Linear Disassembly heuristic):
    ```json
    {
      "version": "HMv1",
      "pc": 0,
      "ac": 0,
-     "ir": 0,
-     "sr": 0,
-     "memory": {
-       "0": 4352,
-       "256": 5
+     "text": {
+       "0x0000": "LOAD 0x00A ; Fetch operand",
+       "0x0001": "ADD 0x00B"
+     },
+     "data": {
+       "0x000A": "0x0005"
      }
    }
    ```
-4. Add save functionality:
-   - Serialize engine state to JSON
-   - Only store non-zero memory values
-5. Add load functionality:
-   - Read JSON file, validate version
-   - Update UI after load
-   - Show "Loaded HMv1 state" or "Warning: HMv3 state loaded as HMv2" in status bar
+3. Add save functionality:
+   - Serialize engine state to `.hm` dictionary using heuristic.
+4. Add load functionality:
+   - Read `.hm` file, re-assemble `text` section, and parse `data` section.
+   - Show "Loaded HMv1 state" or "Warning: HMv3 state loaded as HMv2" in status bar.
 
 ### Verification
-```bash
-python3 src/hmsim/gui/hm_gui.py
-# File > Open > tests/fixtures/sample_state.json
-# Verify memory shows instructions at addresses 0 and 256
-# Click Step - AC changes to 5, PC changes to 1
-# File > Save > save.json
-# Verify JSON contains only non-zero memory entries
-```
+- File > Open > `examples/add_two_numbers.hm`
+- Verify assembly text appears in the editor and machine code in memory.
+- Click Step - AC updates correctly.
 
 ---
 
-## Step 4.x: Error Handling - COMPLETED
+## Step 4.7: Continuous Execution & Error Handling - COMPLETED
 
 ### Actions
-1. Add status bar to main window (below memory grid)
-2. Update `_on_step()` to catch exceptions:
-   - Show error message in status bar: "Error at 0x<addr>: <message>"
-   - Highlight error address in memory grid
-3. Clear errors on: Step, Reset, New, Open, Save
+1. Implementation of `Run` logic:
+   - **Run/Pause Toggle:** Uses `GLib.timeout_add` or `GLib.idle_add` for continuous execution.
+   - **Batch Size:** 1000 instructions per GUI tick for high-speed simulation.
+2. Status bar & Error Handling:
+   - Catch `ValueError` or `KeyboardInterrupt` during execution.
+   - Show error message in status bar and highlight error address in memory grid.
 
 ### Verification
-- Launch GUI with empty memory
-- Click Step - error message appears, address 0 highlighted in memory
-- Click Reset - error clears, "Ready" shown in status bar
-
----
-
-## Step 4.x: Version Switch Preserves State - COMPLETED
-
-### Actions
-1. Update `_on_version_changed()` to:
-   - Save current engine state (memory, PC, AC, IR, SR)
-   - Create new engine with different version
-   - Restore saved state to new engine
-
-### Verification
-- Open a JSON file with instructions
-- Switch version dropdown from HMv1 to HMv2
-- Verify memory and registers remain unchanged
-
----
-
-## Step 4.5: Dual-Mode Editor (Assembly & Hex)
-
-### Actions
-1. Create `src/hmsim/gui/widgets/editor_view.py`
-   - `Gtk.Notebook` with two tabs:
-     - **Assembly Tab:** `Gtk.TextView` for mnemonics
-     - **Machine Code Tab:** `Gtk.TextView` for hex values
-2. Implement sync logic:
-   - **ASM → HEX:** On text change, parse each line, use `hmsim.tools.hmasm.assemble()`, update hex view
-   - **HEX → ASM:** On text change, parse hex, use `hmsim.tools.hmdas.disassemble()`, update asm view
-3. Link editor changes to memory:
-   - Changes in ASM/HEX view update engine memory at corresponding addresses
-
-### Verification
-- Type `LOAD 0x100` in ASM pane
-- **Expected:** HEX pane shows `0x1100`, Memory Grid reflects change at address 0x0000
-
----
-
-## Step 4.6: Continuous Execution & File I/O - COMPLETED
-
-### Actions
-1. Add execution controls to HeaderBar:
-   - **Run/Pause Toggle:** Uses `GLib.idle_add` for continuous execution with batch processing
-   - **Batch Size:** 1000 instructions per GUI tick for high-speed simulation (~60K instructions/sec)
-   - Implements `total_cycles` counter for accurate cycle statistics
-2. Implement File Operations:
-   - **New:** Clear memory and registers
-   - **Open:** Use `Gtk.FileDialog` to load `.json` state files into memory
-   - **Save:** Export memory to `.json` file (sparse format)
-
-### Verification
-- Load a sample `.json` file
-- Click "Run"
-- **Expected:** PC advances automatically, Cycles counter increments rapidly
-- Click "Stop" - execution pauses
-- Save file, reopen - content preserved
+- Launch GUI, click "Run".
+- Cycles counter increments rapidly.
+- Errors (e.g., unknown opcode) appear in status bar.
 
 ---
 
@@ -205,14 +170,14 @@ python3 src/hmsim/gui/hm_gui.py
 ```text
 src/hmsim/gui/
 ├── __init__.py
-├── hm_gui.py              # Entry point
-├── main_window.py         # Main window + HeaderBar + file I/O
+├── hm_gui.py              # App entry + MenuBar definition
+├── main_window.py         # Main window + HeaderBar + Toolbar + status bar
 └── widgets/
     ├── __init__.py
     ├── register_view.py  # PC, AC, IR, SR display
     ├── memory_view.py    # Scrollable memory grid + highlighting
-    ├── file_dialog.py    # File dialog utilities
-    └── editor_view.py    # (Future) Dual-mode editor
+    ├── file_dialog.py    # .hm File dialog utilities
+    └── editor_view.py    # Assembly editor
 ```
 
 ---
@@ -228,6 +193,6 @@ src/hmsim/gui/
 
 ## Testing Strategy
 
-1. **Manual UI Testing:** Each step includes manual verification commands
-2. **Regression Testing:** Existing `pytest` tests must continue to pass
-3. **Integration Testing:** Future tests in `tests/integration/` will verify GUI/Engine interaction
+1. **Manual UI Testing:** Verify shortcuts and toolbar interaction.
+2. **Regression Testing:** Existing `pytest` tests must pass.
+3. **Round-trip Test:** Open `.hm` → edit assembly → save → reopen and verify state.
