@@ -18,12 +18,12 @@ class FileDialog:
     @staticmethod
     def open_dialog(parent, title="Open File"):
         dialog = Gtk.FileDialog(title=title)
-        dialog.set_initial_name("program.json")
+        dialog.set_initial_name("program.hm")
 
-        filter_json = Gtk.FileFilter()
-        filter_json.set_name("JSON Files")
-        filter_json.add_pattern("*.json")
-        dialog.set_default_filter(filter_json)
+        filter_hm = Gtk.FileFilter()
+        filter_hm.set_name("HM State Files (*.hm)")
+        filter_hm.add_pattern("*.hm")
+        dialog.set_default_filter(filter_hm)
 
         filter_all = Gtk.FileFilter()
         filter_all.set_name("All Files")
@@ -34,11 +34,11 @@ class FileDialog:
     @staticmethod
     def save_dialog(parent, title="Save File"):
         dialog = Gtk.FileDialog(title=title)
-        dialog.set_initial_name("program.json")
+        dialog.set_initial_name("program.hm")
 
-        filter_json = Gtk.FileFilter()
-        filter_json.set_name("JSON Files")
-        filter_json.add_pattern("*.json")
-        dialog.set_default_filter(filter_json)
+        filter_hm = Gtk.FileFilter()
+        filter_hm.set_name("HM State Files (*.hm)")
+        filter_hm.add_pattern("*.hm")
+        dialog.set_default_filter(filter_hm)
 
         return dialog

@@ -333,7 +333,7 @@ Practice by writing programs that:
 
 The `examples/` directory contains sample programs to study:
 
-- **add_two_number.json**: A complete HMv1 program that adds 5 + 7 = 12
+- **add_two_numbers.hm**: A complete HMv1 program that adds 5 + 7 = 12
 
 Load this example in the simulator to see how a complete program looks in saved state format.
 

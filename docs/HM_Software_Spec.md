@@ -92,7 +92,7 @@ The CLI tools must be cross-platform compatible:
   * **Real-time Assembly:** Automated translation between the assembly view and the machine code view.
 * **Execution Controls:** Step, Run (continuous), and Reset functionality.
 * **Visual State Monitoring:** Real-time display of **PC**, **AC**, **IR**, and a scrollable memory grid.
-* **Persistence:** Load/Save state as JSON files (.json).
+* **Persistence:** Load/Save state as HM files (.hm) with structured text and data sections.
 * **Error Handling:** Error messages displayed in status bar with memory address highlighting.
 
 ### 3.5 GUI Layout & Interaction Specification

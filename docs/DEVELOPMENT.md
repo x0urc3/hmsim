@@ -12,7 +12,7 @@ The `hmsim` tool executes HM JSON state files without a graphical interface. Thi
 
 **Usage:**
 ```bash
-hmsim <state_file.json> [options]
+hmsim <state_file.hm> [options]
 ```
 
 **Options:**
@@ -21,7 +21,7 @@ hmsim <state_file.json> [options]
 
 **Example:**
 ```bash
-hmsim examples/add_two_numbers.json
+hmsim examples/add_two_numbers.hm
 ```
 
 **Output:**
