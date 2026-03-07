@@ -44,21 +44,60 @@ class MainWindow(Gtk.ApplicationWindow):
         self.engine = HMEngine(self.current_version)
         self._is_running = False
         self._run_source_id = None
-        self._setup_ui()
+        self._setup_ui(application)
+        self._setup_actions()
         self._connect_engine()
 
-    def _setup_ui(self):
+    def _setup_ui(self, app=None):
         self.set_titlebar(self._create_header_bar())
 
-        main_box = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        main_box.set_hexpand(True)
-        main_box.set_vexpand(True)
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
         self.set_child(main_box)
 
+        # Add MenuBar explicitly for GTK4
+        if app:
+            menubar_model = getattr(app, 'menubar_model', app.get_menubar())
+            if menubar_model:
+                menubar = Gtk.PopoverMenuBar.new_from_model(menubar_model)
+                menubar.set_hexpand(True)
+                main_box.append(menubar)
+
+                # Add separator
+                separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+                main_box.append(separator)
+
+        toolbar = self._create_toolbar()
+        main_box.append(toolbar)
+
+        # Add CSS provider
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data(b"""
+            .toolbar {
+                padding: 4px;
+                border-bottom: 1px solid @borders;
+                background-color: @theme_bg_color;
+            }
+            popovermenubar {
+                background-color: @theme_bg_color;
+                border-bottom: 1px solid @borders;
+                min-height: 30px;
+            }
+        """)
+        Gtk.StyleContext.add_provider_for_display(
+            self.get_display(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+
+        paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        paned.set_hexpand(True)
+        paned.set_vexpand(True)
+        main_box.append(paned)
+
         left_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
-        main_box.set_start_child(left_pane)
-        main_box.set_resize_start_child(True)
-        main_box.set_shrink_start_child(False)
+        paned.set_start_child(left_pane)
+        paned.set_resize_start_child(True)
+        paned.set_shrink_start_child(False)
 
         label = Gtk.Label(label="Editor (Coming Soon)")
         label.set_hexpand(True)
@@ -67,9 +106,9 @@ class MainWindow(Gtk.ApplicationWindow):
 
         right_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=False, vexpand=True)
         right_pane.set_size_request(360, -1)
-        main_box.set_end_child(right_pane)
-        main_box.set_resize_end_child(False)
-        main_box.set_shrink_end_child(False)
+        paned.set_end_child(right_pane)
+        paned.set_resize_end_child(False)
+        paned.set_shrink_end_child(False)
 
         self.register_view = RegisterView()
         right_pane.append(self.register_view)
@@ -92,49 +131,72 @@ class MainWindow(Gtk.ApplicationWindow):
         title_label = Gtk.Label(label="HM Simulator")
         header.set_title_widget(title_label)
 
-        file_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        header.pack_start(file_box)
+        return header
 
-        btn_new = Gtk.Button(label="New")
-        btn_new.connect("clicked", self._on_new)
-        file_box.append(btn_new)
-
-        btn_open = Gtk.Button(label="Open")
-        btn_open.connect("clicked", self._on_open)
-        file_box.append(btn_open)
-
-        btn_save = Gtk.Button(label="Save")
-        btn_save.connect("clicked", self._on_save)
-        file_box.append(btn_save)
-
-        version_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        header.pack_start(version_box)
+    def _create_toolbar(self) -> Gtk.Box:
+        toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        toolbar.set_margin_top(5)
+        toolbar.set_margin_bottom(5)
+        toolbar.set_margin_start(10)
+        toolbar.set_margin_end(10)
+        toolbar.add_css_class("toolbar")
 
         version_label = Gtk.Label(label="Version:")
-        version_box.append(version_label)
+        toolbar.append(version_label)
 
         self.version_dropdown = Gtk.DropDown.new_from_strings(VERSIONS)
         self.version_dropdown.set_selected(0)
         self.version_dropdown.connect("notify::selected", self._on_version_changed)
-        version_box.append(self.version_dropdown)
+        toolbar.append(self.version_dropdown)
 
-        control_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        header.pack_end(control_box)
+        separator1 = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        toolbar.append(separator1)
 
         self.btn_reset = Gtk.Button(label="Reset")
-        self.btn_reset.connect("clicked", self._on_reset)
-        control_box.append(self.btn_reset)
+        self.btn_reset.set_action_name("win.reset")
+        toolbar.append(self.btn_reset)
 
         self.btn_run = Gtk.Button(label="Run")
         self.btn_run.set_size_request(60, -1)
-        self.btn_run.connect("clicked", self._on_run)
-        control_box.append(self.btn_run)
+        self.btn_run.set_action_name("win.run")
+        toolbar.append(self.btn_run)
 
         self.btn_step = Gtk.Button(label="Step")
-        self.btn_step.connect("clicked", self._on_step)
-        control_box.append(self.btn_step)
+        self.btn_step.set_action_name("win.step")
+        toolbar.append(self.btn_step)
 
-        return header
+        return toolbar
+
+    def _setup_actions(self):
+        self._add_action("new", self._on_new_action)
+        self._add_action("open", self._on_open_action)
+        self._add_action("save", self._on_save_action)
+        self._add_action("step", self._on_step_action)
+        self._add_action("run", self._on_run_action)
+        self._add_action("reset", self._on_reset_action)
+
+    def _add_action(self, name, callback):
+        action = Gio.SimpleAction.new(name, None)
+        action.connect("activate", callback)
+        self.add_action(action)
+
+    def _on_new_action(self, action, param):
+        self._on_new(None)
+
+    def _on_open_action(self, action, param):
+        self._on_open(None)
+
+    def _on_save_action(self, action, param):
+        self._on_save(None)
+
+    def _on_step_action(self, action, param):
+        self._on_step(None)
+
+    def _on_run_action(self, action, param):
+        self._on_run(None)
+
+    def _on_reset_action(self, action, param):
+        self._on_reset(None)
 
     def _on_version_changed(self, dropdown, pspec):
         index = dropdown.get_selected()
