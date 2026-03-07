@@ -105,7 +105,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.left_pane.append(self.editor_view)
 
         self.right_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=False, vexpand=True)
-        self.right_pane.set_size_request(360, -1)
+        self.right_pane.set_size_request(300, -1)
         paned.set_end_child(self.right_pane)
         paned.set_resize_end_child(False)
         paned.set_shrink_end_child(False)
