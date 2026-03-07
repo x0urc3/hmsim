@@ -66,6 +66,29 @@ hmdas -v HMv1 0x1064
 
 ---
 
+## Graphical User Interface (GTK 4)
+
+The HM Simulator features a modern GTK 4 interface for real-time architectural exploration.
+
+**Launch:**
+```bash
+# Using the entry point script
+python3 src/hmsim/gui/hm_gui.py
+
+# Or if installed via pip
+hmsim_gui
+```
+
+### Key Features:
+- **Assembly Editor:** Real-time assembly of mnemonics into machine code. Supports inline comments and basic syntax highlighting.
+- **Register View:** Live display of PC, AC, IR, SR, and execution cycles.
+- **Memory Grid:** Scrollable 64KB memory view with "Go to Address" functionality and error highlighting.
+- **Execution Controls:** Single-step execution (F10), continuous run (F5), and reset (F12).
+- **Version Selector:** Hot-swapping between HMv1 and HMv2 architectures.
+- **Persistence:** Load and save complete simulator states as `.hm` JSON files.
+
+---
+
 ## Development Workflow
 
 ### Environment Setup

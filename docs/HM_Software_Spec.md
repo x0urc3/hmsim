@@ -101,28 +101,31 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
 
 #### 3.5.1 Layout Topology
 *   **Header (Gtk.HeaderBar):**
-    *   **Left:** File Operations (New, Open, Save), Version Selector (HMv1–HMv4).
-    *   **Right:** Execution Controls (Reset, Step, Run).
-*   **Main Content (Gtk.Paned - Horizontal):**
-    *   **Left Pane (Editor):** Placeholder for future dual-mode editor.
-    *   **Right Pane (State):** A vertical stack containing:
-        1. **Register View:** Real-time display of PC, AC, IR, SR, and Cycles.
-        2. **Memory Grid:** Scrollable grid showing 64KB memory with Address and Value columns.
-        3. **Status Bar:** Displays "Ready" or error messages (e.g., "Error at 0x0000: Invalid opcode").
+    *   **Left:** File Operations (New, Open, Save).
+    *   **Center:** HM Simulator Title.
+*   **Main Content (Gtk.Box - Vertical):**
+    *   **MenuBar (Gtk.PopoverMenuBar):** File, Run, Help menus.
+    *   **Toolbar (Gtk.Box):** Version Selector (HMv1–HMv2), Reset, Run, Step buttons.
+    *   **Paned Content (Gtk.Paned - Horizontal):**
+        *   **Left Pane (Editor):** `Gtk.TextView` for assembly input with real-time assembly.
+        *   **Right Pane (State):** A vertical stack containing:
+            1. **Register View:** Real-time display of PC, AC, IR, SR, and Cycles.
+            2. **Memory Grid:** Scrollable grid showing 64KB memory with Address and Value columns.
+            3. **Status Bar:** Displays "Ready" or error messages (e.g., "Error at 0x0000: Invalid opcode").
 
 #### 3.5.2 State Synchronization (Observer Pattern)
-*   **Engine-to-GUI:** Any change in the `HMEngine` state (registers or memory) emits a `state-changed` signal. Visual widgets subscribe to this signal to update their buffers.
+*   **Engine-to-GUI:** Any change in the `HMEngine` state (registers or memory) emits a notification to observers. Visual widgets subscribe to this to update their buffers.
 *   **GUI-to-Engine:**
-    *   Editing a line in the Assembly Editor triggers `hmasm` to update the corresponding memory address.
-    *   Changing the Version Toggle re-initializes the `HMEngine` with the appropriate `ExecutionStrategy`.
+    *   Editing a line in the Assembly Editor triggers `hmasm` to update the corresponding memory address in real-time (with a slight debounce).
+    *   Changing the Version Toggle re-initializes the `HMEngine` with the appropriate `ExecutionStrategy` and re-assembles the editor text.
 
 #### 3.5.3 Component Architecture
-*   **`src/hmsim/gui/hm_gui.py`**: Application entry point (`Gtk.Application`). Initializes the event loop and main window.
+*   **`src/hmsim/gui/hm_gui.py`**: Application entry point (`Gtk.Application`). Initializes the event loop, MenuBar, and main window.
 *   **`src/hmsim/gui/main_window.py`**: Main container managing the HeaderBar, Paned layout, and widget coordination. Handles file I/O (New/Open/Save) with sparse JSON state format.
-*   **`src/hmsim/gui/widgets/register_view.py`**: Displays PC, AC, IR, SR in monospace hex format.
+*   **`src/hmsim/gui/widgets/register_view.py`**: Displays PC, AC, IR, SR, and cycles in monospace hex format.
 *   **`src/hmsim/gui/widgets/memory_view.py`**: `Gtk.TreeView` grid showing 64KB memory with Address and Value columns. Supports "Go to Address" search and error highlighting.
 *   **`src/hmsim/gui/widgets/file_dialog.py`**: GTK4 FileDialog utilities for Open/Save operations.
-*   **`src/hmsim/gui/widgets/editor_view.py`**: (Future) Dual-pane `Gtk.Notebook` with real-time assembly/disassembly sync.
+*   **`src/hmsim/gui/widgets/editor_view.py`**: `Gtk.TextView` with real-time assembly/disassembly sync and error reporting.
 
 ---
 
@@ -153,6 +156,8 @@ hmsim/
 ├── docs/                   # Engineering specifications and ISA documentation
 │   ├── HM_Software_Spec.md
 │   └── HM_ISA_Specification.md
+│   └── HMSim_File_Format.md
+│   └── DEVELOPMENT.md
 ├── src/
 │   └── hmsim/              # Main application package
 │       ├── __init__.py
@@ -160,9 +165,11 @@ hmsim/
 │       │   ├── __init__.py
 │       │   ├── cpu.py      # Register and ALU simulation
 │       │   ├── isa.py      # ISA definitions (SSOT for opcodes)
+│       │   ├── state.py    # JSON persistence logic
 │       │   └── strategies/ # Version-specific (HMv1-v4) instruction logic
 │       ├── gui/            # GTK 4 GUI Module
 │       │   ├── __init__.py
+│       │   ├── hm_gui.py   # Entry point
 │       │   ├── main_window.py
 │       │   └── widgets/    # Custom Gtk.Widgets (Registers, Memory view)
 │       └── tools/          # CLI Utility Suite
@@ -175,13 +182,6 @@ hmsim/
 ├── pyproject.toml          # Build system & dependencies
 └── AGENTS.md              # Development guide for AI agents
 ```
-
-### 5.1 Module Responsibilities
-
-*   **`hmsim.engine.isa`**: Single Source of Truth (SSOT) for instruction set definitions. Defines opcodes, mnemonics, and cycle counts for all HM versions.
-*   **`hmsim.engine.cpu`**: Encapsulates the 16-bit state machine. No dependencies on UI libraries.
-*   **`hmsim.gui`**: Implements the GTK 4 event loop and visualizes the engine state via the Observer pattern.
-*   **`hmsim.tools`**: Independent CLI scripts that utilize the `engine` for opcode validation.
 
 ---
 
@@ -211,7 +211,7 @@ The development is divided into verifiable phases. At the end of each phase, the
     # Output: 0x6064
     ```
 
-### Phase 3: Disassembler & Tooling Refinement
+### Phase 3: Disassembler & Tooling Refinement (COMPLETED)
 **Objective:** Complete the CLI suite with reverse-engineering capabilities. Finalizing CLI tools first ensures the core engine and ISA logic is solid before building the GUI on top.
 *   **Deliverables:** `hmdas.py`.
 *   **Verification:**
@@ -222,29 +222,29 @@ The development is divided into verifiable phases. At the end of each phase, the
     # Output should return: ADD 0x300
     ```
 
-### Phase 4: GTK 4 Graphical Interface (IN PROGRESS)
+### Phase 4: GTK 4 Graphical Interface (COMPLETED)
 **Objective:** Provide a visual debugger for real-time architectural exploration.
 
-*   **Reference:** See `docs/Phase4_Implementation_Plan.md` for detailed step-by-step implementation.
 *   **Deliverables:**
     *   `src/hmsim/gui/hm_gui.py` - Application entry point
     *   `src/hmsim/gui/main_window.py` - Main window container with HeaderBar
     *   `src/hmsim/gui/widgets/register_view.py` - Register display widget
     *   `src/hmsim/gui/widgets/memory_view.py` - Scrollable memory grid
     *   `src/hmsim/gui/widgets/file_dialog.py` - File dialog utilities
-    *   `src/hmsim/gui/widgets/editor_view.py` - (Future) Dual-mode editor
+    *   `src/hmsim/gui/widgets/editor_view.py` - Assembly editor
 *   **Verification:**
     *   Launch GUI: `python3 src/hmsim/gui/hm_gui.py`
-    *   Header shows: New, Open, Save, Version dropdown, Reset, Step buttons
+    *   Header shows: New, Open, Save
+    *   Toolbar shows: Version dropdown, Reset, Run, Step buttons
     *   Right pane shows: Registers (PC, AC, IR, SR), Memory grid, Status bar
-    *   Memory grid displays 65536 addresses with Address and Value columns
+    *   Left pane shows: Assembly Editor
+    *   Type assembly instructions in the editor; memory and machine code update in real-time.
     *   Clicking "Step" executes one instruction and updates register values
-    *   Clicking "Reset" clears registers and memory
+    *   Clicking "Run" executes continuous instructions until "Stop" or error.
     *   File > Open loads JSON state file; File > Save exports sparse JSON (non-zero memory only)
     *   Error at invalid instruction shows message in status bar and highlights address in memory
-    *   Switching version dropdown preserves current memory and register state
 
-### Phase 5: ISA Expansion II (HMv3 & HMv4)
+### Phase 5: ISA Expansion II (HMv3 & HMv4) (PLANNED)
 **Objective:** Implement advanced architectural features and update GUI to support them.
 *   **Deliverables:**
     *   HMv3: `CALL` (0xA) and `RETURN` (0xB) with stack support.
