@@ -13,6 +13,8 @@ pytest                      # Run all unit tests
 pytest -v                   # Verbose output
 pytest tests/unit/test_cpu.py              # Single test file
 pytest tests/unit/test_cpu.py::test_load_instruction  # Single test function
+pytest tests/unit/gui/           # GUI tests only
+pytest tests/unit/gui/test_controls.py    # Specific GUI test module
 pytest -k "test_load"       # Tests matching pattern
 pytest -s                   # Show print output
 pytest --cov=src/hmsim      # With coverage
@@ -114,7 +116,20 @@ hmsim/
 │       └── hmdas.py     # Disassembler
 ├── tests/
 │   ├── __init__.py
-│   └── unit/            # Opcode and logic tests (15 tests)
+│   └── unit/            # Opcode and logic tests
+│       ├── test_cpu.py
+│       ├── test_engine_integration.py
+│       ├── test_disassembler.py
+│       ├── test_json_state.py
+│       └── gui/         # GUI tests (refactored)
+│           ├── __init__.py
+│           ├── conftest.py
+│           ├── test_setup.py
+│           ├── test_controls.py
+│           ├── test_simulation.py
+│           ├── test_version.py
+│           ├── test_io.py
+│           └── test_feedback.py
 ├── docs/
 ├── pyproject.toml
 └── AGENTS.md

@@ -1,0 +1,7 @@
+--recurse=yes
+--languages=python
+--exclude=venv
+--exclude=.git
+--exclude=__pycache__
+--exclude=.mypy_cache
+--exclude=.pytest_cache
