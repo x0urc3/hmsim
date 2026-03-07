@@ -41,11 +41,11 @@ class RegisterView(Gtk.Box):
         self.append(stats_title)
 
         for name in ["Cycles", "Instructions"]:
-            row = self._create_register_row(name)
+            row = self._create_register_row(name, is_hex=False)
             self.registers[name] = row["value"]
             self.append(row["box"])
 
-    def _create_register_row(self, name: str) -> dict:
+    def _create_register_row(self, name: str, is_hex: bool = True) -> dict:
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
         label = Gtk.Label(label=f"{name}:")
@@ -53,8 +53,12 @@ class RegisterView(Gtk.Box):
         label.set_xalign(1)
         box.append(label)
 
-        value = Gtk.Label(label="0x0000")
-        value.set_width_chars(7)
+        if is_hex:
+            value = Gtk.Label(label="0x0000")
+            value.set_width_chars(7)
+        else:
+            value = Gtk.Label(label="0")
+            value.set_width_chars(7)
         value.set_xalign(0)
         value.add_css_class("monospace")
         box.append(value)
