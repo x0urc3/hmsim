@@ -267,24 +267,17 @@ class MainWindow(Gtk.ApplicationWindow):
         dialog.open(None, None, on_response)
 
     def _save_state(self, file_path):
-        memory = {str(addr): val for addr, val in enumerate(self.engine._memory) if val != 0}
-        state = {
-            "version": self.current_version,
-            "pc": self.engine.pc,
-            "ac": self.engine.ac,
-            "ir": self.engine.ir,
-            "sr": self.engine.sr,
-            "memory": memory
-        }
-        with open(file_path, 'w') as f:
-            json.dump(state, f, indent=2)
+        try:
+            self.engine.save_state(file_path)
+            self.status_bar.set_label(f"Saved to {os.path.basename(file_path)}")
+        except Exception as e:
+            self.status_bar.set_label(f"Error saving state: {e}")
+            self.status_bar.add_css_class("error")
 
     def _load_state(self, file_path):
         try:
-            with open(file_path, 'r') as f:
-                state = json.load(f)
+            version = self.engine.load_state(file_path)
 
-            version = state.get("version", "HMv1")
             if version not in ["HMv1", "HMv2"]:
                 version = "HMv2"
                 self.status_bar.set_label(f"Warning: HMv{version[-1]} state loaded as HMv2")
@@ -293,23 +286,20 @@ class MainWindow(Gtk.ApplicationWindow):
 
             self.current_version = version
             self.version_dropdown.set_selected(VERSIONS.index(version))
-            self.engine = HMEngine(version)
 
-            self.engine.pc = state.get("pc", 0)
-            self.engine.ac = state.get("ac", 0)
-            self.engine.ir = state.get("ir", 0)
-            self.engine.sr = state.get("sr", 0)
+            # If version changed, we might need a new engine, but load_state already filled the current one.
+            # However, the strategy depends on the version.
+            # If the loaded version is different from the current engine's version, we should re-init the engine.
+            if self.engine.version != version:
+                # We need to preserve the state we just loaded
+                pc, ac, ir, sr, memory = self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory
+                self.engine = HMEngine(version)
+                self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory = pc, ac, ir, sr, memory
+                self._connect_engine()
 
-            memory = state.get("memory", {})
-            for addr_str, val in memory.items():
-                addr = int(addr_str)
-                if 0 <= addr < 65536:
-                    if isinstance(val, str) and val.startswith("0x"):
-                        val = int(val, 16)
-                    self.engine._memory[addr] = val & 0xFFFF
-
-            self._connect_engine()
             self._update_ui()
 
         except Exception as e:
+            self.status_bar.set_label(f"Error loading state: {e}")
+            self.status_bar.add_css_class("error")
             print(f"Error loading state: {e}")
