@@ -116,17 +116,37 @@ Each HM version adds new instructions while preserving all previous ones:
 
 ## Getting Started
 
+### Installation
+
+The HM Simulator can be installed as a Python package:
+
+```bash
+pip install -e .
+```
+
+This will register the `hmsim_gui` command to launch the simulator.
+
 ### Launching the Simulator
 
 The HM Simulator provides a graphical user interface (GUI) built with GTK 4. To start the simulator, run:
 
 ```bash
+hmsim_gui
+```
+
+Or using the source path:
+```bash
 python3 src/hmsim/gui/hm_gui.py
 ```
 
-Or if you received an archive with a pre-built executable, simply run that executable.
+### CLI Tools and Development
 
-### The GUI Layout
+For developers and advanced users, the suite includes headless execution (`hmsim`), assembly (`hmasm`), and disassembly (`hmdas`) tools.
+
+For detailed information on using these tools and setting up a development environment, please refer to the [Development Guide](docs/DEVELOPMENT.md).
+
+## The GUI Layout
+
 
 When the simulator starts, you'll see:
 
