@@ -238,7 +238,12 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_save(self, button):
         self._clear_error()
         dialog = Gtk.FileDialog(title="Save State")
-        dialog.set_initial_name("program.json")
+        dialog.set_initial_name("program.hm")
+
+        filter_hm = Gtk.FileFilter()
+        filter_hm.set_name("HM State Files (*.hm)")
+        filter_hm.add_pattern("*.hm")
+        dialog.set_default_filter(filter_hm)
 
         def on_response(dialog, result):
             try:
@@ -254,6 +259,12 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_open(self, button):
         self._clear_error()
         dialog = Gtk.FileDialog(title="Open State")
+        dialog.set_initial_name("program.hm")
+
+        filter_hm = Gtk.FileFilter()
+        filter_hm.set_name("HM State Files (*.hm)")
+        filter_hm.add_pattern("*.hm")
+        dialog.set_default_filter(filter_hm)
 
         def on_response(dialog, result):
             try:
