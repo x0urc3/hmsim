@@ -25,6 +25,7 @@ from hmsim.gui.widgets.register_view import RegisterView
 from hmsim.gui.widgets.memory_view import MemoryView
 from hmsim.gui.widgets.editor_view import EditorView
 from hmsim.engine.cpu import HMEngine
+from hmsim.tools.hmdas import disassemble
 
 
 VERSIONS = ["HMv1", "HMv2", "HMv3", "HMv4"]
@@ -45,6 +46,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.engine = HMEngine(self.current_version)
         self._is_running = False
         self._run_source_id = None
+        self._is_updating_editor = False
         self._setup_ui(application)
         self._setup_actions()
         self._connect_engine()
@@ -115,6 +117,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self.memory_view = MemoryView()
         self.memory_view.set_vexpand(True)
+        self.memory_view.set_memory_changed_callback(self._on_memory_edited)
         self.right_pane.append(self.memory_view)
 
         self.status_bar = Gtk.Label(label="Ready")
@@ -234,12 +237,50 @@ class MainWindow(Gtk.ApplicationWindow):
         self.engine.register_observer(self._update_ui)
 
     def _on_editor_changed(self, text):
+        if self._is_updating_editor:
+            return
         self._clear_error()
         errors = self.editor_view.assemble_to_engine(self.engine)
         if errors:
             for addr, error in errors:
                 self._show_error(f"Line {addr}: {error}", addr)
         self._update_ui()
+
+    def _on_memory_edited(self, address, value):
+        self.engine._memory[address] = value
+        self.engine.comments.pop(address, None)
+        self._refresh_editor_from_memory()
+
+    def _refresh_editor_from_memory(self):
+        self._is_updating_editor = True
+        try:
+            lines = []
+            started = False
+
+            for addr in range(65536):
+                value = self.engine._memory[addr]
+                has_comment = addr in self.engine.comments
+
+                if not started:
+                    if value != 0 or has_comment:
+                        started = True
+                        machine_code = self.engine._memory[addr]
+                        line = disassemble(machine_code, self.current_version)
+                        if has_comment:
+                            line = f"{line} ; {self.engine.comments[addr]}"
+                        lines.append(line)
+                else:
+                    if value == 0 and not has_comment:
+                        break
+                    machine_code = self.engine._memory[addr]
+                    line = disassemble(machine_code, self.current_version)
+                    if has_comment:
+                        line = f"{line} ; {self.engine.comments[addr]}"
+                    lines.append(line)
+
+            self.editor_view.set_text("\n".join(lines))
+        finally:
+            self._is_updating_editor = False
 
     def _update_ui(self):
         self.register_view.update(

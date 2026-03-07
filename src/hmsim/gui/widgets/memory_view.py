@@ -22,6 +22,7 @@ class MemoryView(Gtk.Box):
         self.set_margin_start(10)
         self.set_margin_end(10)
         self._memory = [0] * 65536
+        self._memory_changed_callback = None
         self._setup_ui()
 
     def _setup_ui(self):
@@ -63,6 +64,9 @@ class MemoryView(Gtk.Box):
             renderer = Gtk.CellRendererText()
             col.pack_start(renderer, True)
             col.add_attribute(renderer, "text", i)
+            if i == 1:
+                renderer.set_property("editable", True)
+                renderer.connect("edited", self._on_cell_edited)
 
         self._populate_model()
 
@@ -106,3 +110,22 @@ class MemoryView(Gtk.Box):
         if address is not None and 0 <= address < 65536:
             value = self._memory[address]
             self._model[address] = [f"0x{address:04X}", f"0x{value:04X}"]
+
+    def set_memory_changed_callback(self, callback):
+        self._memory_changed_callback = callback
+
+    def _on_cell_edited(self, renderer, path, new_text):
+        try:
+            if new_text.startswith("0x") or new_text.startswith("0X"):
+                value = int(new_text, 16)
+            else:
+                value = int(new_text, 0)
+            if not 0 <= value <= 0xFFFF:
+                value = value & 0xFFFF
+            address = int(path)
+            self._memory[address] = value
+            self._model[address] = [f"0x{address:04X}", f"0x{value:04X}"]
+            if self._memory_changed_callback:
+                self._memory_changed_callback(address, value)
+        except ValueError:
+            pass
