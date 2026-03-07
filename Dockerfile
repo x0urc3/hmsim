@@ -23,7 +23,7 @@ COPY src ./src
 
 RUN python3 -m venv --system-site-packages /opt/venv && \
     . /opt/venv/bin/activate && \
-    pip install --no-cache-dir -e ".[all]" pytest-xvfb
+    pip install --no-cache-dir .[all] pytest-xvfb
 
 FROM ubuntu:24.04
 
