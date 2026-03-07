@@ -3,23 +3,52 @@
 import json
 from typing import Any, Dict, Optional
 
+from hmsim.tools.hmdas import disassemble
+from hmsim.tools.hmasm import assemble
+
+
 def save_state_to_dict(engine: Any) -> Dict[str, Any]:
     """Convert engine state to a dictionary for JSON serialization.
+
+    Implements "Linear Disassembly" heuristic:
+    - Starting at addr 0, attempt to disassemble each word as instruction.
+    - If successful, add to text section.
+    - If disassembly fails, stop text collection.
+    - Remaining non-zero memory goes to data section.
 
     Args:
         engine: The HMEngine instance.
 
     Returns:
-        Dictionary containing the sparse engine state.
+        Dictionary containing the sparse engine state with text and data sections.
     """
-    memory = {str(addr): val for addr, val in enumerate(engine._memory) if val != 0}
+    text: Dict[str, str] = {}
+    data: Dict[str, str] = {}
+
+    addr = 0
+    while addr < 65536:
+        val = engine._memory[addr]
+        if val == 0:
+            addr += 1
+            continue
+        disasm = disassemble(val, engine.version)
+        if disasm.startswith("???"):
+            break
+        text[f"0x{addr:04X}"] = disasm
+        addr += 1
+
+    for i, val in enumerate(engine._memory):
+        if val != 0 and f"0x{i:04X}" not in text:
+            data[f"0x{i:04X}"] = f"0x{val:04X}"
+
     return {
         "version": engine.version,
         "pc": engine.pc,
         "ac": engine.ac,
         "ir": engine.ir,
         "sr": engine.sr,
-        "memory": memory
+        "text": text,
+        "data": data
     }
 
 def save_state(engine: Any, file_path: str) -> None:
@@ -38,7 +67,7 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
 
     Args:
         engine: The HMEngine instance.
-        state: Dictionary containing the engine state.
+        state: Dictionary containing the engine state with text and data sections.
 
     Returns:
         The version string from the state file.
@@ -52,16 +81,28 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
 
     # Reset memory before loading sparse data
     engine._memory = [0] * 65536
-    memory = state.get("memory", {})
-    for addr_str, val in memory.items():
+
+    # Process text section: assemble mnemonics to machine code
+    text = state.get("text", {})
+    for addr_str, mnemonic in text.items():
         try:
-            addr = int(addr_str)
+            addr = int(addr_str, 16)
             if 0 <= addr < 65536:
-                if isinstance(val, str) and val.startswith("0x"):
-                    val = int(val, 16)
+                machine_code = assemble(mnemonic, version)
+                engine._memory[addr] = machine_code
+        except (ValueError, KeyError):
+            continue
+
+    # Process data section: parse hex string values
+    data = state.get("data", {})
+    for addr_str, val_str in data.items():
+        try:
+            addr = int(addr_str, 16)
+            if 0 <= addr < 65536:
+                val = int(val_str, 16)
                 engine._memory[addr] = val & 0xFFFF
         except ValueError:
-            continue # Skip invalid addresses
+            continue
 
     return version
 
