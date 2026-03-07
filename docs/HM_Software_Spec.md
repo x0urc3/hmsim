@@ -88,8 +88,8 @@ The CLI tools must be cross-platform compatible:
 * **Version Toggle:** A global selector to switch between HMv1–HMv4 logic (preserves state when switching).
 * **Integrated Code Editor:** A dual-mode text editor that supports:
   * **Assembly Input:** Direct writing of mnemonics with basic syntax highlighting.
-  * **Machine Code Input:** A hex-editor mode for direct manipulation of the 16-bit binary memory image.
-  * **Real-time Assembly:** Automated translation between the assembly view and the machine code view.
+  * **Machine Code Input:** A direct-editing mode in the memory grid for manipulation of 16-bit binary memory values.
+  * **Real-time Sync:** Automated translation between the assembly editor and the memory grid. Editing assembly updates machine code, and editing memory directly triggers re-disassembly in the editor.
 * **Execution Controls:** Step, Run (continuous), and Reset functionality.
 * **Visual State Monitoring:** Real-time display of **PC**, **AC**, **IR**, and a scrollable memory grid.
 * **Persistence:** Load/Save state as HM files (.hm) with structured text and data sections.
@@ -117,6 +117,7 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
 *   **Engine-to-GUI:** Any change in the `HMEngine` state (registers or memory) emits a notification to observers. Visual widgets subscribe to this to update their buffers.
 *   **GUI-to-Engine:**
     *   Editing a line in the Assembly Editor triggers `hmasm` to update the corresponding memory address in real-time (with a slight debounce).
+    *   Editing a value in the Memory Grid triggers the disassembler to update the Assembly Editor. This action automatically removes the comment for the edited address to ensure the documentation reflects the new code.
     *   Changing the Version Toggle re-initializes the `HMEngine` with the appropriate `ExecutionStrategy` and re-assembles the editor text.
 
 #### 3.5.3 Component Architecture
@@ -125,7 +126,7 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
 *   **`src/hmsim/gui/widgets/register_view.py`**: Displays PC, AC, IR, SR, and cycles in monospace hex format.
 *   **`src/hmsim/gui/widgets/memory_view.py`**: `Gtk.TreeView` grid showing 64KB memory with Address and Value columns. Supports "Go to Address" search and error highlighting.
 *   **`src/hmsim/gui/widgets/file_dialog.py`**: GTK4 FileDialog utilities for Open/Save operations.
-*   **`src/hmsim/gui/widgets/editor_view.py`**: `Gtk.TextView` with real-time assembly/disassembly sync and error reporting.
+*   **`src/hmsim/gui/widgets/editor_view.py`**: `Gtk.TextView` with bi-directional assembly/disassembly synchronization with the memory grid and error reporting.
 
 ---
 

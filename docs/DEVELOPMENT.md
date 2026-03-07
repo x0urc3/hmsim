@@ -82,7 +82,7 @@ hmsim_gui
 ### Key Features:
 - **Assembly Editor:** Real-time assembly of mnemonics into machine code. Supports inline comments and basic syntax highlighting.
 - **Register View:** Live display of PC, AC, IR, SR, and execution cycles.
-- **Memory Grid:** Scrollable 64KB memory view with "Go to Address" functionality and error highlighting.
+- **Memory Grid:** Scrollable 64KB memory view with "Go to Address" functionality. Supports direct cell editing (hex/decimal) which triggers real-time re-disassembly in the Assembly Editor.
 - **Execution Controls:** Single-step execution (F10), continuous run (F5), and reset (F12).
 - **Version Selector:** Hot-swapping between HMv1 and HMv2 architectures.
 - **Persistence:** Load and save complete simulator states as `.hm` JSON files.

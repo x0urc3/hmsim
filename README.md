@@ -265,7 +265,7 @@ Drop-down menu to switch between:
 
 ### Memory Editor
 
-You can directly edit memory contents by clicking on a cell in the memory view. Values can be entered in hexadecimal format (0x prefix) or decimal.
+You can directly edit memory contents by clicking on a value in the memory view. Values can be entered in hexadecimal (e.g., `0x1234`) or decimal format. When you edit a memory value, the Assembly Editor updates in real-time with the new disassembled mnemonic. Note that editing memory directly will remove any existing assembly comment for that specific address to ensure documentation remains accurate.
 
 ### Register Display
 
