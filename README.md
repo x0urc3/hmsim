@@ -101,7 +101,8 @@ pip install -e .
 
 The HM Simulator suite includes both a graphical interface and command-line tools:
 
-- **GUI**: Launch the interactive simulator with `hmsim_gui`. For detailed instructions, see the [GUI User Guide](docs/GUI_User_Guide.md).
+- **Tutorial**: Follow the [Step-by-Step Tutorial](docs/Tutorial.md) to write and run your first program.
+- **GUI**: Launch the interactive simulator with `hmsim_gui`. For interface details, see the [GUI User Guide](docs/GUI_User_Guide.md).
 - **CLI**: Headless execution (`hmsim`), assembly (`hmasm`), and disassembly (`hmdas`). See the [Development Guide](docs/DEVELOPMENT.md) for CLI usage.
 
 ## Example Programs
@@ -116,7 +117,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Documentation Index
 
-- [GUI User Guide](docs/GUI_User_Guide.md) - **Start here** for interactive learning.
+- [Step-by-Step Tutorial](docs/Tutorial.md) - **Start here** for a guided introduction.
+- [GUI User Guide](docs/GUI_User_Guide.md) - Complete reference for the graphical interface.
 - [ISA Specification](docs/HM_ISA_Specification.md) - Complete opcode and timing reference.
 - [Development Guide](docs/DEVELOPMENT.md) - CLI tools and internal architecture.
 - [Software Specification](docs/HM_Software_Spec.md) - Technical requirements and design.
