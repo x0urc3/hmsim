@@ -47,7 +47,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     parser.add_argument(
         "state_file",
-        help="Path to the HM JSON state file"
+        help="Path to the HM state file (.hm)"
     )
     parser.add_argument(
         "-v", "--version",

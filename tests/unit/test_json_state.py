@@ -1,107 +1,115 @@
-"""Unit tests for sparse JSON state format."""
+"""Unit tests for HM state file format with text and data sections."""
 
 import json
-import os
 import tempfile
 import pytest
 from hmsim.engine.cpu import HMv1Engine, HMEngine
+from hmsim.engine.state import save_state_to_dict, load_state_from_dict
 
 
-class TestSparseJsonFormat:
+class TestHMStateFormat:
     @pytest.fixture
     def engine(self):
         return HMv1Engine()
 
-    def test_save_only_nonzero_memory(self, engine):
+    def test_save_produces_text_and_data_sections(self, engine):
         engine._memory[0] = 0x1100
-        engine._memory[1] = 0x0005
-        engine._memory[100] = 0x1234
+        engine._memory[1] = 0x5100
+        engine._memory[2] = 0x2100
+        engine._memory[0x100] = 0x0005
+        engine._memory[0x101] = 0x0007
         engine.pc = 10
         engine.ac = 0xABCD
 
-        memory = {str(addr): val for addr, val in enumerate(engine._memory) if val != 0}
+        state = save_state_to_dict(engine)
 
-        assert "0" in memory
-        assert memory["0"] == 0x1100
-        assert "1" in memory
-        assert memory["1"] == 0x0005
-        assert "100" in memory
-        assert memory["100"] == 0x1234
-        assert "2" not in memory
-        assert "99" not in memory
-        assert "101" not in memory
+        assert "text" in state
+        assert "data" in state
+        assert state["text"]["0x0000"] == "LOAD 0x100"
+        assert state["text"]["0x0001"] == "ADD 0x100"
+        assert state["text"]["0x0002"] == "STORE 0x100"
+        assert state["data"]["0x0100"] == "0x0005"
+        assert state["data"]["0x0101"] == "0x0007"
 
     def test_save_empty_memory(self, engine):
-        memory = {str(addr): val for addr, val in enumerate(engine._memory) if val != 0}
-        assert memory == {}
+        state = save_state_to_dict(engine)
+        assert state["text"] == {}
+        assert state["data"] == {}
 
-    def test_load_sparse_json(self, engine, tmp_path):
+    def test_load_text_section_assembles_instructions(self, engine):
         state = {
             "version": "HMv1",
             "pc": 0,
             "ac": 0,
             "ir": 0,
             "sr": 0,
-            "memory": {
-                "0": 0x1100,
-                "256": 0x0005,
-                "1024": 0xABCD
-            }
+            "text": {
+                "0x0000": "LOAD 0x100",
+                "0x0001": "ADD 0x101"
+            },
+            "data": {}
         }
-        f = tmp_path / "state.json"
-        f.write_text(json.dumps(state))
-
-        engine.load_state(str(f))
+        load_state_from_dict(engine, state)
 
         assert engine._memory[0] == 0x1100
-        assert engine._memory[256] == 0x0005
-        assert engine._memory[1024] == 0xABCD
+        assert engine._memory[1] == 0x5101
 
-    def test_load_fills_zeros_for_missing(self, engine, tmp_path):
+    def test_load_data_section_populates_memory(self, engine):
         state = {
             "version": "HMv1",
             "pc": 0,
             "ac": 0,
             "ir": 0,
             "sr": 0,
-            "memory": {"10": 0x1234}
+            "text": {},
+            "data": {
+                "0x0010": "0x0005",
+                "0x0011": "0x0007"
+            }
         }
-        f = tmp_path / "state.json"
-        f.write_text(json.dumps(state))
+        load_state_from_dict(engine, state)
 
-        engine.load_state(str(f))
+        assert engine._memory[0x10] == 0x0005
+        assert engine._memory[0x11] == 0x0007
 
-        assert engine._memory[0] == 0
-        assert engine._memory[9] == 0
-        assert engine._memory[10] == 0x1234
-        assert engine._memory[11] == 0
-
-    def test_load_invalid_address_ignored(self, engine, tmp_path):
+    def test_load_with_both_text_and_data(self, engine):
         state = {
             "version": "HMv1",
             "pc": 0,
             "ac": 0,
             "ir": 0,
             "sr": 0,
-            "memory": {"65536": 0x1234, "-1": 0x5678, "100": 0xABCD}
+            "text": {
+                "0x0000": "LOAD 0x100",
+                "0x0001": "ADD 0x101",
+                "0x0002": "STORE 0x102"
+            },
+            "data": {
+                "0x0100": "0x0005",
+                "0x0101": "0x0007"
+            }
         }
-        f = tmp_path / "state.json"
-        f.write_text(json.dumps(state))
+        load_state_from_dict(engine, state)
 
-        engine.load_state(str(f))
+        assert engine._memory[0] == 0x1100
+        assert engine._memory[1] == 0x5101
+        assert engine._memory[2] == 0x2102
+        assert engine._memory[0x100] == 0x0005
+        assert engine._memory[0x101] == 0x0007
 
-        assert engine._memory[100] == 0xABCD
-        assert engine._memory[0] == 0
-
-    def test_save_and_load_roundtrip(self, engine, tmp_path):
+    def test_save_and_load_roundtrip(self, tmp_path):
+        engine = HMv1Engine()
         engine._memory[0] = 0x1100
-        engine._memory[256] = 0x0005
+        engine._memory[1] = 0x5100
+        engine._memory[2] = 0x2100
+        engine._memory[0x100] = 0x0005
+        engine._memory[0x101] = 0x0007
         engine.pc = 10
         engine.ac = 0xABCD
         engine.ir = 0x1100
         engine.sr = 0x4000
 
-        f = tmp_path / "state.json"
+        f = tmp_path / "state.hm"
         engine.save_state(str(f))
 
         new_engine = HMv1Engine()
@@ -110,5 +118,85 @@ class TestSparseJsonFormat:
         assert new_engine.pc == 10
         assert new_engine.ac == 0xABCD
         assert new_engine._memory[0] == 0x1100
-        assert new_engine._memory[256] == 0x0005
-        assert new_engine._memory[1] == 0
+        assert new_engine._memory[1] == 0x5100
+        assert new_engine._memory[2] == 0x2100
+        assert new_engine._memory[0x100] == 0x0005
+        assert new_engine._memory[0x101] == 0x0007
+        assert new_engine._memory[3] == 0
+
+    def test_linear_disassembly_stops_at_data(self, engine):
+        engine._memory[0] = 0x1100
+        engine._memory[1] = 0x1101
+        engine._memory[2] = 0x1102
+        engine._memory[0x100] = 0x0005
+        engine._memory[0x101] = 0x0006
+
+        state = save_state_to_dict(engine)
+
+        assert "0x0000" in state["text"]
+        assert "0x0001" in state["text"]
+        assert "0x0002" in state["text"]
+        assert "0x0100" in state["data"]
+        assert "0x0101" in state["data"]
+
+    def test_load_invalid_assembly_ignored(self, engine):
+        state = {
+            "version": "HMv1",
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "sr": 0,
+            "text": {
+                "0x0000": "INVALID 0x010"
+            },
+            "data": {}
+        }
+        load_state_from_dict(engine, state)
+        assert engine._memory[0] == 0
+
+    def test_load_invalid_data_ignored(self, engine):
+        state = {
+            "version": "HMv1",
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "sr": 0,
+            "text": {},
+            "data": {
+                "0x0100": "0x1234",
+                "0x10000": "0x5678",
+                "not_a_number": "0xABCD"
+            }
+        }
+        load_state_from_dict(engine, state)
+        assert engine._memory[0x0100] == 0x1234
+
+    def test_load_registers_from_state(self, engine):
+        state = {
+            "version": "HMv1",
+            "pc": 100,
+            "ac": 0x1234,
+            "ir": 0x5678,
+            "sr": 0x4000,
+            "text": {},
+            "data": {}
+        }
+        load_state_from_dict(engine, state)
+
+        assert engine.pc == 100
+        assert engine.ac == 0x1234
+        assert engine.ir == 0x5678
+        assert engine.sr == 0x4000
+
+    def test_load_default_values(self, engine):
+        state = {
+            "version": "HMv1",
+            "text": {},
+            "data": {}
+        }
+        load_state_from_dict(engine, state)
+
+        assert engine.pc == 0
+        assert engine.ac == 0
+        assert engine.ir == 0
+        assert engine.sr == 0

@@ -69,10 +69,14 @@ Each version inherits all instructions from the previous version:
 
 The CLI tools must be cross-platform compatible:
 
+* **`hmsim` (Headless Simulator):**
+  * Executes program states from JSON files without a GUI.
+  * Supports cycle limits and provides a detailed final execution report.
+  * Essential for automated regression testing and server-side processing.
+
 * **`hmasm` (Assembler):**
   * Generates machine code based on the selected version profile.
-  * Supports symbolic labels and integer (decimal), hexadecimal (`0x`), and binary (`0b`) literals.
-  * Validates opcodes and address ranges.
+  * Currently supports single-instruction assembly.
 
 * **`hmdas` (Disassembler):**
   * Translates hex binaries back into mnemonics based on the version-specific opcode map.
@@ -88,7 +92,7 @@ The CLI tools must be cross-platform compatible:
   * **Real-time Assembly:** Automated translation between the assembly view and the machine code view.
 * **Execution Controls:** Step, Run (continuous), and Reset functionality.
 * **Visual State Monitoring:** Real-time display of **PC**, **AC**, **IR**, and a scrollable memory grid.
-* **Persistence:** Load/Save state as JSON files (.json).
+* **Persistence:** Load/Save state as HM files (.hm) with structured text and data sections.
 * **Error Handling:** Error messages displayed in status bar with memory address highlighting.
 
 ### 3.5 GUI Layout & Interaction Specification

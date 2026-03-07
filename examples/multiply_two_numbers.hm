@@ -1,0 +1,31 @@
+{
+  "version": "HMv2",
+  "pc": 0,
+  "ac": 0,
+  "ir": 0,
+  "sr": 0,
+  "text": {
+    "0x0000": "LOAD 0x011  ; Load multiplier factor",
+    "0x0001": "STORE 0x013 ; Initialize loop counter",
+    "0x0002": "LOAD 0x010  ; Load multiplicand factor",
+    "0x0003": "STORE 0x014 ; Store multiplicand in local variable",
+    "0x0004": "LOAD 0x013  ; Check current counter state",
+    "0x0005": "JMPZ 0x00D  ; Terminate loop if counter is zero",
+    "0x0006": "LOAD 0x00E  ; Load intermediate result",
+    "0x0007": "ADD 0x014
+    "0x0008": "STORE 0x00E ; Save updated intermediate result",
+    "0x0009": "LOAD 0x013  ; Reload loop counter",
+    "0x000A": "SUB 0x012   ; Decrement loop counter by one",
+    "0x000B": "STORE 0x013 ; Persist decremented counter",
+    "0x000C": "JMP 0x004   ; Repeat loop cycle"
+  },
+  "data": {
+    "0x0010": "0x0003",
+    "0x0011": "0x0004",
+    "0x0012": "0x0001",
+    "0x0013": "0x0000",
+    "0x0014": "0x0000",
+    "0x000D": "0x0000",
+    "0x000E": "0x0000"
+  }
+}

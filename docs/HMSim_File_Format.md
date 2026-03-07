@@ -1,14 +1,13 @@
 # HMSim State File Format
 
-The HM Simulator uses a JSON-based state file format to persist and restore simulator snapshots. This enables saving the current execution state (registers and memory) and resuming later.
+The HM Simulator uses a JSON-based state file format (extension `.hm`) to persist and restore simulator snapshots. This format separates executable code (text) from program data and supports inline commenting.
 
 ## Overview
 
-State files capture the complete runtime context of the simulator, including all CPU registers and non-zero memory locations. The format is designed for:
+State files capture the complete runtime context of the simulator. To improve readability and debugging, the memory is divided into two logical sections:
 
-- **Save/Resume**: Persist simulation state at any point
-- **Debugging**: Capture and share reproduction states
-- **Testing**: Load predefined states for test scenarios
+- **text**: Contains disassembled instructions (assembly mnemonics) starting from address `0x0000`. Supports inline comments using the `;` character.
+- **data**: Contains hexadecimal representations of non-zero memory locations that are not part of the program code.
 
 ## JSON Schema
 
@@ -18,92 +17,26 @@ State files capture the complete runtime context of the simulator, including all
 | `pc` | integer | 0 – 65535 | Program Counter (next instruction address) |
 | `ac` | integer | 0 – 65535 | Accumulator (primary data register) |
 | `ir` | integer | 0 – 65535 | Instruction Register (current instruction) |
-| `sr` | integer | 0 – 65535 | Status Register (HMv2+ only, zero flag) |
-| `memory` | object | keys: 0–65535, values: 0–65535 | Sparse memory map (non-zero entries only) |
+| `sr` | integer | 0 – 65535 | Status Register (HMv2+ only) |
+| `text` | object | keys: `0xXXXX`, values: string | Program section (assembly + optional `; comment`) |
+| `data` | object | keys: `0xXXXX`, values: `0xXXXX` | Data section (hexadecimal values) |
 
 ## Field Details
 
-### version
+### text (Program Section)
 
-String identifying the HM processor version. Determines available instructions and behavior.
+This section contains a linear disassembly of the program starting from address `0x0000`.
+- **Heuristic**: The simulator starts at address `0x0000` and disassembles each word sequentially.
+- **Boundary**: Disassembly continues until an invalid opcode for the current `version` is encountered.
+- **Comments**: Assembly strings can include comments starting with `;`. These are ignored by the assembler but preserved in the `.hm` file.
+- **Format**: `{"0x0000": "LOAD 0x00A ; My comment"}`.
 
-- `"HMv1"`: Base instruction set (LOAD, STORE, ADD)
-- `"HMv2"`: Adds SUB, JMP, JMPZ, and Status Register (SR)
+### data (Data Section)
 
-When loading a state file with an unrecognized version (HMv3, HMv4), the simulator defaults to HMv2 and displays a warning.
+This section contains all non-zero memory locations that were not included in the `text` section.
+- **Format**: `{"0x000A": "0x0005"}`.
 
-### pc (Program Counter)
-
-16-bit register holding the memory address of the next instruction to fetch. After each instruction executes, PC increments by 1 (or jumps to a new address for branch instructions).
-
-### ac (Accumulator)
-
-16-bit primary data register used for all arithmetic operations. Most instructions operate on AC as an implicit operand.
-
-### ir (Instruction Register)
-
-16-bit register that latches the current instruction during decode and execution phases. Contains the raw opcode and operand bits.
-
-### sr (Status Register)
-
-16-bit status register available in HMv2 and later versions. Contains flag bits including:
-
-- **Zero Flag (bit 0)**: Set when the result of the last arithmetic operation was zero
-
-For HMv1 states, this field is present but always 0.
-
-### memory
-
-Sparse dictionary mapping memory addresses (0–65535) to 16-bit values. Only non-zero memory locations are stored to minimize file size.
-
-- **Keys**: Decimal or string representation of memory addresses
-- **Values**: 16-bit unsigned integers (0–65535)
-
-Addresses with value 0 are omitted from the file.
-
-## Saving
-
-When saving state:
-
-1. All register values are written as integers
-2. Memory is serialized as a sparse map: `{str(addr): val for addr, val in enumerate(memory) if val != 0}`
-3. The file is written with 2-space indentation for readability
-
-```python
-memory = {str(addr): val for addr, val in enumerate(self.engine._memory) if val != 0}
-state = {
-    "version": self.current_version,
-    "pc": self.engine.pc,
-    "ac": self.engine.ac,
-    "ir": self.engine.ir,
-    "sr": self.engine.sr,
-    "memory": memory
-}
-```
-
-## Loading
-
-When loading state:
-
-1. Version is read and validated (defaults to HMv1 if missing)
-2. Unknown versions (HMv3, HMv4) are mapped to HMv2 with a warning
-3. Registers are restored directly from the file
-4. Each memory entry is validated (0 ≤ address < 65536) before writing
-5. Values are masked to 16 bits: `val & 0xFFFF`
-
-```python
-self.engine.pc = state.get("pc", 0)
-self.engine.ac = state.get("ac", 0)
-self.engine.ir = state.get("ir", 0)
-self.engine.sr = state.get("sr", 0)
-
-for addr_str, val in memory.items():
-    addr = int(addr_str)
-    if 0 <= addr < 65536:
-        self.engine._memory[addr] = val & 0xFFFF
-```
-
-## Example
+## Example (`add_two_numbers.hm`)
 
 ```json
 {
@@ -112,21 +45,14 @@ for addr_str, val in memory.items():
   "ac": 0,
   "ir": 0,
   "sr": 0,
-  "memory": {
-    "0": 4352,
-    "256": 5
+  "text": {
+    "0x0000": "LOAD 0x00A ; Load first number",
+    "0x0001": "ADD 0x00B  ; Add second number",
+    "0x0002": "STORE 0x00C ; Save result"
+  },
+  "data": {
+    "0x000A": "0x0005",
+    "0x000B": "0x0007"
   }
 }
 ```
-
-In this example:
-- Version is HMv1
-- All registers are initialized to 0
-- Memory address 0 contains the value 4352 (0x1100)
-- Memory address 256 contains the value 5
-
-## Limitations
-
-- **Version Compatibility**: States saved with HMv3 or HMv4 are loaded as HMv2. Some state information specific to those versions may be lost.
-- **Sparse Memory Only**: Zero-initialized memory is not persisted, which means loading a state file does not reset memory to zero—it only writes non-zero values.
-- **No Metadata**: The format does not include timestamps, labels, or user notes.
