@@ -1,39 +1,32 @@
 # Implementation Plan: HM State File Format Migration (.hm)
 
-This document outlines the strategy for migrating the HM Simulator from the legacy JSON-based `memory` format to the enhanced `.hm` format with structured `text` (assembly) and `data` (hex) sections.
-
----
-
-## Objective
-- Replace the `memory` field in state files with `text` and `data` sections.
-- Rename the file extension from `.json` to `.hm`.
-- Update all existing examples and test fixtures to the new format.
-- **Note:** Backward compatibility with the old `.json` format is NOT required.
+This document outlines the strategy for migrating the HM Simulator from the legacy JSON-based `memory` format to the enhanced `.hm` format with structured `text` and `data` sections and support for inline comments.
 
 ---
 
 ## Phase 1: Engine Logic Refactoring
 
-### 1.1 Update `src/hmsim/engine/state.py`
-Modify the state persistence logic to implement the "Linear Disassembly" heuristic.
-
-**Actions:**
-- **`save_state_to_dict(engine)`**:
-    1.  Initialize `text = {}` and `data = {}`.
-    2.  Starting at `addr = 0`, attempt to disassemble each word using `hmsim.tools.hmdas.disassemble(val, engine.version)`.
-    3.  If successful, add to `text` using `0xXXXX` hex string keys.
-    4.  If disassembly fails (e.g., `ValueError` from an unknown opcode), stop the `text` collection process.
-    5.  Iterate through all remaining non-zero memory locations. Add them to `data` as hex string pairs: `{"0xADDR": "0xVAL"}`.
-    6.  Return a dictionary with `version`, `pc`, `ac`, `ir`, `sr`, `text`, and `data`.
-- **`load_state_from_dict(engine, state)`**:
-    1.  Restore registers (`pc`, `ac`, `ir`, `sr`) from the dictionary.
-    2.  Clear engine memory (`[0] * 65536`).
-    3.  **Process `text`**: For each entry, use `hmsim.tools.hmasm.assemble(mnemonic, version)` to convert the assembly string back to 16-bit machine code and write it to the specified address.
-    4.  **Process `data`**: Parse the hex string values and write them to the specified addresses.
-    5.  Remove any logic that handles the legacy `memory` field.
+### 1.1 Update `src/hmsim/tools/hmasm.py`
+Modify the `assemble()` function to handle inline comments.
+- **Action**: Use `instruction.split(';', 1)[0].strip()` to isolate the code before parsing.
+- **Goal**: Allow instructions like `"LOAD 0x100 ; load data"` to be correctly assembled.
 
 ### 1.2 Update `src/hmsim/engine/cpu.py`
-Ensure the `HMEngine` properly delegates to the updated `state.py` methods.
+Modify the `HMEngine` to store comment metadata.
+- **Action**: Add a `comments` dictionary (mapping address integers to strings).
+- **Goal**: Persist comments across simulation cycles.
+
+### 1.3 Update `src/hmsim/engine/state.py`
+Implement the "Linear Disassembly" heuristic and comment extraction.
+- **Save Logic**:
+    1.  Start at address `0x0000` and use `hmdas` to disassemble words sequentially.
+    2.  If an address exists in `engine.comments`, append it to the assembly string (e.g., `"MNEMONIC ADDR ; Comment"`).
+    3.  Stop disassembly when an invalid opcode is hit.
+    4.  Store all other non-zero memory in `data` section as hexadecimal strings.
+- **Load Logic**:
+    1.  Parse the `text` section. If a `;` is found, extract and store the comment in `engine.comments`.
+    2.  Pass the pre-`;` portion to `hmasm.assemble()`.
+    3.  Parse the `data` section from hexadecimal.
 
 ---
 
@@ -41,34 +34,18 @@ Ensure the `HMEngine` properly delegates to the updated `state.py` methods.
 
 ### 2.1 Update File Dialogs (`src/hmsim/gui/widgets/file_dialog.py`)
 - Change `set_initial_name("program.json")` to `set_initial_name("program.hm")`.
-- Update `Gtk.FileFilter`:
-    - Name: "HM State Files (*.hm)"
-    - Pattern: `*.hm`
-- Remove `.json` filters.
+- Update filters to point to `*.hm`.
 
 ### 2.2 Update CLI Tool (`src/hmsim/tools/hmsim_cli.py`)
-- Update `argparse` descriptions and help text to reference `.hm` files.
-- Update examples in the `--help` output.
-
-### 2.3 Update Documentation
-- **`README.md`**: Update examples to use `hmsim program.hm`.
-- **`DEVELOPMENT.md`**: Update tool usage sections.
-- **`docs/HM_Software_Spec.md`**: Ensure it mentions `.hm` as the primary state format.
+- Update `argparse` descriptions to reference the `.hm` format.
 
 ---
 
-## Phase 3: Data Migration (Examples & Fixtures)
+## Phase 3: Data Migration (Final State)
 
-### 3.1 Rename Files
-Rename all existing state files:
-- `examples/add_two_numbers.json` → `examples/add_two_numbers.hm`
-- `examples/multiply_two_numbers.json` → `examples/multiply_two_numbers.hm`
-- `tests/fixtures/sample_state.json` → `tests/fixtures/sample_state.hm`
+Rename files and update content as follows:
 
-### 3.2 Update File Content
-Manually or programmatically convert the content of these files to the new format:
-
-**Example: `add_two_numbers.hm`**
+### 3.1 `examples/add_two_numbers.hm`
 ```json
 {
   "version": "HMv1",
@@ -77,9 +54,9 @@ Manually or programmatically convert the content of these files to the new forma
   "ir": 0,
   "sr": 0,
   "text": {
-    "0x0000": "LOAD 0x00A",
-    "0x0001": "ADD 0x00B",
-    "0x0002": "STORE 0x00C"
+    "0x0000": "LOAD 0x00A ; load value from address 10 into AC",
+    "0x0001": "ADD 0x00B  ; add value from address 11 to AC",
+    "0x0002": "STORE 0x00C ; store AC value into address 12"
   },
   "data": {
     "0x000A": "0x0005",
@@ -88,33 +65,52 @@ Manually or programmatically convert the content of these files to the new forma
 }
 ```
 
----
+### 3.2 `examples/multiply_two_numbers.hm`
+```json
+{
+  "version": "HMv2",
+  "pc": 0,
+  "ac": 0,
+  "ir": 0,
+  "sr": 0,
+  "text": {
+    "0x0000": "LOAD 0x011",
+    "0x0001": "STORE 0x013",
+    "0x0002": "LOAD 0x010",
+    "0x0003": "STORE 0x014",
+    "0x0004": "LOAD 0x013",
+    "0x0005": "JMPZ 0x00D",
+    "0x0006": "LOAD 0x00E",
+    "0x0007": "ADD 0x014",
+    "0x0008": "STORE 0x00E",
+    "0x0009": "LOAD 0x013",
+    "0x000A": "SUB 0x012",
+    "0x000B": "STORE 0x013",
+    "0x000C": "JMP 0x004"
+  },
+  "data": {
+    "0x000D": "0x0000",
+    "0x000E": "0x0000",
+    "0x0010": "0x0003",
+    "0x0011": "0x0004",
+    "0x0012": "0x0001"
+  }
+}
+```
 
-## Phase 4: Validation and Testing
-
-### 4.1 Update Test Suite
-- Update `tests/unit/test_json_state.py` (or similar) to use the new `.hm` extension and verify the `text`/`data` split.
-- Update any integration tests that load these files.
-
-### 4.2 Manual Verification
-1.  **CLI Test**: Run `hmsim examples/add_two_numbers.hm` and verify the output.
-2.  **GUI Test**:
-    - Launch `hmsim_gui`.
-    - Open `examples/add_two_numbers.hm`.
-    - Verify instructions appear in the editor/memory view.
-    - Save to `test.hm` and verify the internal JSON structure matches the specification.
-
----
-
-## Verification Commands
-```bash
-# Run unit tests
-pytest
-
-# Test CLI
-hmsim examples/multiply_two_numbers.hm
-
-# Test Assembler/Disassembler integration
-hmasm "LOAD 0x10"
-hmdas 0x1010
+### 3.3 `tests/fixtures/sample_state.hm`
+```json
+{
+  "version": "HMv1",
+  "pc": 0,
+  "ac": 0,
+  "ir": 0,
+  "sr": 0,
+  "text": {
+    "0x0000": "LOAD 0x100 ; test load"
+  },
+  "data": {
+    "0x0100": "0x0005"
+  }
+}
 ```
