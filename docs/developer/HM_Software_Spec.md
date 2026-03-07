@@ -155,10 +155,15 @@ hmsim/
 │   └── workflows/
 │       └── ci.yml          # GitHub Actions CI
 ├── docs/                   # Engineering specifications and ISA documentation
-│   ├── HM_Software_Spec.md
-│   └── HM_ISA_Specification.md
-│   └── HMSim_File_Format.md
-│   └── DEVELOPMENT.md
+│   ├── user/               # User-facing guides
+│   │   ├── GUI_User_Guide.md
+│   │   └── Tutorial.md
+│   ├── reference/          # Technical reference data
+│   │   ├── HM_ISA_Specification.md
+│   │   └── HMSim_File_Format.md
+│   └── developer/          # Internal architecture and dev workflow
+│       ├── HM_Software_Spec.md
+│       └── DEVELOPMENT.md
 ├── src/
 │   └── hmsim/              # Main application package
 │       ├── __init__.py

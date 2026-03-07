@@ -87,7 +87,7 @@ Each HM version adds new instructions while preserving all previous ones:
 | **HMv3** | `CALL`, `RETURN` | 0xA, 0xB |
 | **HMv4** | `LOAD` (Ind), `STORE` (Ind) | 0x3, 0x4 |
 
-For full cycle counts and descriptions, see the [ISA Specification](docs/HM_ISA_Specification.md).
+For full cycle counts and descriptions, see the [ISA Specification](docs/reference/HM_ISA_Specification.md).
 
 ## Getting Started
 
@@ -101,9 +101,9 @@ pip install -e .
 
 The HM Simulator suite includes both a graphical interface and command-line tools:
 
-- **Tutorial**: Follow the [Step-by-Step Tutorial](docs/Tutorial.md) to write and run your first program.
-- **GUI**: Launch the interactive simulator with `hmsim_gui`. For interface details, see the [GUI User Guide](docs/GUI_User_Guide.md).
-- **CLI**: Headless execution (`hmsim`), assembly (`hmasm`), and disassembly (`hmdas`). See the [Development Guide](docs/DEVELOPMENT.md) for CLI usage.
+- **Tutorial**: Follow the [Step-by-Step Tutorial](docs/user/Tutorial.md) to write and run your first program.
+- **GUI**: Launch the interactive simulator with `hmsim_gui`. For interface details, see the [GUI User Guide](docs/user/GUI_User_Guide.md).
+- **CLI**: Headless execution (`hmsim`), assembly (`hmasm`), and disassembly (`hmdas`). See the [Development Guide](docs/developer/DEVELOPMENT.md) for CLI usage.
 
 ## Example Programs
 
@@ -117,9 +117,14 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Documentation Index
 
-- [Step-by-Step Tutorial](docs/Tutorial.md) - **Start here** for a guided introduction.
-- [GUI User Guide](docs/GUI_User_Guide.md) - Complete reference for the graphical interface.
-- [ISA Specification](docs/HM_ISA_Specification.md) - Complete opcode and timing reference.
-- [Development Guide](docs/DEVELOPMENT.md) - CLI tools and internal architecture.
-- [Software Specification](docs/HM_Software_Spec.md) - Technical requirements and design.
-- [File Format](docs/HMSim_File_Format.md) - `.hm` JSON state file structure.
+### User Guides
+- [Step-by-Step Tutorial](docs/user/Tutorial.md) - **Start here** for a guided introduction.
+- [GUI User Guide](docs/user/GUI_User_Guide.md) - Complete reference for the graphical interface.
+
+### Technical Reference
+- [ISA Specification](docs/reference/HM_ISA_Specification.md) - Complete opcode and timing reference.
+- [File Format](docs/reference/HMSim_File_Format.md) - `.hm` JSON state file structure.
+
+### Developer Documentation
+- [Development Guide](docs/developer/DEVELOPMENT.md) - CLI tools and internal architecture.
+- [Software Specification](docs/developer/HM_Software_Spec.md) - Technical requirements and design.
