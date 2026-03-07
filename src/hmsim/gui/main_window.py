@@ -305,6 +305,9 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_new(self, button):
         self._clear_error()
         self.engine.reset()
+        self.engine._memory = [0] * 65536
+        self.editor_view.set_text("")
+        self._update_ui()
 
     def _show_error(self, message, address):
         self.status_bar.set_label(f"Error at 0x{address:04X}: {message}")

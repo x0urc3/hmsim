@@ -111,10 +111,19 @@ class TestReset:
         assert engine.ir == 0x0000
         assert engine.sr == 0x0000
 
-    def test_reset_clears_memory(self, engine):
+    def test_reset_preserves_memory(self, engine):
         engine._memory[0x0100] = 0xABCD
+        engine._memory[0x0200] = 0x1234
         engine.reset()
-        assert engine._memory[0x0100] == 0x0000
+        assert engine._memory[0x0100] == 0xABCD
+        assert engine._memory[0x0200] == 0x1234
+
+    def test_reset_clears_statistics(self, engine):
+        engine.total_cycles = 9999
+        engine.total_instructions = 500
+        engine.reset()
+        assert engine.total_cycles == 0
+        assert engine.total_instructions == 0
 
     def test_reset_notifies_observer(self, engine):
         call_count = [0]
