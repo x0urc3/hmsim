@@ -34,6 +34,8 @@ all = [
 ]
 
 [project.scripts]
+hmsim = "hmsim.tools.hmsim_cli:main"
+hmsim_gui = "hmsim.gui.hm_gui:main"
 hmasm = "hmsim.tools.hmasm:main"
 hmdas = "hmsim.tools.hmdas:main"
 
