@@ -1,6 +1,7 @@
 import pytest
 import sys
 import os
+import uuid
 from gi.repository import Gtk, Gio, GLib
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -10,15 +11,13 @@ class TestMenuBar:
     @pytest.fixture
     def app(self):
         """Create an instance of HMApplication and initialize it."""
-        # Use a unique ID or None to avoid D-Bus conflicts in tests
         application = HMApplication()
-        # application_id must be valid: alpha-numeric, dots, dashes
-        application.set_application_id(f"com.hmsim.test{os.getpid()}")
-        # Mock register/startup/activate logic manually since app.run() is blocking
+        unique_id = f"{os.getpid()}{uuid.uuid4().hex[:8]}"
+        application.set_application_id(f"com.hmsim.test{unique_id}")
         application.register(None)
         application.emit('startup')
         application.emit('activate')
-        return application
+        yield application
 
     def test_actions_exist(self, app):
         """Verify that essential actions are present in the application and window."""
