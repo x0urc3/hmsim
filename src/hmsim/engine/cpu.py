@@ -21,6 +21,7 @@ class HMEngine:
         self.ac: int = 0x0000
         self.sr: int = 0x0000
         self.total_cycles: int = 0
+        self.total_instructions: int = 0
         self.comments: Dict[int, str] = {}
         self._memory: list[int] = [0] * 65536
         self._strategy = get_strategy(version)
@@ -67,14 +68,16 @@ class HMEngine:
         return self._memory[address] if 0 <= address < 65536 else 0
 
     def reset(self) -> None:
-        """Reset the engine to initial state."""
+        """Reset registers and statistics to initial state.
+
+        Preserves memory content so user can re-run loaded/edited programs.
+        """
         self.pc = 0x0000
         self.ir = 0x0000
         self.ac = 0x0000
         self.sr = 0x0000
         self.total_cycles = 0
-        self.comments = {}
-        self._memory = [0] * 65536
+        self.total_instructions = 0
         self._notify_observers()
 
     @property
@@ -153,6 +156,7 @@ class HMEngine:
         old_pc = self.pc
         cycles = self.execute(opcode, address)
         self.total_cycles += cycles
+        self.total_instructions += 1
         if self.pc == old_pc:
             self.pc = (self.pc + 1) & 0xFFFF
         if notify:

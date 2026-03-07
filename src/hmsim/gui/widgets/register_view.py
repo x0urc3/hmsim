@@ -36,11 +36,16 @@ class RegisterView(Gtk.Box):
         separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         self.append(separator)
 
-        cycles_row = self._create_register_row("Cycles")
-        self.registers["Cycles"] = cycles_row["value"]
-        self.append(cycles_row["box"])
+        stats_title = Gtk.Label(label="Statistics")
+        stats_title.set_css_classes(["title", "heading"])
+        self.append(stats_title)
 
-    def _create_register_row(self, name: str) -> dict:
+        for name in ["Cycles", "Instructions"]:
+            row = self._create_register_row(name, is_hex=False)
+            self.registers[name] = row["value"]
+            self.append(row["box"])
+
+    def _create_register_row(self, name: str, is_hex: bool = True) -> dict:
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
         label = Gtk.Label(label=f"{name}:")
@@ -48,17 +53,22 @@ class RegisterView(Gtk.Box):
         label.set_xalign(1)
         box.append(label)
 
-        value = Gtk.Label(label="0x0000")
-        value.set_width_chars(7)
+        if is_hex:
+            value = Gtk.Label(label="0x0000")
+            value.set_width_chars(7)
+        else:
+            value = Gtk.Label(label="0")
+            value.set_width_chars(7)
         value.set_xalign(0)
         value.add_css_class("monospace")
         box.append(value)
 
         return {"box": box, "value": value}
 
-    def update(self, pc: int, ac: int, ir: int, sr: int, cycles: int = 0):
+    def update(self, pc: int, ac: int, ir: int, sr: int, cycles: int = 0, instructions: int = 0):
         self.registers["PC"].set_label(f"0x{pc:04X}")
         self.registers["AC"].set_label(f"0x{ac:04X}")
         self.registers["IR"].set_label(f"0x{ir:04X}")
         self.registers["SR"].set_label(f"0x{sr:04X}")
         self.registers["Cycles"].set_label(str(cycles))
+        self.registers["Instructions"].set_label(str(instructions))

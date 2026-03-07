@@ -23,7 +23,9 @@ if not GTK_AVAILABLE:
 
 from hmsim.gui.widgets.register_view import RegisterView
 from hmsim.gui.widgets.memory_view import MemoryView
+from hmsim.gui.widgets.editor_view import EditorView
 from hmsim.engine.cpu import HMEngine
+from hmsim.tools.hmdas import disassemble
 
 
 VERSIONS = ["HMv1", "HMv2", "HMv3", "HMv4"]
@@ -44,46 +46,86 @@ class MainWindow(Gtk.ApplicationWindow):
         self.engine = HMEngine(self.current_version)
         self._is_running = False
         self._run_source_id = None
-        self._setup_ui()
+        self._is_updating_editor = False
+        self._setup_ui(application)
+        self._setup_actions()
         self._connect_engine()
 
-    def _setup_ui(self):
+    def _setup_ui(self, app=None):
         self.set_titlebar(self._create_header_bar())
 
-        main_box = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        main_box.set_hexpand(True)
-        main_box.set_vexpand(True)
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
         self.set_child(main_box)
 
-        left_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
-        main_box.set_start_child(left_pane)
-        main_box.set_resize_start_child(True)
-        main_box.set_shrink_start_child(False)
+        # Add MenuBar explicitly for GTK4
+        if app:
+            menubar_model = getattr(app, 'menubar_model', app.get_menubar())
+            if menubar_model:
+                menubar = Gtk.PopoverMenuBar.new_from_model(menubar_model)
+                menubar.set_hexpand(True)
+                main_box.append(menubar)
 
-        label = Gtk.Label(label="Editor (Coming Soon)")
-        label.set_hexpand(True)
-        label.set_vexpand(True)
-        left_pane.append(label)
+                # Add separator
+                separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+                main_box.append(separator)
 
-        right_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=False, vexpand=True)
-        right_pane.set_size_request(360, -1)
-        main_box.set_end_child(right_pane)
-        main_box.set_resize_end_child(False)
-        main_box.set_shrink_end_child(False)
+        toolbar = self._create_toolbar()
+        main_box.append(toolbar)
+
+        # Add CSS provider
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data(b"""
+            .toolbar {
+                padding: 4px;
+                border-bottom: 1px solid @borders;
+                background-color: @theme_bg_color;
+            }
+            popovermenubar {
+                background-color: @theme_bg_color;
+                border-bottom: 1px solid @borders;
+                min-height: 30px;
+            }
+        """)
+        Gtk.StyleContext.add_provider_for_display(
+            self.get_display(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+
+        paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        paned.set_hexpand(True)
+        paned.set_vexpand(True)
+        main_box.append(paned)
+
+        self.left_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
+        paned.set_start_child(self.left_pane)
+        paned.set_resize_start_child(True)
+        paned.set_shrink_start_child(False)
+
+        self.editor_view = EditorView(version=self.current_version)
+        self.editor_view.set_change_callback(self._on_editor_changed)
+        self.left_pane.append(self.editor_view)
+
+        self.right_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=False, vexpand=True)
+        self.right_pane.set_size_request(300, -1)
+        paned.set_end_child(self.right_pane)
+        paned.set_resize_end_child(False)
+        paned.set_shrink_end_child(False)
 
         self.register_view = RegisterView()
-        right_pane.append(self.register_view)
+        self.right_pane.append(self.register_view)
 
         self.memory_view = MemoryView()
         self.memory_view.set_vexpand(True)
-        right_pane.append(self.memory_view)
+        self.memory_view.set_memory_changed_callback(self._on_memory_edited)
+        self.right_pane.append(self.memory_view)
 
         self.status_bar = Gtk.Label(label="Ready")
         self.status_bar.set_margin_top(5)
         self.status_bar.set_margin_bottom(5)
         self.status_bar.set_margin_start(10)
         self.status_bar.set_margin_end(10)
-        right_pane.append(self.status_bar)
+        self.right_pane.append(self.status_bar)
 
     def _create_header_bar(self) -> Gtk.HeaderBar:
         header = Gtk.HeaderBar()
@@ -92,49 +134,72 @@ class MainWindow(Gtk.ApplicationWindow):
         title_label = Gtk.Label(label="HM Simulator")
         header.set_title_widget(title_label)
 
-        file_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        header.pack_start(file_box)
+        return header
 
-        btn_new = Gtk.Button(label="New")
-        btn_new.connect("clicked", self._on_new)
-        file_box.append(btn_new)
-
-        btn_open = Gtk.Button(label="Open")
-        btn_open.connect("clicked", self._on_open)
-        file_box.append(btn_open)
-
-        btn_save = Gtk.Button(label="Save")
-        btn_save.connect("clicked", self._on_save)
-        file_box.append(btn_save)
-
-        version_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        header.pack_start(version_box)
+    def _create_toolbar(self) -> Gtk.Box:
+        toolbar = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        toolbar.set_margin_top(5)
+        toolbar.set_margin_bottom(5)
+        toolbar.set_margin_start(10)
+        toolbar.set_margin_end(10)
+        toolbar.add_css_class("toolbar")
 
         version_label = Gtk.Label(label="Version:")
-        version_box.append(version_label)
+        toolbar.append(version_label)
 
         self.version_dropdown = Gtk.DropDown.new_from_strings(VERSIONS)
         self.version_dropdown.set_selected(0)
         self.version_dropdown.connect("notify::selected", self._on_version_changed)
-        version_box.append(self.version_dropdown)
+        toolbar.append(self.version_dropdown)
 
-        control_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        header.pack_end(control_box)
+        separator1 = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
+        toolbar.append(separator1)
 
         self.btn_reset = Gtk.Button(label="Reset")
-        self.btn_reset.connect("clicked", self._on_reset)
-        control_box.append(self.btn_reset)
+        self.btn_reset.set_action_name("win.reset")
+        toolbar.append(self.btn_reset)
 
         self.btn_run = Gtk.Button(label="Run")
         self.btn_run.set_size_request(60, -1)
-        self.btn_run.connect("clicked", self._on_run)
-        control_box.append(self.btn_run)
+        self.btn_run.set_action_name("win.run")
+        toolbar.append(self.btn_run)
 
         self.btn_step = Gtk.Button(label="Step")
-        self.btn_step.connect("clicked", self._on_step)
-        control_box.append(self.btn_step)
+        self.btn_step.set_action_name("win.step")
+        toolbar.append(self.btn_step)
 
-        return header
+        return toolbar
+
+    def _setup_actions(self):
+        self._add_action("new", self._on_new_action)
+        self._add_action("open", self._on_open_action)
+        self._add_action("save", self._on_save_action)
+        self._add_action("step", self._on_step_action)
+        self._add_action("run", self._on_run_action)
+        self._add_action("reset", self._on_reset_action)
+
+    def _add_action(self, name, callback):
+        action = Gio.SimpleAction.new(name, None)
+        action.connect("activate", callback)
+        self.add_action(action)
+
+    def _on_new_action(self, action, param):
+        self._on_new(None)
+
+    def _on_open_action(self, action, param):
+        self._on_open(None)
+
+    def _on_save_action(self, action, param):
+        self._on_save(None)
+
+    def _on_step_action(self, action, param):
+        self._on_step(None)
+
+    def _on_run_action(self, action, param):
+        self._on_run(None)
+
+    def _on_reset_action(self, action, param):
+        self._on_reset(None)
 
     def _on_version_changed(self, dropdown, pspec):
         index = dropdown.get_selected()
@@ -158,11 +223,64 @@ class MainWindow(Gtk.ApplicationWindow):
             self.engine.sr = old_sr
             self.engine.comments = old_comments
 
+            self.editor_view.set_version(new_version)
+            errors = self.editor_view.assemble_to_engine(self.engine)
+
+            if errors:
+                for addr, error in errors:
+                    self._show_error(f"Line {addr}: {error}", addr)
+
             self._connect_engine()
             self._update_ui()
 
     def _connect_engine(self):
         self.engine.register_observer(self._update_ui)
+
+    def _on_editor_changed(self, text):
+        if self._is_updating_editor:
+            return
+        self._clear_error()
+        errors = self.editor_view.assemble_to_engine(self.engine)
+        if errors:
+            for addr, error in errors:
+                self._show_error(f"Line {addr}: {error}", addr)
+        self._update_ui()
+
+    def _on_memory_edited(self, address, value):
+        self.engine._memory[address] = value
+        self.engine.comments.pop(address, None)
+        self._refresh_editor_from_memory()
+
+    def _refresh_editor_from_memory(self):
+        self._is_updating_editor = True
+        try:
+            lines = []
+            started = False
+
+            for addr in range(65536):
+                value = self.engine._memory[addr]
+                has_comment = addr in self.engine.comments
+
+                if not started:
+                    if value != 0 or has_comment:
+                        started = True
+                        machine_code = self.engine._memory[addr]
+                        line = disassemble(machine_code, self.current_version)
+                        if has_comment:
+                            line = f"{line} ; {self.engine.comments[addr]}"
+                        lines.append(line)
+                else:
+                    if value == 0 and not has_comment:
+                        break
+                    machine_code = self.engine._memory[addr]
+                    line = disassemble(machine_code, self.current_version)
+                    if has_comment:
+                        line = f"{line} ; {self.engine.comments[addr]}"
+                    lines.append(line)
+
+            self.editor_view.set_text("\n".join(lines))
+        finally:
+            self._is_updating_editor = False
 
     def _update_ui(self):
         self.register_view.update(
@@ -170,7 +288,8 @@ class MainWindow(Gtk.ApplicationWindow):
             ac=self.engine.ac,
             ir=self.engine.ir,
             sr=self.engine.sr,
-            cycles=self.engine.total_cycles
+            cycles=self.engine.total_cycles,
+            instructions=self.engine.total_instructions
         )
         self.memory_view.set_memory(self.engine._memory)
 
@@ -227,6 +346,9 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_new(self, button):
         self._clear_error()
         self.engine.reset()
+        self.engine._memory = [0] * 65536
+        self.editor_view.set_text("")
+        self._update_ui()
 
     def _show_error(self, message, address):
         self.status_bar.set_label(f"Error at 0x{address:04X}: {message}")
@@ -290,6 +412,10 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _load_state(self, file_path):
         try:
+            import json
+            with open(file_path, 'r') as f:
+                state = json.load(f)
+
             version = self.engine.load_state(file_path)
 
             if version not in ["HMv1", "HMv2"]:
@@ -301,14 +427,24 @@ class MainWindow(Gtk.ApplicationWindow):
             self.current_version = version
             self.version_dropdown.set_selected(VERSIONS.index(version))
 
-            # If version changed, we might need a new engine, but load_state already filled the current one.
-            # However, the strategy depends on the version.
-            # If the loaded version is different from the current engine's version, we should re-init the engine.
             if self.engine.version != version:
                 pc, ac, ir, sr, memory, comments = self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory, self.engine.comments.copy()
                 self.engine = HMEngine(version)
                 self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory, self.engine.comments = pc, ac, ir, sr, memory, comments
+                self.editor_view.set_version(version)
                 self._connect_engine()
+
+            text_section = state.get("text", {})
+            if text_section:
+                lines = []
+                max_addr = max(int(addr, 16) for addr in text_section.keys())
+                for addr in range(max_addr + 1):
+                    addr_str = f"0x{addr:04X}"
+                    if addr_str in text_section:
+                        lines.append(text_section[addr_str])
+                    else:
+                        lines.append("")
+                self.editor_view.set_text("\n".join(lines))
 
             self._update_ui()
 
