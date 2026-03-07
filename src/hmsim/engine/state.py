@@ -34,6 +34,8 @@ def save_state_to_dict(engine: Any) -> Dict[str, Any]:
         disasm = disassemble(val, engine.version)
         if disasm.startswith("???"):
             break
+        if addr in engine.comments:
+            disasm = f"{disasm} ; {engine.comments[addr]}"
         text[f"0x{addr:04X}"] = disasm
         addr += 1
 
@@ -88,7 +90,12 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
         try:
             addr = int(addr_str, 16)
             if 0 <= addr < 65536:
-                machine_code = assemble(mnemonic, version)
+                if ';' in mnemonic:
+                    code_part, comment = mnemonic.split(';', 1)
+                    engine.comments[addr] = comment.strip()
+                    machine_code = assemble(code_part, version)
+                else:
+                    machine_code = assemble(mnemonic, version)
                 engine._memory[addr] = machine_code
         except (ValueError, KeyError):
             continue

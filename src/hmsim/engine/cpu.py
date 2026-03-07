@@ -1,6 +1,6 @@
 """HM CPU Engine - Core simulation for HM processor family."""
 
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from .isa import VERSION_ISA, HMV1_ISA
 from .strategies import get_strategy
@@ -21,6 +21,7 @@ class HMEngine:
         self.ac: int = 0x0000
         self.sr: int = 0x0000
         self.total_cycles: int = 0
+        self.comments: Dict[int, str] = {}
         self._memory: list[int] = [0] * 65536
         self._strategy = get_strategy(version)
         self._observers: List[Callable[[], None]] = []
@@ -72,6 +73,7 @@ class HMEngine:
         self.ac = 0x0000
         self.sr = 0x0000
         self.total_cycles = 0
+        self.comments = {}
         self._memory = [0] * 65536
         self._notify_observers()
 

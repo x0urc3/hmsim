@@ -21,7 +21,8 @@ def assemble(instruction: str, version: str = "HMv1") -> int:
     Raises:
         ValueError: If instruction format is invalid.
     """
-    parts = instruction.strip().split()
+    code = instruction.split(';', 1)[0].strip()
+    parts = code.split()
     if len(parts) != 2:
         raise ValueError(f"Invalid instruction format: {instruction}")
 
