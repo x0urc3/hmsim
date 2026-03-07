@@ -29,10 +29,11 @@ htmlcov/
 
 # Documentation
 docs/
-*.md
 LICENSE
-README*
 CONTRIBUTING*
+
+# Keep README for pip
+!README.md
 
 # IDE
 .vscode/
