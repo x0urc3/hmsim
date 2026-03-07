@@ -99,10 +99,11 @@ pip install -e .
 
 ### Usage
 
-The HM Simulator provides an interactive graphical interface for learning and experimentation:
+The HM Simulator provides an interactive interface for learning and experimentation:
 
 - **Tutorial**: Follow the [Step-by-Step Tutorial](docs/user/Tutorial.md) to write and run your first program.
-- **GUI**: Launch the interactive simulator with `hmsim`. For interface details, see the [GUI User Guide](docs/user/GUI_User_Guide.md).
+- **Manual**: Use the [hmsim User Guide](docs/user/hmsim_User_Guide.md) for detailed interface reference.
+- **Launch**: Start the interactive simulator by simply running `hmsim`.
 
 ## Example Programs
 
@@ -118,7 +119,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ### User Guides
 - [Step-by-Step Tutorial](docs/user/Tutorial.md) - **Start here** for a guided introduction.
-- [GUI User Guide](docs/user/GUI_User_Guide.md) - Complete reference for the graphical interface.
+- [hmsim User Guide](docs/user/hmsim_User_Guide.md) - Complete reference for the interactive simulator.
 
 ### Technical Reference
 - [ISA Specification](docs/reference/HM_ISA_Specification.md) - Complete opcode and timing reference.

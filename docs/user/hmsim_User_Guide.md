@@ -1,10 +1,10 @@
-# HM Simulator GUI User Guide
+# hmsim User Guide
 
-This guide provides detailed information on using the HM Simulator Graphical User Interface (GUI) for architectural exploration and learning.
+This guide provides detailed information on using the HM Simulator interactive interface (`hmsim`) for architectural exploration and learning.
 
 ---
 
-## The GUI Layout
+## The hmsim Interface
 
 When the simulator starts, you'll see:
 
@@ -36,7 +36,7 @@ Switching versions updates the available instructions while preserving your curr
 
 ---
 
-## GUI Controls Reference
+## Simulator Controls Reference
 
 ### File Operations
 - **New**: Reset the simulator to initial state (clears registers and memory).

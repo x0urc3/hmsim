@@ -156,7 +156,7 @@ hmsim/
 │       └── ci.yml          # GitHub Actions CI
 ├── docs/                   # Engineering specifications and ISA documentation
 │   ├── user/               # User-facing guides
-│   │   ├── GUI_User_Guide.md
+│   │   ├── hmsim_User_Guide.md
 │   │   └── Tutorial.md
 │   ├── reference/          # Technical reference data
 │   │   ├── HM_ISA_Specification.md
