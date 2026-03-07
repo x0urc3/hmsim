@@ -6,13 +6,13 @@ This document provides technical information for developers and advanced users o
 
 The HM Simulator includes a suite of CLI tools for headless execution, assembly, and disassembly. These are registered as system-wide commands when installed via `pip install -e .`.
 
-### 1. Headless Simulator (`hmsim`)
+### 1. Headless Simulator (`hmsim_cli`)
 
-The `hmsim` tool executes HM JSON state files without a graphical interface. This is ideal for automated testing, batch processing, or server-side execution.
+The `hmsim_cli` tool executes HM JSON state files without a graphical interface. This is ideal for automated testing, batch processing, or server-side execution.
 
 **Usage:**
 ```bash
-hmsim <state_file.hm> [options]
+hmsim_cli <state_file.hm> [options]
 ```
 
 **Options:**
@@ -21,7 +21,7 @@ hmsim <state_file.hm> [options]
 
 **Example:**
 ```bash
-hmsim examples/add_two_numbers.hm
+hmsim_cli examples/add_two_numbers.hm
 ```
 
 **Output:**
@@ -76,7 +76,7 @@ The HM Simulator features a modern GTK 4 interface for real-time architectural e
 python3 src/hmsim/gui/hm_gui.py
 
 # Or if installed via pip
-hmsim_gui
+hmsim
 ```
 
 ### Key Features:

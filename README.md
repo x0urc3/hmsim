@@ -99,11 +99,10 @@ pip install -e .
 
 ### Usage
 
-The HM Simulator suite includes both a graphical interface and command-line tools:
+The HM Simulator provides an interactive graphical interface for learning and experimentation:
 
 - **Tutorial**: Follow the [Step-by-Step Tutorial](docs/user/Tutorial.md) to write and run your first program.
-- **GUI**: Launch the interactive simulator with `hmsim_gui`. For interface details, see the [GUI User Guide](docs/user/GUI_User_Guide.md).
-- **CLI**: Headless execution (`hmsim`), assembly (`hmasm`), and disassembly (`hmdas`). See the [Development Guide](docs/developer/DEVELOPMENT.md) for CLI usage.
+- **GUI**: Launch the interactive simulator with `hmsim`. For interface details, see the [GUI User Guide](docs/user/GUI_User_Guide.md).
 
 ## Example Programs
 

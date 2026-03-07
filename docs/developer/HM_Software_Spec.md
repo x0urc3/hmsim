@@ -69,7 +69,7 @@ Each version inherits all instructions from the previous version:
 
 The CLI tools must be cross-platform compatible:
 
-* **`hmsim` (Headless Simulator):**
+* **`hmsim_cli` (Headless Simulator):**
   * Executes program states from JSON files without a GUI.
   * Supports cycle limits and provides a detailed final execution report.
   * Essential for automated regression testing and server-side processing.
@@ -239,7 +239,7 @@ The development is divided into verifiable phases. At the end of each phase, the
     *   `src/hmsim/gui/widgets/file_dialog.py` - File dialog utilities
     *   `src/hmsim/gui/widgets/editor_view.py` - Assembly editor
 *   **Verification:**
-    *   Launch GUI: `python3 src/hmsim/gui/hm_gui.py`
+    *   Launch GUI: `hmsim`
     *   Header shows: New, Open, Save
     *   Toolbar shows: Version dropdown, Reset, Run, Step buttons
     *   Right pane shows: Registers (PC, AC, IR, SR), Memory grid, Status bar
@@ -268,6 +268,6 @@ The development is divided into verifiable phases. At the end of each phase, the
 *   **Verification:**
     ```bash
     # Run the standalone executable
-    ./dist/hmsim/hmsim --version
+    ./dist/hmsim/hmsim_cli --version
     ```
 
