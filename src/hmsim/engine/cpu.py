@@ -169,10 +169,12 @@ class HMEngine:
             Total number of cycles consumed in this batch.
         """
         batch_cycles = 0
-        for _ in range(count):
-            cycles = self.step(notify=False)
-            batch_cycles += cycles
-        self._notify_observers()
+        try:
+            for _ in range(count):
+                cycles = self.step(notify=False)
+                batch_cycles += cycles
+        finally:
+            self._notify_observers()
         return batch_cycles
 
 

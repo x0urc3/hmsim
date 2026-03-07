@@ -146,6 +146,7 @@ class MainWindow(Gtk.ApplicationWindow):
             old_ac = self.engine.ac
             old_ir = self.engine.ir
             old_sr = self.engine.sr
+            old_comments = self.engine.comments.copy()
 
             self.current_version = new_version
             self.engine = HMEngine(self.current_version)
@@ -155,6 +156,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self.engine.ac = old_ac
             self.engine.ir = old_ir
             self.engine.sr = old_sr
+            self.engine.comments = old_comments
 
             self._connect_engine()
             self._update_ui()
@@ -210,6 +212,7 @@ class MainWindow(Gtk.ApplicationWindow):
         try:
             self.engine.run_batch(self.RUN_BATCH_SIZE)
         except Exception as e:
+            self._update_ui()
             self._stop_run()
             self._show_error(str(e), self.engine.pc)
             return GLib.SOURCE_REMOVE
@@ -302,10 +305,9 @@ class MainWindow(Gtk.ApplicationWindow):
             # However, the strategy depends on the version.
             # If the loaded version is different from the current engine's version, we should re-init the engine.
             if self.engine.version != version:
-                # We need to preserve the state we just loaded
-                pc, ac, ir, sr, memory = self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory
+                pc, ac, ir, sr, memory, comments = self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory, self.engine.comments.copy()
                 self.engine = HMEngine(version)
-                self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory = pc, ac, ir, sr, memory
+                self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory, self.engine.comments = pc, ac, ir, sr, memory, comments
                 self._connect_engine()
 
             self._update_ui()
