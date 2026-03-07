@@ -4,6 +4,7 @@ from typing import Callable, List, Optional
 
 from .isa import VERSION_ISA, HMV1_ISA
 from .strategies import get_strategy
+from .state import load_state, save_state
 
 
 class HMEngine:
@@ -23,6 +24,27 @@ class HMEngine:
         self._memory: list[int] = [0] * 65536
         self._strategy = get_strategy(version)
         self._observers: List[Callable[[], None]] = []
+
+    def load_state(self, file_path: str) -> str:
+        """Load engine state from a JSON file.
+
+        Args:
+            file_path: Path to the input JSON file.
+
+        Returns:
+            The version string from the state file.
+        """
+        version = load_state(self, file_path)
+        self._notify_observers()
+        return version
+
+    def save_state(self, file_path: str) -> None:
+        """Save engine state to a JSON file.
+
+        Args:
+            file_path: Path to the output JSON file.
+        """
+        save_state(self, file_path)
 
     def register_observer(self, callback: Callable[[], None]) -> None:
         """Register a callback to be notified on state changes."""
