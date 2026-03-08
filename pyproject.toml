@@ -8,9 +8,9 @@ version = "0.1.0"
 description = "Multi-version simulator for HM 16-bit processor family"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 authors = [
-    {name = "HMSim Contributors"}
+    {name = "Khairulmizam Samsudin", email = "xource@gmail.com"}
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
