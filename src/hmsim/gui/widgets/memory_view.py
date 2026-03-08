@@ -26,7 +26,6 @@ class MemoryView(Gtk.Box):
         self._memory = [0] * 65536
         self._memory_changed_callback = None
         self._highlighted_path = None
-        self._indirect_path = None
         self._setup_ui()
 
     def _setup_ui(self):
@@ -108,20 +107,7 @@ class MemoryView(Gtk.Box):
 
     def clear_highlight(self):
         self._highlighted_path = None
-        self._indirect_path = None
         self.tree_view.get_selection().unselect_all()
-        self._update_row_colors()
-
-    def highlight_indirect(self, pointer_addr, target_addr):
-        if 0 <= pointer_addr < 65536:
-            self._indirect_path = (pointer_addr, target_addr)
-            self._update_row_colors()
-            if 0 <= target_addr < 65536:
-                path = Gtk.TreePath.new_from_string(str(target_addr))
-                self.tree_view.scroll_to_cell(path, None, True, 0.5)
-
-    def _update_row_colors(self):
-        pass
 
     def update(self, address=None):
         if address is not None and 0 <= address < 65536:
