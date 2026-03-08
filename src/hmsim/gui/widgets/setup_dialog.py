@@ -59,15 +59,15 @@ class SetupDialog(Gtk.Dialog):
         text_row.append(Gtk.Label(label="Start:"))
         self._text_start_entry = Gtk.Entry()
         self._text_start_entry.set_text(f"0x{self._text_start:04X}")
-        self._text_start_entry.set_placeholder_text("0x0100 or 256")
-        self._text_start_entry.set_width_chars(12)
+        self._text_start_entry.set_placeholder_text("0x0000")
+        self._text_start_entry.set_width_chars(10)
         text_row.append(self._text_start_entry)
 
         text_row.append(Gtk.Label(label="End:"))
         self._text_end_entry = Gtk.Entry()
         self._text_end_entry.set_text(f"0x{self._text_end:04X}")
-        self._text_end_entry.set_placeholder_text("0x0100 or 256")
-        self._text_end_entry.set_width_chars(12)
+        self._text_end_entry.set_placeholder_text("0x00FF")
+        self._text_end_entry.set_width_chars(10)
         text_row.append(self._text_end_entry)
 
         data_frame = Gtk.Frame()
@@ -88,15 +88,15 @@ class SetupDialog(Gtk.Dialog):
         data_row.append(Gtk.Label(label="Start:"))
         self._data_start_entry = Gtk.Entry()
         self._data_start_entry.set_text(f"0x{self._data_start:04X}")
-        self._data_start_entry.set_placeholder_text("0x0101 or 257")
-        self._data_start_entry.set_width_chars(12)
+        self._data_start_entry.set_placeholder_text("0x0101")
+        self._data_start_entry.set_width_chars(10)
         data_row.append(self._data_start_entry)
 
         data_row.append(Gtk.Label(label="End:"))
         self._data_end_entry = Gtk.Entry()
         self._data_end_entry.set_text(f"0x{self._data_end:04X}")
-        self._data_end_entry.set_placeholder_text("0xFFFF or 65535")
-        self._data_end_entry.set_width_chars(12)
+        self._data_end_entry.set_placeholder_text("0xFFFF")
+        self._data_end_entry.set_width_chars(10)
         data_row.append(self._data_end_entry)
 
         self._error_label = Gtk.Label()
@@ -121,12 +121,7 @@ class SetupDialog(Gtk.Dialog):
         text = text.strip()
         if text.startswith("0x") or text.startswith("0X"):
             return int(text, 16)
-        if text.isdigit():
-            return int(text, 10)
-        try:
-            return int(text, 16)
-        except ValueError:
-            return int(text, 0)
+        return int(text, 0)
 
     def _on_apply(self, button):
         try:
