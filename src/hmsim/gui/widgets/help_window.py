@@ -45,7 +45,7 @@ class HelpWindow(Gtk.Window):
         self.text_view.set_right_margin(20)
 
         css_provider = Gtk.CssProvider()
-        css_provider.load_from_data(b"textview { font-size: 12px; }")
+        css_provider.load_from_data(b"textview { font-size: 14px; }")
         self.text_view.get_style_context().add_provider(
             css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
