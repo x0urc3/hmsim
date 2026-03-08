@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright 2026 Khairulmizam Samsudin <xource@gmail.com>
-# Licensed under the Apache License, Version 2.0; see LICENSE for details
+# Licensed under the Apache License, Version 2.0; see details
 """Tests for version handling and state loading."""
 
 
@@ -28,7 +28,9 @@ class TestVersionDropdown:
 class TestVersionMismatchHandling:
     """Test version loading logic."""
 
-    def test_hmv3_defaults_to_hmv2(self):
+    VERSIONS = ["HMv1", "HMv2", "HMv3", "HMv4"]
+
+    def test_hmv3_loads_correctly(self):
         state = {
             "version": "HMv3",
             "pc": 0,
@@ -39,12 +41,11 @@ class TestVersionMismatchHandling:
         }
 
         version = state.get("version", "HMv1")
-        if version not in ["HMv1", "HMv2"]:
-            loaded_version = "HMv2"
+        loaded_version = version if version in self.VERSIONS else "HMv2"
 
-        assert loaded_version == "HMv2"
+        assert loaded_version == "HMv3"
 
-    def test_hmv4_defaults_to_hmv2(self):
+    def test_hmv4_loads_correctly(self):
         state = {
             "version": "HMv4",
             "pc": 0,
@@ -55,10 +56,9 @@ class TestVersionMismatchHandling:
         }
 
         version = state.get("version", "HMv1")
-        if version not in ["HMv1", "HMv2"]:
-            loaded_version = "HMv2"
+        loaded_version = version if version in self.VERSIONS else "HMv2"
 
-        assert loaded_version == "HMv2"
+        assert loaded_version == "HMv4"
 
     def test_hmv1_loads_correctly(self):
         state = {
@@ -71,10 +71,10 @@ class TestVersionMismatchHandling:
         }
 
         version = state.get("version", "HMv1")
-        loaded_version = version if version in ["HMv1", "HMv2"] else "HMv2"
+        loaded_version = version if version in self.VERSIONS else "HMv2"
 
         assert loaded_version == "HMv1"
-        assert version in ["HMv1", "HMv2"]
+        assert version in self.VERSIONS
 
     def test_hmv2_loads_correctly(self):
         state = {
@@ -87,7 +87,7 @@ class TestVersionMismatchHandling:
         }
 
         version = state.get("version", "HMv1")
-        loaded_version = version if version in ["HMv1", "HMv2"] else "HMv2"
+        loaded_version = version if version in self.VERSIONS else "HMv2"
 
         assert loaded_version == "HMv2"
 
@@ -106,25 +106,39 @@ class TestVersionMismatchHandling:
 
     def test_status_message_for_hmv1(self):
         version = "HMv1"
-        if version in ["HMv1", "HMv2"]:
+        if version in self.VERSIONS:
             status_msg = f"Loaded {version} state"
+        else:
+            status_msg = f"Warning: Unknown version, loaded as HMv2"
 
         assert status_msg == "Loaded HMv1 state"
 
     def test_status_message_for_hmv2(self):
         version = "HMv2"
-        if version in ["HMv1", "HMv2"]:
+        if version in self.VERSIONS:
             status_msg = f"Loaded {version} state"
+        else:
+            status_msg = f"Warning: Unknown version, loaded as HMv2"
 
         assert status_msg == "Loaded HMv2 state"
 
     def test_status_message_for_hmv3(self):
         version = "HMv3"
-        if version not in ["HMv1", "HMv2"]:
-            version = "HMv2"
-            status_msg = f"Warning: HMv3 state loaded as HMv2"
+        if version in self.VERSIONS:
+            status_msg = f"Loaded {version} state"
+        else:
+            status_msg = f"Warning: Unknown version, loaded as HMv2"
 
-        assert status_msg == "Warning: HMv3 state loaded as HMv2"
+        assert status_msg == "Loaded HMv3 state"
+
+    def test_status_message_for_hmv4(self):
+        version = "HMv4"
+        if version in self.VERSIONS:
+            status_msg = f"Loaded {version} state"
+        else:
+            status_msg = f"Warning: Unknown version, loaded as HMv2"
+
+        assert status_msg == "Loaded HMv4 state"
 
     def test_version_index_mapping(self):
         VERSIONS = ["HMv1", "HMv2", "HMv3", "HMv4"]
@@ -145,7 +159,9 @@ class TestVersionMismatchHandling:
         }
 
         version = state.get("version", "HMv1")
-        if version not in ["HMv1", "HMv2"]:
+        if version not in self.VERSIONS:
             loaded_version = "HMv2"
+        else:
+            loaded_version = version
 
         assert loaded_version == "HMv2"

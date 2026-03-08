@@ -5,24 +5,16 @@
   "ir": 0,
   "sr": 0,
   "text": {
-    "0x0000": "LOAD 0x0101   ; Load number to double (value: 5)",
-    "0x0001": "STORE 0x0103 ; Save original value before CALL (AC gets overwritten)",
-    "0x0002": "CALL 0x0010  ; Call subroutine (AC = PC+1 = 0x0003)",
-    "0x0003": "LOAD 0x0104   ; Load result from subroutine's dedicated storage",
-    "0x0004": "STORE 0x0102 ; Store final result",
-    "0x0005": "JMP 0x0005    ; Infinite loop (halt)",
-    "0x0010": "STORE 0x0100 ; Subroutine: save return address to memory",
-    "0x0011": "LOAD 0x0103   ; Reload original value from memory",
-    "0x0012": "ADD 0x0103    ; Double: AC = value + value",
-    "0x0013": "STORE 0x0104 ; Save result to dedicated location",
-    "0x0014": "LOAD 0x0100   ; Restore return address to AC",
-    "0x0015": "RETURN        ; Jump to saved return address"
+    "0x0000": "CALL 0x003 ; Call subroutine",
+    "0x0001": "LOAD 0x102 ; Load result from subroutine's dedicated storage",
+    "0x0003": "STORE 0x100 ; Subroutine: save return address to 0x0100",
+    "0x0004": "LOAD 0x101 ; Reload value from memory",
+    "0x0005": "ADD 0x101 ; Double: AC = value + value",
+    "0x0006": "STORE 0x102 ; Save result to dedicated location",
+    "0x0007": "LOAD 0x100 ; Restore return address to AC",
+    "0x0008": "RETURN"
   },
   "data": {
-    "0x0100": "0x0000",
-    "0x0101": "0x0005",
-    "0x0102": "0x0000",
-    "0x0103": "0x0000",
-    "0x0104": "0x0000"
+    "0x0101": "0x0002"
   }
 }
