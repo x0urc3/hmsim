@@ -503,9 +503,9 @@ class MainWindow(Gtk.ApplicationWindow):
 
             version = self.engine.load_state(file_path)
 
-            if version not in ["HMv1", "HMv2"]:
+            if version not in VERSIONS:
                 version = "HMv2"
-                self.status_bar.set_label(f"Warning: HMv{version[-1]} state loaded as HMv2")
+                self.status_bar.set_label(f"Warning: Unknown version, loaded as HMv2")
             else:
                 self.status_bar.set_label(f"Loaded {version} state")
 

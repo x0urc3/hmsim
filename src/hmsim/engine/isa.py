@@ -42,8 +42,8 @@ HMV3_ISA: Dict[str, Tuple[int, int]] = {
 
 HMV4_ISA: Dict[str, Tuple[int, int]] = {
     **HMV3_ISA,
-    "LOAD": (OP_LOAD_INDIRECT, 10),
-    "STORE": (OP_STORE_INDIRECT, 25),
+    "LOAD_INDIRECT": (OP_LOAD_INDIRECT, 10),
+    "STORE_INDIRECT": (OP_STORE_INDIRECT, 25),
 }
 
 VERSION_ISA = {

@@ -9,6 +9,13 @@ from typing import Optional
 
 from hmsim.engine.isa import VERSION_ISA
 
+ZERO_OPERAND_MNEMONICS = {
+    "HMv1": set(),
+    "HMv2": set(),
+    "HMv3": {"RETURN"},
+    "HMv4": {"RETURN"},
+}
+
 
 def assemble(instruction: str, version: str = "HMv1") -> int:
     """Assemble an instruction string into machine code.
@@ -25,6 +32,17 @@ def assemble(instruction: str, version: str = "HMv1") -> int:
     """
     code = instruction.split(';', 1)[0].strip()
     parts = code.split()
+    if len(parts) == 0:
+        raise ValueError(f"Invalid instruction format: {instruction}")
+    if len(parts) == 1:
+        mnemonic = parts[0].upper()
+        isa = VERSION_ISA[version]
+        if mnemonic not in isa:
+            raise ValueError(f"Unknown mnemonic '{mnemonic}' for {version}")
+        if mnemonic not in ZERO_OPERAND_MNEMONICS[version]:
+            raise ValueError(f"Invalid instruction format: {instruction}")
+        opcode = isa[mnemonic][0]
+        return opcode << 12
     if len(parts) != 2:
         raise ValueError(f"Invalid instruction format: {instruction}")
 
@@ -36,6 +54,10 @@ def assemble(instruction: str, version: str = "HMv1") -> int:
         raise ValueError(f"Unknown mnemonic '{mnemonic}' for {version}")
 
     opcode = isa[mnemonic][0]
+
+    if mnemonic in ZERO_OPERAND_MNEMONICS[version]:
+        return opcode << 12
+
     address = int(address_str, 0)
 
     if not 0 <= address <= 0xFFF:

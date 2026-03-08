@@ -115,11 +115,11 @@ class HMv4Strategy(ExecutionStrategy):
         if opcode == OP_LOAD_INDIRECT:
             target_addr = engine._memory[address] & 0xFFFF
             engine.ac = engine._memory[target_addr]
-            return engine.isa["LOAD"][1]
+            return engine.isa["LOAD_INDIRECT"][1]
         elif opcode == OP_STORE_INDIRECT:
             target_addr = engine._memory[address] & 0xFFFF
             engine._memory[target_addr] = engine.ac
-            return engine.isa["STORE"][1]
+            return engine.isa["STORE_INDIRECT"][1]
         else:
             raise ValueError(f"Unknown opcode: {opcode:#x}")
 

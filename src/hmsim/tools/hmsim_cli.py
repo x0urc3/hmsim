@@ -53,7 +53,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     parser.add_argument(
         "-v", "--version",
-        choices=["HMv1", "HMv2"],
+        choices=["HMv1", "HMv2", "HMv3", "HMv4"],
         help="Override processor version (default: from state file)"
     )
     parser.add_argument(
