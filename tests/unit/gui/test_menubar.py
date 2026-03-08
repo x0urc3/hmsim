@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+# Copyright 2026 Khairulmizam Samsudin <xource@gmail.com>
+# Licensed under the Apache License, Version 2.0; see LICENSE for details
+
 import pytest
 import sys
 import os
@@ -66,18 +70,19 @@ class TestMenuBar:
     def test_menubar_visibility_explicit(self, app):
         """Verify that the PopoverMenuBar is added to the window layout."""
         win = app.win
-        # The window child is a Gtk.Box (vertical)
         main_box = win.get_child()
         assert isinstance(main_box, Gtk.Box)
 
-        # Look for PopoverMenuBar in the main_box
-        found_menubar = False
-        child = main_box.get_first_child()
-        while child:
-            # We use PopoverMenuBar explicitly in main_window.py
-            if isinstance(child, Gtk.PopoverMenuBar):
-                found_menubar = True
-                break
-            child = child.get_next_sibling()
+        def find_popover_menubar(widget):
+            if isinstance(widget, Gtk.PopoverMenuBar):
+                return True
+            if isinstance(widget, Gtk.Box):
+                child = widget.get_first_child()
+                while child:
+                    if find_popover_menubar(child):
+                        return True
+                    child = child.get_next_sibling()
+            return False
 
+        found_menubar = find_popover_menubar(main_box)
         assert found_menubar, "PopoverMenuBar was not found in the window layout"

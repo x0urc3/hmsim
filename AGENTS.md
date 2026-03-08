@@ -23,11 +23,12 @@ pytest --cov=src/hmsim      # With coverage
 ### Running the Application
 
 ```bash
-python3 src/hmsim/gui/hm_gui.py           # Run GUI
-python3 src/hmsim/tools/hmasm.py "LOAD 100"  # Run assembler
-python3 src/hmsim/tools/hmdas.py <file>      # Run disassembler
-pip install -e ".[dev]"                    # Install with test deps
-pip install -e ".[all]"                    # Install with GUI deps
+hmsim                       # Run GUI
+hmsim_cli <state_file.hm>   # Run headless simulator
+hmasm "LOAD 100"            # Run assembler
+hmdas 0x1234                # Run disassembler
+pip install -e ".[dev]"     # Install with test deps
+pip install -e ".[all]"     # Install with GUI deps
 ```
 
 ---

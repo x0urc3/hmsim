@@ -8,9 +8,9 @@ version = "0.1.0"
 description = "Multi-version simulator for HM 16-bit processor family"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 authors = [
-    {name = "HMSim Contributors"}
+    {name = "Khairulmizam Samsudin", email = "xource@gmail.com"}
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -26,16 +26,18 @@ dev = [
 
 gui = [
     "PyGObject>=3.44",
+    "markdown-it-py>=3.0.0",
 ]
 
 all = [
     "PyGObject>=3.44",
+    "markdown-it-py>=3.0.0",
     "pytest>=7.0",
 ]
 
 [project.scripts]
-hmsim = "hmsim.tools.hmsim_cli:main"
-hmsim_gui = "hmsim.gui.hm_gui:main"
+hmsim_cli = "hmsim.tools.hmsim_cli:main"
+hmsim = "hmsim.gui.hm_gui:main"
 hmasm = "hmsim.tools.hmasm:main"
 hmdas = "hmsim.tools.hmdas:main"
 

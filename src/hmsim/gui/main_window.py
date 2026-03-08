@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# Copyright 2026 Khairulmizam Samsudin <xource@gmail.com>
+# Licensed under the Apache License, Version 2.0; see LICENSE for details
 """HM Simulator - Main Window."""
 
 import json
@@ -24,6 +26,7 @@ if not GTK_AVAILABLE:
 from hmsim.gui.widgets.register_view import RegisterView
 from hmsim.gui.widgets.memory_view import MemoryView
 from hmsim.gui.widgets.editor_view import EditorView
+from hmsim.gui.widgets.help_window import HelpWindow
 from hmsim.engine.cpu import HMEngine
 from hmsim.tools.hmdas import disassemble
 
@@ -47,6 +50,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self._is_running = False
         self._run_source_id = None
         self._is_updating_editor = False
+        self._help_windows = {}
         self._setup_ui(application)
         self._setup_actions()
         self._connect_engine()
@@ -57,17 +61,46 @@ class MainWindow(Gtk.ApplicationWindow):
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
         self.set_child(main_box)
 
-        # Add MenuBar explicitly for GTK4
         if app:
-            menubar_model = getattr(app, 'menubar_model', app.get_menubar())
-            if menubar_model:
-                menubar = Gtk.PopoverMenuBar.new_from_model(menubar_model)
-                menubar.set_hexpand(True)
-                main_box.append(menubar)
+            menu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
+            menu_box.add_css_class("menubar")
+            main_box.append(menu_box)
 
-                # Add separator
-                separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-                main_box.append(separator)
+            file_menu = Gio.Menu()
+            file_menu.append("New", "win.new")
+            file_menu.append("Open...", "win.open")
+            file_menu.append("Save", "win.save")
+            file_menu.append("Quit", "app.quit")
+            file_menu_model = Gio.Menu()
+            file_menu_model.append_submenu("File", file_menu)
+
+            run_menu = Gio.Menu()
+            run_menu.append("Run", "win.run")
+            run_menu.append("Step", "win.step")
+            run_menu.append("Reset", "win.reset")
+            run_menu_model = Gio.Menu()
+            run_menu_model.append_submenu("Run", run_menu)
+
+            main_file_run = Gio.Menu()
+            main_file_run.append_section(None, file_menu_model)
+            main_file_run.append_section(None, run_menu_model)
+            menubar_left = Gtk.PopoverMenuBar.new_from_model(main_file_run)
+            menu_box.append(menubar_left)
+
+            spacer = Gtk.Box(hexpand=True)
+            menu_box.append(spacer)
+
+            help_menu = Gio.Menu()
+            help_menu.append("Tutorial", "win.show_tutorial")
+            help_menu.append("User Guide", "win.show_user_guide")
+            help_menu.append("About", "app.about")
+            help_menu_model = Gio.Menu()
+            help_menu_model.append_submenu("Help", help_menu)
+            menubar_right = Gtk.PopoverMenuBar.new_from_model(help_menu_model)
+            menu_box.append(menubar_right)
+
+            separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+            main_box.append(separator)
 
         toolbar = self._create_toolbar()
         main_box.append(toolbar)
@@ -79,6 +112,10 @@ class MainWindow(Gtk.ApplicationWindow):
                 padding: 4px;
                 border-bottom: 1px solid @borders;
                 background-color: @theme_bg_color;
+            }
+            .menubar {
+                background-color: @theme_bg_color;
+                border-bottom: 1px solid @borders;
             }
             popovermenubar {
                 background-color: @theme_bg_color;
@@ -177,6 +214,41 @@ class MainWindow(Gtk.ApplicationWindow):
         self._add_action("step", self._on_step_action)
         self._add_action("run", self._on_run_action)
         self._add_action("reset", self._on_reset_action)
+        self._add_action("show_tutorial", self._on_show_tutorial)
+        self._add_action("show_user_guide", self._on_show_user_guide)
+
+    def _get_docs_path(self) -> str:
+        import hmsim
+        module_dir = os.path.dirname(os.path.abspath(hmsim.__file__))
+        return os.path.join(module_dir, '..', '..', 'docs')
+
+    def _resolve_help_file(self, filename: str) -> str:
+        docs_path = self._get_docs_path()
+        return os.path.join(docs_path, 'user', filename)
+
+    def _on_show_tutorial(self, action, param):
+        self._show_help_window('tutorial', 'Tutorial', 'Tutorial.md')
+
+    def _on_show_user_guide(self, action, param):
+        self._show_help_window('user_guide', 'User Guide', 'hmsim_User_Guide.md')
+
+    def _show_help_window(self, key: str, title: str, filename: str):
+        if key in self._help_windows:
+            self._help_windows[key].present()
+            return
+
+        file_path = self._resolve_help_file(filename)
+        help_window = HelpWindow(title=title)
+        help_window.set_transient_for(self)
+
+        if not help_window.load_markdown(file_path):
+            self.status_bar.set_label(f"Error: Help file not found - {file_path}")
+            self.status_bar.add_css_class("error")
+            return
+
+        help_window.connect('destroy', lambda w: self._help_windows.pop(key, None))
+        self._help_windows[key] = help_window
+        help_window.present()
 
     def _add_action(self, name, callback):
         action = Gio.SimpleAction.new(name, None)

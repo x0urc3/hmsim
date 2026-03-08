@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-gi-cairo \
     gir1.2-gtk-4.0 \
     gir1.2-glib-2.0 \
-    libgirepository1.0-dev \
+    libgirepository-2.0-dev \
     libcairo2-dev \
     pkg-config \
     python3-dev \
