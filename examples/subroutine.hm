@@ -1,0 +1,20 @@
+{
+  "version": "HMv3",
+  "pc": 0,
+  "ac": 0,
+  "ir": 0,
+  "sr": 0,
+  "text": {
+    "0x0000": "CALL 0x003 ; Call subroutine",
+    "0x0001": "LOAD 0x102 ; Load result from subroutine's dedicated storage",
+    "0x0003": "STORE 0x100 ; Subroutine: save return address to 0x0100",
+    "0x0004": "LOAD 0x101 ; Reload value from memory",
+    "0x0005": "ADD 0x101 ; Double: AC = value + value",
+    "0x0006": "STORE 0x102 ; Save result to dedicated location",
+    "0x0007": "LOAD 0x100 ; Restore return address to AC",
+    "0x0008": "RETURN"
+  },
+  "data": {
+    "0x0101": "0x0002"
+  }
+}

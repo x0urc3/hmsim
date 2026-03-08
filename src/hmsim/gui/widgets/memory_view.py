@@ -25,6 +25,8 @@ class MemoryView(Gtk.Box):
         self.set_margin_end(10)
         self._memory = [0] * 65536
         self._memory_changed_callback = None
+        self._highlighted_path = None
+        self._last_pc = -1
         self._setup_ui()
 
     def _setup_ui(self):
@@ -53,8 +55,16 @@ class MemoryView(Gtk.Box):
         self.tree_view.set_show_expanders(False)
         scroll.set_child(self.tree_view)
 
-        self._model = Gtk.ListStore.new([str, str])
+        self._model = Gtk.ListStore.new([str, str, str])
         self.tree_view.set_model(self._model)
+
+        icon_col = Gtk.TreeViewColumn()
+        icon_col.set_title("")
+        icon_col.set_fixed_width(25)
+        self.tree_view.append_column(icon_col)
+        icon_renderer = Gtk.CellRendererPixbuf()
+        icon_col.pack_start(icon_renderer, False)
+        icon_col.add_attribute(icon_renderer, "icon-name", 0)
 
         headers = [("Address", 80), ("Value", 100)]
         for i, (header, width) in enumerate(headers):
@@ -65,7 +75,7 @@ class MemoryView(Gtk.Box):
             self.tree_view.append_column(col)
             renderer = Gtk.CellRendererText()
             col.pack_start(renderer, True)
-            col.add_attribute(renderer, "text", i)
+            col.add_attribute(renderer, "text", i + 1)
             if i == 1:
                 renderer.set_property("editable", True)
                 renderer.connect("edited", self._on_cell_edited)
@@ -76,7 +86,9 @@ class MemoryView(Gtk.Box):
         self._model.clear()
         for addr in range(65536):
             value = self._memory[addr]
-            self._model.append([f"0x{addr:04X}", f"0x{value:04X}"])
+            self._model.append(["", f"0x{addr:04X}", f"0x{value:04X}"])
+        if self._last_pc >= 0:
+            self.set_pc(self._last_pc)
 
     def _on_search(self, entry):
         text = entry.get_text()
@@ -97,6 +109,14 @@ class MemoryView(Gtk.Box):
         self._populate_model()
         self._highlighted_path = None
 
+    def set_pc(self, address):
+        if not 0 <= address < 65536:
+            return
+        if self._last_pc >= 0 and self._last_pc < len(self._model):
+            self._model[self._last_pc][0] = ""
+        self._model[address][0] = "go-next-symbolic"
+        self._last_pc = address
+
     def highlight_address(self, address):
         if 0 <= address < 65536:
             path = Gtk.TreePath.new_from_string(str(address))
@@ -111,7 +131,8 @@ class MemoryView(Gtk.Box):
     def update(self, address=None):
         if address is not None and 0 <= address < 65536:
             value = self._memory[address]
-            self._model[address] = [f"0x{address:04X}", f"0x{value:04X}"]
+            icon = self._model[address][0]
+            self._model[address] = [icon, f"0x{address:04X}", f"0x{value:04X}"]
 
     def set_memory_changed_callback(self, callback):
         self._memory_changed_callback = callback
@@ -126,7 +147,8 @@ class MemoryView(Gtk.Box):
                 value = value & 0xFFFF
             address = int(path)
             self._memory[address] = value
-            self._model[address] = [f"0x{address:04X}", f"0x{value:04X}"]
+            icon = self._model[address][0]
+            self._model[address] = [icon, f"0x{address:04X}", f"0x{value:04X}"]
             if self._memory_changed_callback:
                 self._memory_changed_callback(address, value)
         except ValueError:

@@ -9,6 +9,13 @@ from typing import Optional
 
 from hmsim.engine.isa import get_mnemonic
 
+ZERO_OPERAND_MNEMONICS = {
+    "HMv1": set(),
+    "HMv2": set(),
+    "HMv3": {"RETURN"},
+    "HMv4": {"RETURN"},
+}
+
 
 def disassemble(machine_code: int, version: str = "HMv1") -> str:
     """Disassemble a 16-bit machine code word to mnemonic.
@@ -18,12 +25,16 @@ def disassemble(machine_code: int, version: str = "HMv1") -> str:
         version: HM version (HMv1 or HMv2)
 
     Returns:
-        Disassembled string in format "MNEMONIC 0xADDRESS"
+        Disassembled string in format "MNEMONIC 0xADDRESS" or just "MNEMONIC" for 0-operand instructions
     """
     opcode = (machine_code >> 12) & 0xF
     address = machine_code & 0x0FFF
 
     mnemonic = get_mnemonic(opcode, version)
+    if mnemonic == "???":
+        return f"{mnemonic} 0x{address:03X}"
+    if mnemonic in ZERO_OPERAND_MNEMONICS.get(version, set()):
+        return mnemonic
     return f"{mnemonic} 0x{address:03X}"
 
 
@@ -35,7 +46,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument(
         "-v", "--version",
         default="HMv1",
-        choices=["HMv1", "HMv2"],
+        choices=["HMv1", "HMv2", "HMv3", "HMv4"],
         help="HM processor version (default: HMv1)"
     )
     parser.add_argument(

@@ -1,0 +1,17 @@
+{
+  "version": "HMv4",
+  "pc": 0,
+  "ac": 0,
+  "ir": 0,
+  "sr": 0,
+  "text": {
+    "0x0000": "LOAD 0xA",
+    "0x0001": "LOAD_INDIRECT 0xA",
+    "0x0002": "STORE_INDIRECT 0xB"
+  },
+  "data": {
+    "0x000A": "0x1000",
+    "0x000B": "0x2000",
+    "0x1000": "0xABCD"
+  }
+}

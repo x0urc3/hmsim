@@ -6,14 +6,14 @@
 import json
 import tempfile
 import pytest
-from hmsim.engine.cpu import HMv1Engine, HMEngine
+from hmsim.engine.cpu import HMEngine
 from hmsim.engine.state import save_state_to_dict, load_state_from_dict
 
 
 class TestHMStateFormat:
     @pytest.fixture
     def engine(self):
-        return HMv1Engine()
+        return HMEngine("HMv1")
 
     def test_save_produces_text_and_data_sections(self, engine):
         engine._memory[0] = 0x1100
@@ -101,7 +101,7 @@ class TestHMStateFormat:
         assert engine._memory[0x101] == 0x0007
 
     def test_save_and_load_roundtrip(self, tmp_path):
-        engine = HMv1Engine()
+        engine = HMEngine("HMv1")
         engine._memory[0] = 0x1100
         engine._memory[1] = 0x5100
         engine._memory[2] = 0x2100
@@ -115,7 +115,7 @@ class TestHMStateFormat:
         f = tmp_path / "state.hm"
         engine.save_state(str(f))
 
-        new_engine = HMv1Engine()
+        new_engine = HMEngine("HMv1")
         new_engine.load_state(str(f))
 
         assert new_engine.pc == 10

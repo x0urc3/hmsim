@@ -4,13 +4,13 @@
 """Unit tests for Step 4.4 - Engine Integration (Observer Pattern, Memory Access, Reset)."""
 
 import pytest
-from hmsim.engine.cpu import HMEngine, HMv1Engine
+from hmsim.engine.cpu import HMEngine
 
 
 class TestObserverPattern:
     @pytest.fixture
     def engine(self):
-        return HMv1Engine()
+        return HMEngine("HMv1")
 
     def test_register_observer(self, engine):
         callback_called = []
@@ -60,7 +60,7 @@ class TestObserverPattern:
 class TestMemoryAccess:
     @pytest.fixture
     def engine(self):
-        return HMv1Engine()
+        return HMEngine("HMv1")
 
     def test_write_memory(self, engine):
         engine.write_memory(0x0100, 0xABCD)
@@ -85,7 +85,7 @@ class TestMemoryAccess:
         assert value == 0xABCD
 
     def test_read_memory_returns_zero_for_invalid(self):
-        engine = HMv1Engine()
+        engine = HMEngine("HMv1")
         value = engine.read_memory(0x10000)
         assert value == 0
 
@@ -101,7 +101,7 @@ class TestMemoryAccess:
 class TestReset:
     @pytest.fixture
     def engine(self):
-        return HMv1Engine()
+        return HMEngine("HMv1")
 
     def test_reset_clears_registers(self, engine):
         engine.pc = 0x1234
@@ -140,7 +140,7 @@ class TestReset:
 class TestIRUpdate:
     @pytest.fixture
     def engine(self):
-        return HMv1Engine()
+        return HMEngine("HMv1")
 
     def test_step_sets_ir(self, engine):
         engine._memory[0] = 0x1234

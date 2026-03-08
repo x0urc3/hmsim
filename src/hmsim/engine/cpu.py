@@ -13,7 +13,7 @@ from .state import load_state, save_state
 class HMEngine:
     """Engine for HM processor simulation (supports HMv1-HMv4)."""
 
-    VALID_VERSIONS = ("HMv1", "HMv2")
+    VALID_VERSIONS = ("HMv1", "HMv2", "HMv3", "HMv4")
 
     def __init__(self, version: str = "HMv1") -> None:
         if version not in self.VALID_VERSIONS:
@@ -183,10 +183,3 @@ class HMEngine:
         finally:
             self._notify_observers()
         return batch_cycles
-
-
-class HMv1Engine(HMEngine):
-    """Legacy HMv1 engine for backward compatibility."""
-
-    def __init__(self) -> None:
-        super().__init__("HMv1")

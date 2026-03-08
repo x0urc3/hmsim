@@ -4,13 +4,13 @@
 """Unit tests for HM CPU Engine."""
 
 import pytest
-from hmsim.engine.cpu import HMv1Engine, HMEngine
+from hmsim.engine.cpu import HMEngine
 
 
 class TestHMv1Engine:
     @pytest.fixture
     def engine(self):
-        return HMv1Engine()
+        return HMEngine("HMv1")
 
     def test_load_instruction(self, engine):
         engine._memory[0x0100] = 0x1234
@@ -100,7 +100,7 @@ class TestHMv2Engine:
 
 class TestVersionSupport:
     def test_hmv1_only_supports_base_instructions(self):
-        engine = HMv1Engine()
+        engine = HMEngine("HMv1")
         engine.execute(0x1, 0x0100)
         engine.execute(0x2, 0x0100)
         engine.execute(0x5, 0x0100)
@@ -109,5 +109,5 @@ class TestVersionSupport:
 
     def test_invalid_version(self):
         with pytest.raises(ValueError) as exc_info:
-            HMEngine("HMv3")
+            HMEngine("HMv5")
         assert "Invalid version" in str(exc_info.value)

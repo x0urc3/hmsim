@@ -42,7 +42,7 @@ pip install -e ".[all]"     # Install with GUI deps
 import sys
 from typing import Optional, List, Dict
 import pytest
-from ..engine.cpu import HMv1Engine
+from ..engine.cpu import HMEngine
 from .cpu import CPU
 ```
 
@@ -68,7 +68,7 @@ memory: List[int] = [0] * 65536
 | Element | Convention | Example |
 |---------|------------|---------|
 | Modules | snake_case | `cpu.py`, `hm_engine.py` |
-| Classes | PascalCase | `HMv1Engine`, `MemoryBus` |
+| Classes | PascalCase | `HMEngine`, `MemoryBus` |
 | Functions/methods | snake_case | `execute()`, `get_register()` |
 | Constants | UPPERCASE | `MAX_MEMORY`, `OPCODES` |
 | Private methods | underscore prefix | `_decode()`, `_update_state()` |
@@ -104,7 +104,7 @@ hmsim/
 │   ├── __init__.py
 │   ├── engine/         # Core simulation (no UI deps)
 │   │   ├── __init__.py
-│   │   ├── cpu.py       # HMEngine, HMv1Engine
+│   │   ├── cpu.py       # HMEngine
 │   │   ├── isa.py       # SSOT for opcodes
 │   │   └── strategies/  # ExecutionStrategy, HMv1Strategy, HMv2Strategy
 │   ├── gui/             # GTK 4 GUI Module
@@ -150,12 +150,12 @@ hmsim/
 
 ```python
 import pytest
-from hmsim.engine.cpu import HMv1Engine
+from hmsim.engine.cpu import HMEngine
 
 class TestHMv1Engine:
     @pytest.fixture
     def engine(self):
-        return HMv1Engine()
+        return HMEngine("HMv1")
 
     def test_load_instruction(self, engine):
         engine._memory[0x0100] = 0x1234
