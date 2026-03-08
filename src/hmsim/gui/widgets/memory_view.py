@@ -97,7 +97,7 @@ class MemoryView(Gtk.Box):
             return "#2ECC71"
         if self._data_region[0] <= addr <= self._data_region[1]:
             return "#3498DB"
-        return ""
+        return None
 
     def _populate_model(self):
         self._model.clear()
