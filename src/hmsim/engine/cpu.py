@@ -29,6 +29,51 @@ class HMEngine:
         self._memory: list[int] = [0] * 65536
         self._strategy = get_strategy(version)
         self._observers: List[Callable[[], None]] = []
+        self._text_region: tuple[int, int] = (0x0000, 0x0100)
+        self._data_region: tuple[int, int] = (0x0101, 0xFFFF)
+
+    @property
+    def text_region(self) -> tuple[int, int]:
+        return self._text_region
+
+    @text_region.setter
+    def text_region(self, value: tuple[int, int]) -> None:
+        start, end = value
+        if not (0 <= start <= end <= 0xFFFF):
+            raise ValueError(f"Invalid text region: {start:#06x}-{end:#06x}")
+        if self._data_region:
+            ts, te = start, end
+            ds, de = self._data_region
+            if not (te < ds or ts > de):
+                raise ValueError("Text region cannot overlap with data region")
+        self._text_region = (start, end)
+
+    @property
+    def data_region(self) -> tuple[int, int]:
+        return self._data_region
+
+    @data_region.setter
+    def data_region(self, value: tuple[int, int]) -> None:
+        start, end = value
+        if not (0 <= start <= end <= 0xFFFF):
+            raise ValueError(f"Invalid data region: {start:#06x}-{end:#06x}")
+        if self._text_region:
+            ts, te = self._text_region
+            ds, de = start, end
+            if not (te < ds or ts > de):
+                raise ValueError("Data region cannot overlap with text region")
+        self._data_region = (start, end)
+
+    def set_regions(self, text_region: tuple[int, int], data_region: tuple[int, int]) -> None:
+        ts, te = text_region
+        ds, de = data_region
+        if not (te < ds or ts > de):
+            raise ValueError("Text and data regions cannot overlap")
+        if not (0 <= ts <= te <= 0xFFFF and 0 <= ds <= de <= 0xFFFF):
+            raise ValueError("Regions must be within 0x0000-0xFFFF")
+        self._text_region = (ts, te)
+        self._data_region = (ds, de)
+        self._notify_observers()
 
     def load_state(self, file_path: str) -> str:
         """Load engine state from a JSON file.

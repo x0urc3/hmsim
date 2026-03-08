@@ -27,6 +27,7 @@ from hmsim.gui.widgets.register_view import RegisterView
 from hmsim.gui.widgets.memory_view import MemoryView
 from hmsim.gui.widgets.editor_view import EditorView
 from hmsim.gui.widgets.help_window import HelpWindow
+from hmsim.gui.widgets.setup_dialog import SetupDialog
 from hmsim.engine.cpu import HMEngine
 
 from hmsim.tools.hmdas import disassemble
@@ -82,9 +83,15 @@ class MainWindow(Gtk.ApplicationWindow):
             run_menu_model = Gio.Menu()
             run_menu_model.append_submenu("Run", run_menu)
 
+            setup_menu = Gio.Menu()
+            setup_menu.append("Simulator Setup...", "win.setup")
+            setup_menu_model = Gio.Menu()
+            setup_menu_model.append_submenu("Setup", setup_menu)
+
             main_file_run = Gio.Menu()
             main_file_run.append_section(None, file_menu_model)
             main_file_run.append_section(None, run_menu_model)
+            main_file_run.append_section(None, setup_menu_model)
             menubar_left = Gtk.PopoverMenuBar.new_from_model(main_file_run)
             menu_box.append(menubar_left)
 
@@ -142,6 +149,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self.editor_view = EditorView(version=self.current_version)
         self.editor_view.set_change_callback(self._on_editor_changed)
+        self.editor_view.set_text_region(self.engine.text_region)
         self.left_pane.append(self.editor_view)
 
         self.right_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=False, vexpand=True)
@@ -156,6 +164,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.memory_view = MemoryView()
         self.memory_view.set_vexpand(True)
         self.memory_view.set_memory_changed_callback(self._on_memory_edited)
+        self.memory_view.set_regions(self.engine.text_region, self.engine.data_region)
         self.right_pane.append(self.memory_view)
 
         self.status_bar = Gtk.Label(label="Ready")
@@ -215,6 +224,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self._add_action("step", self._on_step_action)
         self._add_action("run", self._on_run_action)
         self._add_action("reset", self._on_reset_action)
+        self._add_action("setup", self._on_setup_action)
         self._add_action("show_tutorial", self._on_show_tutorial)
         self._add_action("show_user_guide", self._on_show_user_guide)
 
@@ -269,6 +279,27 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_save_action(self, action, param):
         self._on_save(None)
 
+    def _on_setup(self, button):
+        dialog = SetupDialog(
+            self,
+            self.engine.text_region,
+            self.engine.data_region
+        )
+        dialog.show()
+        response = dialog.run()
+        if response == Gtk.ResponseType.APPLY:
+            try:
+                text_region, data_region = dialog.get_regions()
+                self.engine.set_regions(text_region, data_region)
+                self.memory_view.set_regions(text_region, data_region)
+                self.editor_view.set_text_region(text_region)
+                self._refresh_editor_from_memory()
+                self.status_bar.set_label("Memory regions updated")
+            except ValueError as e:
+                self.status_bar.set_label(f"Error: {e}")
+                self.status_bar.add_css_class("error")
+        dialog.destroy()
+
     def _on_step_action(self, action, param):
         self._on_step(None)
 
@@ -277,6 +308,9 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _on_reset_action(self, action, param):
         self._on_reset(None)
+
+    def _on_setup_action(self, action, param):
+        self._on_setup(None)
 
     def _on_version_changed(self, dropdown, pspec):
         index = dropdown.get_selected()
@@ -289,6 +323,8 @@ class MainWindow(Gtk.ApplicationWindow):
             old_ir = self.engine.ir
             old_sr = self.engine.sr
             old_comments = self.engine.comments.copy()
+            old_text_region = self.engine.text_region
+            old_data_region = self.engine.data_region
 
             self.current_version = new_version
             self.engine = HMEngine(self.current_version)
@@ -299,14 +335,17 @@ class MainWindow(Gtk.ApplicationWindow):
             self.engine.ir = old_ir
             self.engine.sr = old_sr
             self.engine.comments = old_comments
+            self.engine.set_regions(old_text_region, old_data_region)
 
             self.editor_view.set_version(new_version)
+            self.editor_view.set_text_region(old_text_region)
             errors = self.editor_view.assemble_to_engine(self.engine)
 
             if errors:
                 for addr, error in errors:
                     self._show_error(f"Line {addr}: {error}", addr)
 
+            self.memory_view.set_regions(old_text_region, old_data_region)
             self._connect_engine()
             self._update_ui()
 
@@ -331,19 +370,20 @@ class MainWindow(Gtk.ApplicationWindow):
     def _refresh_editor_from_memory(self):
         self._is_updating_editor = True
         try:
-            # Find the highest address that is non-zero or has a comment
-            max_addr = -1
-            for addr in range(65535, -1, -1):
+            text_start, text_end = self.engine.text_region
+            max_addr = text_start - 1
+
+            for addr in range(text_start, text_end + 1):
                 if self.engine._memory[addr] != 0 or addr in self.engine.comments:
                     max_addr = addr
                     break
 
-            if max_addr == -1:
+            if max_addr < text_start:
                 self.editor_view.set_text("")
                 return
 
             lines = []
-            for addr in range(max_addr + 1):
+            for addr in range(text_start, max_addr + 1):
                 machine_code = self.engine._memory[addr]
                 has_comment = addr in self.engine.comments
 
@@ -351,9 +391,12 @@ class MainWindow(Gtk.ApplicationWindow):
                     lines.append("")
                 else:
                     line = disassemble(machine_code, self.current_version)
-                    if has_comment:
-                        line = f"{line} ; {self.engine.comments[addr]}"
-                    lines.append(line)
+                    if line.startswith("???"):
+                        lines.append("")
+                    else:
+                        if has_comment:
+                            line = f"{line} ; {self.engine.comments[addr]}"
+                        lines.append(line)
 
             self.editor_view.set_text("\n".join(lines))
         finally:
@@ -505,24 +548,33 @@ class MainWindow(Gtk.ApplicationWindow):
             self.current_version = version
             self.version_dropdown.set_selected(VERSIONS.index(version))
 
+            text_region = self.engine.text_region
+            data_region = self.engine.data_region
+            self.editor_view.set_text_region(text_region)
+            self.memory_view.set_regions(text_region, data_region)
+
             if self.engine.version != version:
                 pc, ac, ir, sr, memory, comments = self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory, self.engine.comments.copy()
                 self.engine = HMEngine(version)
                 self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory, self.engine.comments = pc, ac, ir, sr, memory, comments
+                self.engine.set_regions(text_region, data_region)
                 self.editor_view.set_version(version)
                 self._connect_engine()
 
-            text_section = state.get("text", {})
-            if text_section:
-                lines = []
-                max_addr = max(int(addr, 16) for addr in text_section.keys())
-                for addr in range(max_addr + 1):
-                    addr_str = f"0x{addr:04X}"
-                    if addr_str in text_section:
-                        lines.append(text_section[addr_str])
-                    else:
-                        lines.append("")
-                self.editor_view.set_text("\n".join(lines))
+            setup = state.get("setup", None)
+            if setup:
+                text_section = state.get("text", {})
+                if text_section:
+                    lines = []
+                    max_addr = max(int(addr, 16) for addr in text_section.keys())
+                    text_start = setup.get("text", [0, 256])[0]
+                    for addr in range(text_start, max_addr + 1):
+                        addr_str = f"0x{addr:04X}"
+                        if addr_str in text_section:
+                            lines.append(text_section[addr_str])
+                        else:
+                            lines.append("")
+                    self.editor_view.set_text("\n".join(lines))
 
             self._update_ui()
 

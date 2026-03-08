@@ -27,6 +27,8 @@ class MemoryView(Gtk.Box):
         self._memory_changed_callback = None
         self._highlighted_path = None
         self._last_pc = -1
+        self._text_region = (0x0000, 0x0100)
+        self._data_region = (0x0101, 0xFFFF)
         self._setup_ui()
 
     def _setup_ui(self):
@@ -55,7 +57,7 @@ class MemoryView(Gtk.Box):
         self.tree_view.set_show_expanders(False)
         scroll.set_child(self.tree_view)
 
-        self._model = Gtk.ListStore.new([str, str, str])
+        self._model = Gtk.ListStore.new([str, str, str, str])
         self.tree_view.set_model(self._model)
 
         icon_col = Gtk.TreeViewColumn()
@@ -66,6 +68,14 @@ class MemoryView(Gtk.Box):
         icon_col.pack_start(icon_renderer, False)
         icon_col.add_attribute(icon_renderer, "icon-name", 0)
 
+        region_col = Gtk.TreeViewColumn()
+        region_col.set_title("")
+        region_col.set_fixed_width(6)
+        self.tree_view.append_column(region_col)
+        region_renderer = Gtk.CellRendererText()
+        region_col.pack_start(region_renderer, False)
+        region_col.add_attribute(region_renderer, "background", 1)
+
         headers = [("Address", 80), ("Value", 100)]
         for i, (header, width) in enumerate(headers):
             col = Gtk.TreeViewColumn()
@@ -75,18 +85,26 @@ class MemoryView(Gtk.Box):
             self.tree_view.append_column(col)
             renderer = Gtk.CellRendererText()
             col.pack_start(renderer, True)
-            col.add_attribute(renderer, "text", i + 1)
+            col.add_attribute(renderer, "text", i + 2)
             if i == 1:
                 renderer.set_property("editable", True)
                 renderer.connect("edited", self._on_cell_edited)
 
         self._populate_model()
 
+    def _get_region_color(self, addr: int) -> str:
+        if self._text_region[0] <= addr <= self._text_region[1]:
+            return "#2ECC71"
+        if self._data_region[0] <= addr <= self._data_region[1]:
+            return "#3498DB"
+        return ""
+
     def _populate_model(self):
         self._model.clear()
         for addr in range(65536):
             value = self._memory[addr]
-            self._model.append(["", f"0x{addr:04X}", f"0x{value:04X}"])
+            region_color = self._get_region_color(addr)
+            self._model.append(["", region_color, f"0x{addr:04X}", f"0x{value:04X}"])
         if self._last_pc >= 0:
             self.set_pc(self._last_pc)
 
@@ -117,6 +135,11 @@ class MemoryView(Gtk.Box):
         self._model[address][0] = "go-next-symbolic"
         self._last_pc = address
 
+    def set_regions(self, text_range: tuple[int, int], data_range: tuple[int, int]) -> None:
+        self._text_region = text_range
+        self._data_region = data_range
+        self._populate_model()
+
     def highlight_address(self, address):
         if 0 <= address < 65536:
             path = Gtk.TreePath.new_from_string(str(address))
@@ -132,7 +155,8 @@ class MemoryView(Gtk.Box):
         if address is not None and 0 <= address < 65536:
             value = self._memory[address]
             icon = self._model[address][0]
-            self._model[address] = [icon, f"0x{address:04X}", f"0x{value:04X}"]
+            region_color = self._get_region_color(address)
+            self._model[address] = [icon, region_color, f"0x{address:04X}", f"0x{value:04X}"]
 
     def set_memory_changed_callback(self, callback):
         self._memory_changed_callback = callback
@@ -148,7 +172,8 @@ class MemoryView(Gtk.Box):
             address = int(path)
             self._memory[address] = value
             icon = self._model[address][0]
-            self._model[address] = [icon, f"0x{address:04X}", f"0x{value:04X}"]
+            region_color = self._get_region_color(address)
+            self._model[address] = [icon, region_color, f"0x{address:04X}", f"0x{value:04X}"]
             if self._memory_changed_callback:
                 self._memory_changed_callback(address, value)
         except ValueError:
