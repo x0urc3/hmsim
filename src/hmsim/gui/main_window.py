@@ -327,25 +327,25 @@ class MainWindow(Gtk.ApplicationWindow):
     def _refresh_editor_from_memory(self):
         self._is_updating_editor = True
         try:
-            lines = []
-            started = False
+            # Find the highest address that is non-zero or has a comment
+            max_addr = -1
+            for addr in range(65535, -1, -1):
+                if self.engine._memory[addr] != 0 or addr in self.engine.comments:
+                    max_addr = addr
+                    break
 
-            for addr in range(65536):
-                value = self.engine._memory[addr]
+            if max_addr == -1:
+                self.editor_view.set_text("")
+                return
+
+            lines = []
+            for addr in range(max_addr + 1):
+                machine_code = self.engine._memory[addr]
                 has_comment = addr in self.engine.comments
 
-                if not started:
-                    if value != 0 or has_comment:
-                        started = True
-                        machine_code = self.engine._memory[addr]
-                        line = disassemble(machine_code, self.current_version)
-                        if has_comment:
-                            line = f"{line} ; {self.engine.comments[addr]}"
-                        lines.append(line)
+                if machine_code == 0 and not has_comment:
+                    lines.append("")
                 else:
-                    if value == 0 and not has_comment:
-                        break
-                    machine_code = self.engine._memory[addr]
                     line = disassemble(machine_code, self.current_version)
                     if has_comment:
                         line = f"{line} ; {self.engine.comments[addr]}"
