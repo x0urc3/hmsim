@@ -28,6 +28,7 @@ from hmsim.gui.widgets.memory_view import MemoryView
 from hmsim.gui.widgets.editor_view import EditorView
 from hmsim.gui.widgets.help_window import HelpWindow
 from hmsim.engine.cpu import HMEngine
+from hmsim.engine.isa import OP_LOAD_INDIRECT, OP_STORE_INDIRECT
 from hmsim.tools.hmdas import disassemble
 
 
@@ -364,6 +365,18 @@ class MainWindow(Gtk.ApplicationWindow):
             instructions=self.engine.total_instructions
         )
         self.memory_view.set_memory(self.engine._memory)
+        self._highlight_indirect_operation()
+
+    def _highlight_indirect_operation(self):
+        opcode = (self.engine.ir >> 12) & 0xF
+        address = self.engine.ir & 0x0FFF
+
+        if opcode == OP_LOAD_INDIRECT and self.current_version == "HMv4":
+            target_addr = self.engine._memory[address] & 0xFFFF
+            self.memory_view.highlight_indirect(address, target_addr)
+        elif opcode == OP_STORE_INDIRECT and self.current_version == "HMv4":
+            target_addr = self.engine._memory[address] & 0xFFFF
+            self.memory_view.highlight_indirect(address, target_addr)
 
     def _on_step(self, button):
         self._clear_error()
