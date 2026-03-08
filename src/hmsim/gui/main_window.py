@@ -220,8 +220,12 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _get_docs_path(self) -> str:
         import hmsim
-        module_dir = os.path.dirname(os.path.abspath(hmsim.__file__))
-        return os.path.join(module_dir, '..', '..', 'docs')
+        if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+            base_path = sys._MEIPASS
+            return os.path.join(base_path, 'docs')
+        else:
+            base_path = os.path.dirname(os.path.abspath(hmsim.__file__))
+            return os.path.join(base_path, '..', '..', 'docs')
 
     def _resolve_help_file(self, filename: str) -> str:
         docs_path = self._get_docs_path()
