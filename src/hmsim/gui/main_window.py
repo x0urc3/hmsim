@@ -365,6 +365,7 @@ class MainWindow(Gtk.ApplicationWindow):
             instructions=self.engine.total_instructions
         )
         self.memory_view.set_memory(self.engine._memory)
+        self.memory_view.set_pc(self.engine.pc)
 
     def _on_step(self, button):
         self._clear_error()
