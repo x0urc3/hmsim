@@ -262,12 +262,33 @@ The development is divided into verifiable phases. At the end of each phase, the
     # All tests pass including HMv3 and HMv4 opcodes
     ```
 
-### Phase 6: Distribution & Packaging
-**Objective:** Produce standalone executables for Linux and Windows.
-*   **Deliverables:** `pyinstaller` build scripts and `dist/hmsim` binaries.
-*   **Verification:**
-    ```bash
-    # Run the standalone executable
-    ./dist/hmsim/hmsim_cli --version
+### Phase 6: Distribution & Packaging (IMPLEMENTED)
+**Objective:** Produce standalone, dependency-free executables for Linux (native) and Windows (portable) to enable architectural exploration without a pre-installed Python or GTK 4 runtime.
+
+*   **Key Deliverables:**
+    *   **Build Script:** `scripts/build_gui.py` - Unified PyInstaller-based build for all platforms.
+    *   **Platform-Specific Bundles:**
+        - Linux: `dist/` directory with executables and shared `_internal/` libraries.
+        - Windows: `hmsim_windows.zip` archive.
+    *   **GitHub Actions Workflow:** `.github/workflows/package_windows.yml` for automated Windows builds.
+*   **Build Output:**
     ```
+    dist/
+    ├── hmsim           # GUI executable
+    ├── hmsim_cli      # Headless simulator
+    ├── hmasm          # Assembler
+    ├── hmdas          # Disassembler
+    ├── _internal/     # Shared libraries (Python, GTK4, etc.)
+    ├── docs/          # User documentation for offline help
+    ├── examples/      # Sample .hm files
+    ├── LICENSE
+    └── NOTICE
+    ```
+*   **Build Commands:**
+    - Linux: `python scripts/build_gui.py`
+    - Windows (MSYS2): `python scripts/build_gui.py` (in MINGW64/UCRT64 shell)
+    - Windows (CI): Trigger `package_windows.yml` workflow via release or manual dispatch.
+*   **Verification:**
+    - Linux: Run `./dist/hmsim` (GUI) or `./dist/hmasm "LOAD 0x100"` (CLI)
+    - Windows: Extract ZIP, run `hmsim.exe` or `hmasm.exe "LOAD 0x100"`
 

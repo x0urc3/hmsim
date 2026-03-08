@@ -119,6 +119,55 @@ pytest tests/unit/test_cli_report.py
 
 ---
 
+## Distribution & Packaging
+
+The HM Simulator can be packaged as standalone executables for distribution without requiring Python or GTK4 installation.
+
+### Build Script
+
+The `scripts/build_gui.py` script uses PyInstaller to create self-contained executables:
+
+```bash
+# From project root
+python scripts/build_gui.py
+```
+
+This builds all tools into the `dist/` directory:
+- `hmsim` - GUI application
+- `hmsim_cli` - Headless simulator
+- `hmasm` - Assembler
+- `hmdas` - Disassembler
+- `_internal/` - Shared libraries
+- `examples/` - Sample programs
+- `docs/` - User documentation
+- `LICENSE`, `NOTICE` - Legal files
+
+### Platform-Specific Notes
+
+**Linux:**
+- Builds require GTK4 libraries installed on the build system
+- Output goes to `dist/` directory (not archived)
+- Run directly: `./dist/hmsim` or `./dist/hmasm "LOAD 0x100"`
+
+**Windows (MSYS2):**
+- Requires MSYS2 with MINGW64 or UCRT64 environment
+- Install dependencies: `pacman -S mingw-w64-x86_64-python mingw-w64-x86_64-python-gobject mingw-w64-x86_64-gtk4`
+- Output: Creates `hmsim_windows.zip` archive
+
+**Windows (CI):**
+- Use GitHub Actions workflow `.github/workflows/package_windows.yml`
+- Trigger via: Release publication or manual workflow dispatch
+- Downloads: `hmsim_windows.zip` artifact
+
+### Offline Help
+
+The GUI's Help menu uses documentation bundled in the package:
+- Source: `docs/user/Tutorial.md`, `docs/user/hmsim_User_Guide.md`
+- Bundled to: `dist/_internal/docs/`
+- The application detects running from frozen bundle and locates docs appropriately.
+
+---
+
 ## Internal Architecture
 
 The HM Simulator is built on a modular architecture that separates the execution engine from the user interfaces.

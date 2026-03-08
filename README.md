@@ -105,6 +105,22 @@ The HM Simulator provides an interactive interface for learning and experimentat
 - **Manual**: Use the [hmsim User Guide](docs/user/hmsim_User_Guide.md) for detailed interface reference.
 - **Launch**: Start the interactive simulator by simply running `hmsim`.
 
+### Building Standalone Packages
+
+To create portable executables (no Python/GTK4 installation required):
+
+```bash
+python scripts/build_gui.py
+```
+
+This creates a `dist/` directory with:
+- `hmsim` - GUI application
+- `hmsim_cli`, `hmasm`, `hmdas` - CLI tools
+- Shared libraries in `_internal/`
+- Examples and documentation
+
+For Windows packages, see the [Development Guide](docs/developer/DEVELOPMENT.md#distribution--packaging) for MSYS2 or CI build instructions.
+
 ## Example Programs
 
 The `examples/` directory contains sample programs:
