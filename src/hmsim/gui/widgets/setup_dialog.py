@@ -42,7 +42,7 @@ class SetupDialog(Gtk.Dialog):
         main_box.append(header)
 
         text_frame = Gtk.Frame()
-        text_frame.set_label("Text Section (Executable Code)")
+        text_frame.set_label("│ Text Section (Executable Code)")
         text_frame.set_margin_bottom(10)
         main_box.append(text_frame)
 
@@ -71,7 +71,7 @@ class SetupDialog(Gtk.Dialog):
         text_row.append(self._text_end_entry)
 
         data_frame = Gtk.Frame()
-        data_frame.set_label("Data Section")
+        data_frame.set_label("│ Data Section")
         data_frame.set_margin_bottom(10)
         main_box.append(data_frame)
 

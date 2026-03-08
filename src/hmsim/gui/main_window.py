@@ -285,20 +285,23 @@ class MainWindow(Gtk.ApplicationWindow):
             self.engine.text_region,
             self.engine.data_region
         )
-        dialog.show()
-        response = dialog.run()
-        if response == Gtk.ResponseType.APPLY:
-            try:
-                text_region, data_region = dialog.get_regions()
-                self.engine.set_regions(text_region, data_region)
-                self.memory_view.set_regions(text_region, data_region)
-                self.editor_view.set_text_region(text_region)
-                self._refresh_editor_from_memory()
-                self.status_bar.set_label("Memory regions updated")
-            except ValueError as e:
-                self.status_bar.set_label(f"Error: {e}")
-                self.status_bar.add_css_class("error")
-        dialog.destroy()
+
+        def on_response(dialog, response):
+            if response == Gtk.ResponseType.APPLY:
+                try:
+                    text_region, data_region = dialog.get_regions()
+                    self.engine.set_regions(text_region, data_region)
+                    self.memory_view.set_regions(text_region, data_region)
+                    self.editor_view.set_text_region(text_region)
+                    self._refresh_editor_from_memory()
+                    self.status_bar.set_label("Memory regions updated")
+                except ValueError as e:
+                    self.status_bar.set_label(f"Error: {e}")
+                    self.status_bar.add_css_class("error")
+            dialog.destroy()
+
+        dialog.connect("response", on_response)
+        dialog.present()
 
     def _on_step_action(self, action, param):
         self._on_step(None)
