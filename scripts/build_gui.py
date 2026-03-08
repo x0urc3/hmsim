@@ -323,6 +323,12 @@ if __name__ == "__main__":
     shutil.rmtree(temp_build_dir)
     print("  Removed temp build directory")
 
+    for name in ["hmsim", "hmsim_cli", "hmasm", "hmdas"]:
+        wrapper_path = os.path.join(scripts_dir, f"{name}_wrapper.py")
+        if os.path.exists(wrapper_path):
+            os.remove(wrapper_path)
+            print(f"  Removed {wrapper_path}")
+
     print("\n=== Build Summary ===")
     for name, _, _ in build_outputs:
         bin_path = os.path.join(dist_dir, name)
