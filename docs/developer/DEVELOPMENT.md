@@ -132,5 +132,9 @@ The HM Simulator is built on a modular architecture that separates the execution
 ### GUI (`src/hmsim/gui/`)
 A GTK 4 implementation using the Observer pattern. The GUI listens for `state-changed` signals from the `HMEngine` to update its visual components.
 
-### Tools (`src/hmsim/tools/`)
-Standalone CLI utilities that wrap the core engine logic for specialized tasks.
+### Markdown Renderer (`src/hmsim/gui/utils/markdown_renderer.py`)
+A custom Markdown-to-GTK-TextBuffer renderer built on `markdown-it-py`. It supports:
+- **Rich Styling:** Headings (h1-h3), bold, italic, and inline code.
+- **Tables:** Aligned text-based tables with monospaced font and cell formatting.
+- **Theme Support:** Uses semi-transparent backgrounds for code blocks to remain visible on both light and dark system themes.
+- **Nested Formatting:** Employs a tag stack and recursive token processing for accurate rendering of nested styles.
