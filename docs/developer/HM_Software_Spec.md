@@ -253,9 +253,9 @@ The development is divided into verifiable phases. At the end of each phase, the
 ### Phase 5: ISA Expansion II (HMv3 & HMv4) (PLANNED)
 **Objective:** Implement advanced architectural features and update GUI to support them.
 *   **Deliverables:**
-    *   HMv3: `CALL` (0xA) and `RETURN` (0xB) with stack support.
+    *   HMv3: `CALL` (0xA) and `RETURN` (0xB). Subroutines store the return address in the **AC** (link-in-AC model); user must manage nesting manually.
     *   HMv4: Indirect `LOAD` (0x3) and `STORE` (0x4).
-    *   GUI updates: Stack visualization for subroutines, address redirection highlighting.
+    *   GUI updates: Address redirection highlighting in memory grid for indirect operations.
 *   **Verification:**
     ```bash
     pytest tests/unit/test_cpu.py
