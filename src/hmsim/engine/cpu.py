@@ -183,10 +183,3 @@ class HMEngine:
         finally:
             self._notify_observers()
         return batch_cycles
-
-
-class HMv1Engine(HMEngine):
-    """Legacy HMv1 engine for backward compatibility."""
-
-    def __init__(self) -> None:
-        super().__init__("HMv1")
