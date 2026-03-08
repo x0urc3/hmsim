@@ -70,6 +70,27 @@ def get_msys_prefix():
     return None
 
 
+def get_msys_gtk4_path():
+    """Get the path to GTK4 in MSYS2 environment."""
+    msys_prefix = get_msys_prefix()
+    if msys_prefix:
+        if msys_prefix.startswith('mingw-w64-ucrt'):
+            return "/ucrt64"
+        else:
+            return "/mingw64"
+    return None
+
+
+def is_windows():
+    """Check if running on Windows (native or MSYS2)."""
+    return sys.platform.startswith("win") or get_msys_prefix() is not None
+
+
+def get_data_separator():
+    """Get the appropriate path separator for --add-data arguments."""
+    return ':' if sys.platform.startswith("linux") else ';'
+
+
 def merge_internal_dirs(src_dirs, dest_dir):
     """Merge multiple _internal directories into one, avoiding duplicates."""
     os.makedirs(dest_dir, exist_ok=True)
@@ -274,21 +295,37 @@ if __name__ == "__main__":
                         shutil.copy2(src, dst)
     print(f"  Merged additional _internal files")
 
-    libpython_src = "/usr/lib/x86_64-linux-gnu/libpython3.12.so.1.0"
-    libpython_dst = os.path.join(shared_internal, "libpython3.12.so.1.0")
-    if os.path.exists(libpython_src) and not os.path.exists(libpython_dst):
-        shutil.copy2(libpython_src, libpython_dst)
-        print(f"  Copied libpython")
+    if is_linux:
+        libpython_src = "/usr/lib/x86_64-linux-gnu/libpython3.12.so.1.0"
+        libpython_dst = os.path.join(shared_internal, "libpython3.12.so.1.0")
+        if os.path.exists(libpython_src) and not os.path.exists(libpython_dst):
+            shutil.copy2(libpython_src, libpython_dst)
+            print(f"  Copied libpython")
+    elif is_windows_msys:
+        msys_gtk_path = get_msys_gtk4_path()
+        if msys_gtk_path:
+            mingw_bin = f"/usr{msys_gtk_path}/bin"
+            if os.path.exists(mingw_bin):
+                for f in os.listdir(mingw_bin):
+                    if f.endswith(".dll") and "lib" in f.lower() or f.startswith("lib"):
+                        src = os.path.join(mingw_bin, f)
+                        dst = os.path.join(shared_internal, f)
+                        if not os.path.exists(dst):
+                            shutil.copy2(src, dst)
+                print(f"  Copied GTK4 DLLs from {mingw_bin}")
 
     print("\n=== Copying executables to dist root ===")
 
+    exe_ext = ".exe" if is_windows() else ""
+
     for name, temp_dir, is_gui in build_outputs:
-        src = os.path.join(temp_dir, name, name)
-        dst = os.path.join(dist_dir, name)
+        src = os.path.join(temp_dir, name, name + exe_ext)
+        dst = os.path.join(dist_dir, name + exe_ext)
         if os.path.exists(src):
             shutil.copy2(src, dst)
-            os.chmod(dst, 0o755)
-            print(f"  Copied {name} to {dst}")
+            if not is_windows():
+                os.chmod(dst, 0o755)
+            print(f"  Copied {name}{exe_ext} to {dst}")
 
     print("\n=== Copying resources to dist ===")
 
@@ -329,14 +366,29 @@ if __name__ == "__main__":
             os.remove(wrapper_path)
             print(f"  Removed {wrapper_path}")
 
+    print("\n=== Creating distribution archive ===")
+
+    if is_windows_msys:
+        import zipfile
+        zip_name = os.path.join(root_dir, "hmsim_windows.zip")
+        with zipfile.ZipFile(zip_name, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(dist_dir):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, dist_dir)
+                    zipf.write(file_path, arcname)
+        print(f"  Created {zip_name}")
+
     print("\n=== Build Summary ===")
     for name, _, _ in build_outputs:
-        bin_path = os.path.join(dist_dir, name)
+        bin_path = os.path.join(dist_dir, name + (".exe" if is_windows() else ""))
         if os.path.exists(bin_path):
             print(f"  {name}: {bin_path}")
 
     print("\nBuild complete!")
     print(f"Executables are in: {dist_dir}")
+    if is_windows_msys:
+        print(f"Archive: {os.path.join(root_dir, 'hmsim_windows.zip')}")
 
 
 if __name__ == "__main__":

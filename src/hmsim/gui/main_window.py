@@ -222,7 +222,7 @@ class MainWindow(Gtk.ApplicationWindow):
         import hmsim
         if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
             base_path = sys._MEIPASS
-            return os.path.join(base_path, '..', '..', 'docs')
+            return os.path.join(base_path, 'docs')
         else:
             base_path = os.path.dirname(os.path.abspath(hmsim.__file__))
             return os.path.join(base_path, '..', '..', 'docs')
