@@ -89,9 +89,46 @@ class HMv2Strategy(ExecutionStrategy):
             raise ValueError(f"Unknown opcode: {opcode:#x}")
 
 
+class HMv3Strategy(ExecutionStrategy):
+    """Execution strategy for HMv3 processor (subroutine support)."""
+
+    def _execute_extended(self, engine: "HMEngine", opcode: int, address: int) -> int:
+        from ..isa import OP_CALL, OP_RETURN
+
+        if opcode == OP_CALL:
+            engine.ac = (engine.pc + 1) & 0xFFFF
+            engine.pc = address
+            return engine.isa["CALL"][1]
+        elif opcode == OP_RETURN:
+            engine.pc = engine.ac
+            return engine.isa["RETURN"][1]
+        else:
+            raise ValueError(f"Unknown opcode: {opcode:#x}")
+
+
+class HMv4Strategy(ExecutionStrategy):
+    """Execution strategy for HMv4 processor (indirect addressing)."""
+
+    def _execute_extended(self, engine: "HMEngine", opcode: int, address: int) -> int:
+        from ..isa import OP_LOAD_INDIRECT, OP_STORE_INDIRECT
+
+        if opcode == OP_LOAD_INDIRECT:
+            target_addr = engine._memory[address] & 0xFFFF
+            engine.ac = engine._memory[target_addr]
+            return engine.isa["LOAD"][1]
+        elif opcode == OP_STORE_INDIRECT:
+            target_addr = engine._memory[address] & 0xFFFF
+            engine._memory[target_addr] = engine.ac
+            return engine.isa["STORE"][1]
+        else:
+            raise ValueError(f"Unknown opcode: {opcode:#x}")
+
+
 _STRATEGIES = {
     "HMv1": HMv1Strategy,
     "HMv2": HMv2Strategy,
+    "HMv3": HMv3Strategy,
+    "HMv4": HMv4Strategy,
 }
 
 
