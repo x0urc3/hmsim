@@ -54,8 +54,12 @@ Drop-down menu to switch between:
 - HMv3 (+ CALL, RETURN)
 - HMv4 (+ Indirect LOAD/STORE)
 
-### Memory Editor
-You can directly edit memory contents by clicking on a value in the memory view. Values can be entered in hexadecimal (e.g., `0x1234`) or decimal format. When you edit a memory value, the Assembly Editor updates in real-time with the new disassembled mnemonic. Note that editing memory directly will remove any existing assembly comment for that specific address to ensure documentation remains accurate.
+### Memory View
+The memory view displays the current contents of the 16-bit word-addressable memory (addresses 0x0000 to 0xFFFF).
+- **PC Indicator**: A symbolic arrow (`→`) in the left-most gutter column indicates the memory address currently pointed to by the **Program Counter (PC)**. This helps you track execution flow visually as you step through a program.
+- **Direct Editing**: You can directly edit memory contents by clicking on a value in the memory view. Values can be entered in hexadecimal (e.g., `0x1234`) or decimal format.
+- **Real-time Sync**: When you edit a memory value, the Assembly Editor updates in real-time with the new disassembled mnemonic.
+- **Go to Address**: Use the "Go to Address" entry at the top of the memory view to quickly scroll to a specific memory location.
 
 ### Register Display
 The register panel shows current register values in hexadecimal format:
