@@ -52,7 +52,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument(
         "-v", "--version",
         default="HMv1",
-        choices=["HMv1", "HMv2"],
+        choices=["HMv1", "HMv2", "HMv3", "HMv4"],
         help="HM processor version (default: HMv1)"
     )
     parser.add_argument(
