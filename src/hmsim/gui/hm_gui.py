@@ -80,10 +80,12 @@ class HMApplication(Gtk.Application):
         self.menubar_model.append_submenu("Run", run_menu)
 
         help_menu = Gio.Menu()
+        help_menu.append("Tutorial", "win.show_tutorial")
+        help_menu.append("User Guide", "win.show_user_guide")
         help_menu.append("About", "app.about")
         self.menubar_model.append_submenu("Help", help_menu)
 
-        self.set_menubar(self.menubar_model)
+        # Menus are set up in MainWindow instead for custom layout
 
         # Standard GTK shortcut strings
         self.set_accels_for_action("win.new", ["<Control>n"])
