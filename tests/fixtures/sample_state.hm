@@ -1,21 +1,17 @@
 {
   "version": "HMv1",
   "setup": {
-    "text": [
-      0,
-      16
-    ],
-    "data": [
-      17,
-      65535
-    ]
+    "text": [ 0, "0x5" ],
+    "data": [ "0x6", 65535 ]
   },
-  "pc": 1,
-  "ac": 48879,
+  "pc": 0,
+  "ac": 0,
   "ir": 0,
   "sr": 0,
   "text": {
     "0x0000": "LOAD 0x100 ; Initialize register with reference data"
   },
-  "data": {}
+  "data": {
+      "0x0100": "0xbeef"
+  }
 }

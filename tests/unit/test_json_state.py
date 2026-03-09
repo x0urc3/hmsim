@@ -205,3 +205,41 @@ class TestHMStateFormat:
         assert engine.ac == 0
         assert engine.ir == 0
         assert engine.sr == 0
+
+    def test_load_setup_with_hex_notation(self, engine):
+        state = {
+            "version": "HMv1",
+            "setup": {
+                "text": ["0x0", "0x3"],
+                "data": ["0x4", "0xffff"]
+            },
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "sr": 0,
+            "text": {},
+            "data": {}
+        }
+        load_state_from_dict(engine, state)
+
+        assert engine.text_region == (0, 3)
+        assert engine.data_region == (4, 0xFFFF)
+
+    def test_load_setup_with_mixed_notation(self, engine):
+        state = {
+            "version": "HMv1",
+            "setup": {
+                "text": ["0x0", 256],
+                "data": [257, "0xffff"]
+            },
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "sr": 0,
+            "text": {},
+            "data": {}
+        }
+        load_state_from_dict(engine, state)
+
+        assert engine.text_region == (0, 256)
+        assert engine.data_region == (257, 0xFFFF)

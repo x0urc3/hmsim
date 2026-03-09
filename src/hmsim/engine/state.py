@@ -11,6 +11,17 @@ from hmsim.tools.hmdas import disassemble
 from hmsim.tools.hmasm import assemble
 
 
+def _parse_region_value(val):
+    """Parse a region value that can be int or hex string."""
+    if isinstance(val, int):
+        return val
+    if isinstance(val, str):
+        if val.lower().startswith("0x"):
+            return int(val, 16)
+        return int(val)
+    return 0
+
+
 def save_state_to_dict(engine: Any) -> Dict[str, Any]:
     """Convert engine state to a dictionary for JSON serialization.
 
@@ -97,8 +108,8 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
 
     setup = state.get("setup", None)
     if setup:
-        text_region = setup.get("text", [0, 0x0100])
-        data_region = setup.get("data", [0x0101, 0xFFFF])
+        text_region = [_parse_region_value(v) for v in setup.get("text", [0, 0x0100])]
+        data_region = [_parse_region_value(v) for v in setup.get("data", [0x0101, 0xFFFF])]
         if len(text_region) == 2 and len(data_region) == 2:
             try:
                 engine.set_regions(
