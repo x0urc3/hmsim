@@ -51,7 +51,7 @@ Switching versions updates the available instructions while preserving your curr
 
 ### Simulator Setup
 Accessible via the **Setup** menu. Allows you to configure:
-- **Processor Version**: Switch between HMv1, HMv2, HMv3, and HMv4.
+- **Processor Architecture**: Switch between HMv1, HMv2, HMv3, and HMv4.
 - **Memory Regions**: Define the start and end addresses for the **Text** (executable code) and **Data** sections.
 
 ### Memory View

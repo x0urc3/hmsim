@@ -8,18 +8,18 @@ class TestVersionChange:
     """Test version change functionality."""
 
     def test_version_change_to_hmv2(self, main_window):
-        main_window._on_version_changed("HMv2")
-        assert main_window.current_version == "HMv2"
-        assert main_window.register_view.version_label.get_label() == "Engine: HMv2"
+        main_window._on_arch_changed("HMv2")
+        assert main_window.current_arch == "HMv2"
+        assert main_window.register_view.arch_label.get_label() == "Arch: HMv2"
 
     def test_version_preserves_memory(self, main_window):
         main_window.engine._memory[0x0100] = 0x1234
-        main_window._on_version_changed("HMv2")
+        main_window._on_arch_changed("HMv2")
         assert main_window.engine._memory[0x0100] == 0x1234
 
     def test_version_change_creates_new_engine(self, main_window):
         old_engine_id = id(main_window.engine)
-        main_window._on_version_changed("HMv2")
+        main_window._on_arch_changed("HMv2")
         assert id(main_window.engine) != old_engine_id
 
 
@@ -30,7 +30,7 @@ class TestVersionMismatchHandling:
 
     def test_hmv3_loads_correctly(self):
         state = {
-            "version": "HMv3",
+            "architecture": "HMv3",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -45,7 +45,7 @@ class TestVersionMismatchHandling:
 
     def test_hmv4_loads_correctly(self):
         state = {
-            "version": "HMv4",
+            "architecture": "HMv4",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -60,7 +60,7 @@ class TestVersionMismatchHandling:
 
     def test_hmv1_loads_correctly(self):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 10,
             "ac": 0x1234,
             "ir": 0x1100,
@@ -76,7 +76,7 @@ class TestVersionMismatchHandling:
 
     def test_hmv2_loads_correctly(self):
         state = {
-            "version": "HMv2",
+            "architecture": "HMv2",
             "pc": 10,
             "ac": 0x1234,
             "ir": 0x1100,
@@ -148,7 +148,7 @@ class TestVersionMismatchHandling:
 
     def test_invalid_version_value_is_handled(self):
         state = {
-            "version": "INVALID",
+            "architecture": "INVALID",
             "pc": 0,
             "ac": 0,
             "ir": 0,

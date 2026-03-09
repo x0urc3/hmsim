@@ -7,6 +7,7 @@ import argparse
 import sys
 from typing import Optional
 
+from hmsim import __version__
 from hmsim.engine.cpu import HMEngine
 from hmsim.engine.report import print_report
 
@@ -22,8 +23,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     parser.add_argument(
         "-v", "--version",
+        action="version",
+        version=f"%(prog)s {__version__}"
+    )
+    parser.add_argument(
+        "-a", "--arch",
         choices=["HMv1", "HMv2", "HMv3", "HMv4"],
-        help="Override processor version (default: from state file)"
+        help="Override processor architecture (default: from state file)"
     )
     parser.add_argument(
         "-m", "--max-cycles",
@@ -39,21 +45,21 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        # Initial dummy engine to load state and find version
+        # Initial dummy engine to load state and find architecture
         temp_engine = HMEngine("HMv1")
-        loaded_version = temp_engine.load_state(args.state_file)
+        loaded_arch = temp_engine.load_state(args.state_file)
 
-        # Determine actual version to use
-        version = args.version or loaded_version
-        if version not in HMEngine.VALID_VERSIONS:
-            print(f"Warning: HMv{version[-1]} state loaded as HMv2", file=sys.stderr)
-            version = "HMv2"
+        # Determine actual architecture to use
+        architecture = args.arch or loaded_arch
+        if architecture not in HMEngine.VALID_ARCHITECTURES:
+            print(f"Warning: HMv{architecture[-1]} state loaded as HMv2", file=sys.stderr)
+            architecture = "HMv2"
 
-        # Create final engine with correct version and reload state
-        engine = HMEngine(version)
+        # Create final engine with correct architecture and reload state
+        engine = HMEngine(architecture)
         engine.load_state(args.state_file)
 
-        print(f"Loaded {version} program. Starting execution...")
+        print(f"Loaded {architecture} program. Starting execution...")
 
         try:
             while engine.total_cycles < args.max_cycles:

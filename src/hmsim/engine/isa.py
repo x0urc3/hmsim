@@ -46,7 +46,7 @@ HMV4_ISA: Dict[str, Tuple[int, int]] = {
     "STORE": (OP_STORE, 15),
 }
 
-VERSION_ISA = {
+ARCH_ISA = {
     "HMv1": HMV1_ISA,
     "HMv2": HMV2_ISA,
     "HMv3": HMV3_ISA,
@@ -61,7 +61,7 @@ HMV3_OPCODE_TO_MNEMONIC = {v[0]: k for k, v in HMV3_ISA.items()}
 
 HMV4_OPCODE_TO_MNEMONIC = {v[0]: k for k, v in HMV4_ISA.items()}
 
-VERSION_OPCODE_MAP = {
+ARCH_OPCODE_MAP = {
     "HMv1": HMV1_OPCODE_TO_MNEMONIC,
     "HMv2": HMV2_OPCODE_TO_MNEMONIC,
     "HMv3": HMV3_OPCODE_TO_MNEMONIC,
@@ -73,25 +73,25 @@ VERSION_OPCODE_MAP = {
 }
 
 
-def get_opcode(mnemonic: str, version: str = "HMv1") -> int:
+def get_opcode(mnemonic: str, arch: str = "HMv1") -> int:
     """Get opcode number for a mnemonic."""
-    return VERSION_ISA[version][mnemonic.upper()][0]
+    return ARCH_ISA[arch][mnemonic.upper()][0]
 
 
-def get_cycles(mnemonic: str, version: str = "HMv1") -> int:
+def get_cycles(mnemonic: str, arch: str = "HMv1") -> int:
     """Get cycle count for a mnemonic."""
-    return VERSION_ISA[version][mnemonic.upper()][1]
+    return ARCH_ISA[arch][mnemonic.upper()][1]
 
 
-def get_mnemonic(opcode: int, version: str = "HMv1") -> str:
+def get_mnemonic(opcode: int, arch: str = "HMv1") -> str:
     """Get mnemonic for an opcode.
 
     Args:
         opcode: 4-bit opcode value (0-15)
-        version: HM version (HMv1 or HMv2)
+        arch: HM architecture (HMv1 or HMv2)
 
     Returns:
         Mnemonic string, or "???" if unknown opcode.
     """
-    opcode_map = VERSION_OPCODE_MAP.get(version, HMV1_OPCODE_TO_MNEMONIC)
+    opcode_map = ARCH_OPCODE_MAP.get(arch, HMV1_OPCODE_TO_MNEMONIC)
     return opcode_map.get(opcode, "???")

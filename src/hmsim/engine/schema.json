@@ -3,12 +3,12 @@
   "title": "HM Engine State",
   "description": "JSON Schema for HM 16-bit processor engine state files",
   "type": "object",
-  "required": ["version", "text", "data"],
+  "required": ["architecture", "text", "data"],
   "properties": {
-    "version": {
+    "architecture": {
       "type": "string",
       "enum": ["HMv1", "HMv2", "HMv3", "HMv4"],
-      "description": "HM processor version"
+      "description": "HM processor architecture"
     },
     "pc": {
       "type": "integer",
@@ -82,7 +82,7 @@
   "additionalProperties": false,
   "if": {
     "properties": {
-      "version": {"enum": ["HMv1"]}
+      "architecture": {"enum": ["HMv1"]}
     }
   },
   "then": {

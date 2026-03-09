@@ -1,5 +1,5 @@
 {
-  "version": "HMv2",
+  "architecture": "HMv2",
   "setup": {
     "text": [0, 256],
     "data": [257, 65535]

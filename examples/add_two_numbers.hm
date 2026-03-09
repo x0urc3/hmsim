@@ -1,5 +1,5 @@
 {
-  "version": "HMv1",
+  "architecture": "HMv1",
   "setup": {
     "text": [0, 3],
     "data": [4, 65535]

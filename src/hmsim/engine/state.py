@@ -70,7 +70,7 @@ def save_state_to_dict(engine: Any) -> Dict[str, Any]:
         if val == 0:
             addr += 1
             continue
-        disasm = disassemble(val, engine.version)
+        disasm = disassemble(val, engine.architecture)
         if disasm.startswith("???"):
             break
         if addr in engine.comments:
@@ -84,7 +84,7 @@ def save_state_to_dict(engine: Any) -> Dict[str, Any]:
             data[f"0x{i:04X}"] = f"0x{val:04X}"
 
     return {
-        "version": engine.version,
+        "architecture": engine.architecture,
         "setup": {
             "text": list(engine.text_region),
             "data": list(engine.data_region)
@@ -116,15 +116,17 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
         state: Dictionary containing the engine state with text and data sections.
 
     Returns:
-        The version string from the state file.
+        The architecture string from the state file.
 
     Raises:
-        ValueError: If the state fails JSON Schema validation.
+        ValueError: If the state fails JSON Schema validation or architecture is missing.
     """
     validate_state(state)
-    version = state.get("version", "HMv1")
-    engine.version = version
-    engine._strategy = get_strategy(version)
+    architecture = state.get("architecture")
+    if not architecture:
+        raise ValueError("State file missing required 'architecture' key")
+    engine.architecture = architecture
+    engine._strategy = get_strategy(architecture)
 
     engine.pc = state.get("pc", 0)
     engine.ac = state.get("ac", 0)
@@ -157,9 +159,9 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
                 if ';' in mnemonic:
                     code_part, comment = mnemonic.split(';', 1)
                     engine.comments[addr] = comment.strip()
-                    machine_code = assemble(code_part, version)
+                    machine_code = assemble(code_part, architecture)
                 else:
-                    machine_code = assemble(mnemonic, version)
+                    machine_code = assemble(mnemonic, architecture)
                 engine._memory[addr] = machine_code
         except (ValueError, KeyError):
             continue
@@ -175,7 +177,7 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
         except ValueError:
             continue
 
-    return version
+    return architecture
 
 def load_state(engine: Any, file_path: str) -> str:
     """Load engine state from a JSON file.
@@ -185,7 +187,7 @@ def load_state(engine: Any, file_path: str) -> str:
         file_path: Path to the input JSON file.
 
     Returns:
-        The version string from the state file.
+        The architecture string from the state file.
     """
     with open(file_path, 'r') as f:
         state = json.load(f)
