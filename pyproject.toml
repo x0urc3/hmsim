@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "setuptools-scm>=7.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "hmsim"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Multi-version simulator for HM 16-bit processor family"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -50,3 +50,8 @@ include = ["hmsim*", "hmsim.engine.*"]
 
 [tool.setuptools.package-data]
 hmsim = ["engine/*.json"]
+
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "node-and-date"
+write_to = "src/hmsim/_version.py"

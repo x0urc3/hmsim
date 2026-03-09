@@ -22,6 +22,7 @@ if not GTK_AVAILABLE:
     print("Install with: pip install PyGObject", file=sys.stderr)
     sys.exit(1)
 
+from hmsim import __version__
 from hmsim.engine.cpu import HMEngine
 from hmsim.engine.report import print_report
 from hmsim.gui.main_window import MainWindow
@@ -60,7 +61,7 @@ class HMApplication(Gtk.Application):
                 transient_for=self.win,
                 modal=True,
                 program_name="HM Simulator",
-                version="1.0",
+                version=__version__,
                 comments="A multi-version simulator for the HM 16-bit processor family (v1-v4)",
                 website="https://github.com/hmsim/hmsim",
             )
