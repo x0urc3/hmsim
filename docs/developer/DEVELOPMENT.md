@@ -177,7 +177,7 @@ The HM Simulator is built on a modular architecture that separates the execution
 - `cpu.py`: The `HMEngine` class maintains the 16-bit state machine. It defines `VALID_VERSIONS` as the source of truth for supported architectures.
 - `isa.py`: Single source of truth for opcodes, mnemonics, and cycle counts.
 - `strategies/`: Version-specific instruction decoding and execution logic.
-- `state.py`: Handles serialization/deserialization of JSON state files, including the `setup` block.
+- `state.py`: Handles serialization/deserialization of JSON state files, including the `setup` block. Validates all `.hm` files against a strict JSON Schema (`schema.json`).
 
 ### GUI (`src/hmsim/gui/`)
 A GTK 4 implementation using the Observer pattern. The GUI listens for `state-changed` signals from the `HMEngine` to update its visual components.

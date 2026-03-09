@@ -9,6 +9,9 @@ description = "Multi-version simulator for HM 16-bit processor family"
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
+dependencies = [
+    "jsonschema>=4.0.0",
+]
 authors = [
     {name = "Khairulmizam Samsudin", email = "xource@gmail.com"}
 ]
@@ -22,7 +25,6 @@ classifiers = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
-    "jsonschema>=4.0.0",
 ]
 
 gui = [

@@ -4,7 +4,9 @@ The HM Simulator uses a JSON-based state file format (extension `.hm`) to persis
 
 ## Overview
 
-State files capture the complete runtime context of the simulator. To improve readability and debugging, the memory is divided into two logical sections:
+State files capture the complete runtime context of the simulator. To ensure data integrity, all `.hm` files are validated against a JSON Schema upon loading. This ensures that register values are within range and that required fields for specific processor versions (e.g., `sr` for HMv2+) are present.
+
+Memory is divided into two logical sections:
 
 - **setup**: Stores configuration for the simulation session, including memory region boundaries.
 - **text**: Contains disassembled instructions (assembly mnemonics) within the specified text region. Supports inline comments using the `;` character.
