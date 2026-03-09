@@ -7,7 +7,7 @@ import argparse
 import sys
 from typing import Optional
 
-from hmsim.engine.isa import VERSION_ISA
+from hmsim.engine.isa import VERSION_ISA, OP_LOAD_INDIRECT, OP_STORE_INDIRECT
 
 ZERO_OPERAND_MNEMONICS = {
     "HMv1": set(),
@@ -15,6 +15,10 @@ ZERO_OPERAND_MNEMONICS = {
     "HMv3": {"RETURN"},
     "HMv4": {"RETURN"},
 }
+
+INDIRECT_MNEMONICS = {"LOAD", "STORE"}
+
+REMOVED_MNEMONICS = {"LOAD_INDIRECT", "STORE_INDIRECT"}
 
 
 def assemble(instruction: str, version: str = "HMv1") -> int:
@@ -31,7 +35,7 @@ def assemble(instruction: str, version: str = "HMv1") -> int:
         ValueError: If instruction format is invalid.
     """
     code = instruction.split(';', 1)[0].strip()
-    parts = code.split()
+    parts = code.split(maxsplit=1)
     if len(parts) == 0:
         raise ValueError(f"Invalid instruction format: {instruction}")
     if len(parts) == 1:
@@ -43,20 +47,43 @@ def assemble(instruction: str, version: str = "HMv1") -> int:
             raise ValueError(f"Invalid instruction format: {instruction}")
         opcode = isa[mnemonic][0]
         return opcode << 12
-    if len(parts) != 2:
-        raise ValueError(f"Invalid instruction format: {instruction}")
 
     mnemonic = parts[0].upper()
-    address_str = parts[1]
+    address_str = parts[1].strip()
+
+    if mnemonic in REMOVED_MNEMONICS:
+        raise ValueError(
+            f"Unknown mnemonic '{mnemonic}' for {version}. "
+            f"Use 'LOAD (address)' or 'STORE (address)' for indirect addressing."
+        )
 
     isa = VERSION_ISA[version]
     if mnemonic not in isa:
         raise ValueError(f"Unknown mnemonic '{mnemonic}' for {version}")
 
-    opcode = isa[mnemonic][0]
-
     if mnemonic in ZERO_OPERAND_MNEMONICS[version]:
+        opcode = isa[mnemonic][0]
         return opcode << 12
+
+    is_indirect = False
+    if address_str.startswith("(") and address_str.endswith(")"):
+        is_indirect = True
+        inner = address_str[1:-1].strip()
+        if not inner:
+            raise ValueError("Missing address in indirect operand")
+        address_str = inner
+    elif "(" in address_str or ")" in address_str:
+        raise ValueError("Malformed indirect address")
+
+    if is_indirect:
+        if mnemonic not in INDIRECT_MNEMONICS:
+            raise ValueError(f"'{mnemonic}' does not support indirect addressing")
+        if mnemonic == "LOAD":
+            opcode = OP_LOAD_INDIRECT
+        else:
+            opcode = OP_STORE_INDIRECT
+    else:
+        opcode = isa[mnemonic][0]
 
     address = int(address_str, 0)
 

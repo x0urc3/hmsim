@@ -42,8 +42,8 @@ HMV3_ISA: Dict[str, Tuple[int, int]] = {
 
 HMV4_ISA: Dict[str, Tuple[int, int]] = {
     **HMV3_ISA,
-    "LOAD_INDIRECT": (OP_LOAD_INDIRECT, 10),
-    "STORE_INDIRECT": (OP_STORE_INDIRECT, 25),
+    "LOAD": (OP_LOAD, 5),
+    "STORE": (OP_STORE, 15),
 }
 
 VERSION_ISA = {
@@ -65,7 +65,11 @@ VERSION_OPCODE_MAP = {
     "HMv1": HMV1_OPCODE_TO_MNEMONIC,
     "HMv2": HMV2_OPCODE_TO_MNEMONIC,
     "HMv3": HMV3_OPCODE_TO_MNEMONIC,
-    "HMv4": HMV4_OPCODE_TO_MNEMONIC,
+    "HMv4": {
+        **HMV4_OPCODE_TO_MNEMONIC,
+        OP_LOAD_INDIRECT: "LOAD",
+        OP_STORE_INDIRECT: "STORE",
+    },
 }
 
 

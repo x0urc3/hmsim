@@ -40,5 +40,7 @@ The following table outlines the supported machine instructions and their respec
 | HMv2    | 0x9    | JMPZ     | Jump to memory if ZF=1               | 5      |
 | HMv3    | 0xa    | CALL     | Store PC+1 in AC; Load PC with memory | 5      |
 | HMv3    | 0xb    | RETURN   | Load PC with AC                        | 1      |
-| HMv4    | 0x3    | LOAD     | Load AC from indirect memory          | 10     |
-| HMv4    | 0x4    | STORE    | Store AC to indirect memory           | 25     |
+| HMv4    | 0x3    | LOAD     | Load AC from memory (indirect)        | 10     |
+| HMv4    | 0x4    | STORE    | Store AC to memory (indirect)         | 25     |
+
+Note: HMv4 indirect addressing uses bracket syntax: `LOAD (address)` and `STORE (address)`.

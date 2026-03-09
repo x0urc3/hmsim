@@ -10,8 +10,8 @@
   "sr": 0,
   "text": {
     "0x0000": "LOAD 0x0005",
-    "0x0001": "LOAD_INDIRECT 0x0005",
-    "0x0002": "STORE_INDIRECT 0x0006",
+    "0x0001": "LOAD (0x0005)",
+    "0x0002": "STORE (0x0006)",
     "0x0003": "STORE 0x0007"
   },
   "data": {

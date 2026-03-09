@@ -7,7 +7,7 @@ import argparse
 import sys
 from typing import Optional
 
-from hmsim.engine.isa import get_mnemonic
+from hmsim.engine.isa import get_mnemonic, OP_LOAD_INDIRECT, OP_STORE_INDIRECT
 
 ZERO_OPERAND_MNEMONICS = {
     "HMv1": set(),
@@ -35,6 +35,8 @@ def disassemble(machine_code: int, version: str = "HMv1") -> str:
         return f"{mnemonic} 0x{address:03X}"
     if mnemonic in ZERO_OPERAND_MNEMONICS.get(version, set()):
         return mnemonic
+    if opcode == OP_LOAD_INDIRECT or opcode == OP_STORE_INDIRECT:
+        return f"{mnemonic} (0x{address:03X})"
     return f"{mnemonic} 0x{address:03X}"
 
 
