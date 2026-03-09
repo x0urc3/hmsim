@@ -138,16 +138,16 @@ def run_headless(state_file: str, max_cycles: int, json_output: bool = False) ->
     """Run the simulator in headless mode without GUI."""
     try:
         temp_engine = HMEngine("HMv1")
-        loaded_version = temp_engine.load_state(state_file)
+        loaded_arch = temp_engine.load_state(state_file)
 
-        version = loaded_version
-        if version not in HMEngine.VALID_VERSIONS:
-            version = "HMv2"
+        architecture = loaded_arch
+        if architecture not in HMEngine.VALID_ARCHITECTURES:
+            architecture = "HMv2"
 
-        engine = HMEngine(version)
+        engine = HMEngine(architecture)
         engine.load_state(state_file)
 
-        print(f"Loaded {version} program. Starting execution...")
+        print(f"Loaded {architecture} program. Starting execution...")
 
         try:
             while engine.total_cycles < max_cycles:

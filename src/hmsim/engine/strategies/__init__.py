@@ -132,18 +132,18 @@ _STRATEGIES = {
 }
 
 
-def get_strategy(version: str) -> ExecutionStrategy:
-    """Get the execution strategy for a given HM version.
+def get_strategy(arch: str) -> ExecutionStrategy:
+    """Get the execution strategy for a given HM architecture.
 
     Args:
-        version: HM version string (e.g., "HMv1", "HMv2").
+        arch: HM architecture string (e.g., "HMv1", "HMv2").
 
     Returns:
-        ExecutionStrategy instance for the version.
+        ExecutionStrategy instance for the architecture.
 
     Raises:
-        ValueError: If version is not supported.
+        ValueError: If architecture is not supported.
     """
-    if version not in _STRATEGIES:
-        raise ValueError(f"Unsupported version: {version}")
-    return _STRATEGIES[version]()
+    if arch not in _STRATEGIES:
+        raise ValueError(f"Unsupported architecture: {arch}")
+    return _STRATEGIES[arch]()
