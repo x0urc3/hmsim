@@ -31,7 +31,6 @@ class TestHMStateFormat:
         assert state["text"]["0x0000"] == "LOAD 0x100"
         assert state["text"]["0x0001"] == "ADD 0x100"
         assert state["text"]["0x0002"] == "STORE 0x100"
-        assert state["data"]["0x0100"] == "0x0005"
         assert state["data"]["0x0101"] == "0x0007"
 
     def test_save_empty_memory(self, engine):
@@ -105,8 +104,8 @@ class TestHMStateFormat:
         engine._memory[0] = 0x1100
         engine._memory[1] = 0x5100
         engine._memory[2] = 0x2100
-        engine._memory[0x100] = 0x0005
         engine._memory[0x101] = 0x0007
+        engine._memory[0x102] = 0x0005
         engine.pc = 10
         engine.ac = 0xABCD
         engine.ir = 0x1100
@@ -123,9 +122,13 @@ class TestHMStateFormat:
         assert new_engine._memory[0] == 0x1100
         assert new_engine._memory[1] == 0x5100
         assert new_engine._memory[2] == 0x2100
-        assert new_engine._memory[0x100] == 0x0005
         assert new_engine._memory[0x101] == 0x0007
+        assert new_engine._memory[0x102] == 0x0005
         assert new_engine._memory[3] == 0
+
+        assert "setup" in save_state_to_dict(new_engine)
+        assert save_state_to_dict(new_engine)["setup"]["text"] == [0, 256]
+        assert save_state_to_dict(new_engine)["setup"]["data"] == [257, 65535]
 
     def test_linear_disassembly_stops_at_data(self, engine):
         engine._memory[0] = 0x1100
@@ -139,7 +142,6 @@ class TestHMStateFormat:
         assert "0x0000" in state["text"]
         assert "0x0001" in state["text"]
         assert "0x0002" in state["text"]
-        assert "0x0100" in state["data"]
         assert "0x0101" in state["data"]
 
     def test_load_invalid_assembly_ignored(self, engine):
@@ -203,3 +205,41 @@ class TestHMStateFormat:
         assert engine.ac == 0
         assert engine.ir == 0
         assert engine.sr == 0
+
+    def test_load_setup_with_hex_notation(self, engine):
+        state = {
+            "version": "HMv1",
+            "setup": {
+                "text": ["0x0", "0x3"],
+                "data": ["0x4", "0xffff"]
+            },
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "sr": 0,
+            "text": {},
+            "data": {}
+        }
+        load_state_from_dict(engine, state)
+
+        assert engine.text_region == (0, 3)
+        assert engine.data_region == (4, 0xFFFF)
+
+    def test_load_setup_with_mixed_notation(self, engine):
+        state = {
+            "version": "HMv1",
+            "setup": {
+                "text": ["0x0", 256],
+                "data": [257, "0xffff"]
+            },
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "sr": 0,
+            "text": {},
+            "data": {}
+        }
+        load_state_from_dict(engine, state)
+
+        assert engine.text_region == (0, 256)
+        assert engine.data_region == (257, 0xFFFF)

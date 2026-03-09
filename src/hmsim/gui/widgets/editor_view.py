@@ -31,6 +31,7 @@ class EditorView(Gtk.ScrolledWindow):
         self._change_callback = None
         self._debounce_source_id = None
         self._max_addr_touched = -1
+        self._text_region = (0x0000, 0x0100)
 
         self._text_view = Gtk.TextView()
         self._text_view.set_monospace(True)
@@ -52,6 +53,9 @@ class EditorView(Gtk.ScrolledWindow):
 
     def set_version(self, version: str):
         self._version = version
+
+    def set_text_region(self, text_region: tuple[int, int]):
+        self._text_region = text_region
 
     def _on_text_changed(self, buffer):
         if self._debounce_source_id is not None:
@@ -123,26 +127,29 @@ class EditorView(Gtk.ScrolledWindow):
     def assemble_to_engine(self, engine):
         memory, comments, errors = self.parse_and_assemble(engine.version)
 
-        # Track which addresses we are updating to handle deletions
+        text_start, text_end = self._text_region
+        max_text_size = text_end - text_start + 1
         num_lines = len(memory)
 
-        # If the program got shorter, clear the tail from previously touched range
+        if num_lines > max_text_size:
+            num_lines = max_text_size
+            memory = {k: v for k, v in memory.items() if k < max_text_size}
+            comments = {k: v for k, v in comments.items() if k < max_text_size}
+
         if num_lines < self._max_addr_touched + 1:
-            for addr in range(num_lines, self._max_addr_touched + 1):
+            for addr in range(text_start + num_lines, text_start + self._max_addr_touched + 1):
                 if 0 <= addr < 65536:
                     engine._memory[addr] = 0
                     engine.comments.pop(addr, None)
 
-        # Update engine memory and comments for all lines in editor
-        for addr in range(num_lines):
-            engine._memory[addr] = memory.get(addr, 0)
-            if addr in comments:
-                engine.comments[addr] = comments[addr]
+        for i in range(num_lines):
+            addr = text_start + i
+            engine._memory[addr] = memory.get(i, 0)
+            if i in comments:
+                engine.comments[addr] = comments[i]
             else:
-                # Clear comment if it was removed
                 engine.comments.pop(addr, None)
 
-        # Update our tracking of the max address
         self._max_addr_touched = max(self._max_addr_touched, num_lines - 1)
 
         return errors

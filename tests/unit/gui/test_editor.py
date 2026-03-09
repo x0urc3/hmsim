@@ -36,10 +36,6 @@ class TestWidgetExistence:
         assert hasattr(main_window, 'btn_step')
         assert main_window.btn_step is not None
 
-    def test_version_dropdown_exists(self, main_window):
-        assert hasattr(main_window, 'version_dropdown')
-        assert main_window.version_dropdown is not None
-
 
 class TestWidgetVisibility:
     """Test that all existing widgets remain visible after EditorView implementation."""
@@ -131,10 +127,6 @@ class TestFunctionalRegression:
         main_window._show_error("Test error message", 0)
         assert "Test error message" in main_window.status_bar.get_label()
         main_window._clear_error()
-
-    def test_version_dropdown_functional(self, main_window):
-        main_window.version_dropdown.set_selected(1)
-        assert main_window.current_version == "HMv2"
 
     def test_status_bar_shows_ready_after_reset(self, main_window):
         main_window._show_error("Some error", 0)

@@ -6,18 +6,30 @@
 import json
 from typing import Any, Dict, Optional
 
+from hmsim.engine.strategies import get_strategy
 from hmsim.tools.hmdas import disassemble
 from hmsim.tools.hmasm import assemble
+
+
+def _parse_region_value(val):
+    """Parse a region value that can be int or hex string."""
+    if isinstance(val, int):
+        return val
+    if isinstance(val, str):
+        if val.lower().startswith("0x"):
+            return int(val, 16)
+        return int(val)
+    return 0
 
 
 def save_state_to_dict(engine: Any) -> Dict[str, Any]:
     """Convert engine state to a dictionary for JSON serialization.
 
     Implements "Linear Disassembly" heuristic:
-    - Starting at addr 0, attempt to disassemble each word as instruction.
+    - Starting at text_region[0], attempt to disassemble each word as instruction.
     - If successful, add to text section.
-    - If disassembly fails, stop text collection.
-    - Remaining non-zero memory goes to data section.
+    - If disassembly fails or 0x0 encountered, stop text collection.
+    - Remaining non-zero memory within data_region goes to data section.
 
     Args:
         engine: The HMEngine instance.
@@ -28,8 +40,11 @@ def save_state_to_dict(engine: Any) -> Dict[str, Any]:
     text: Dict[str, str] = {}
     data: Dict[str, str] = {}
 
-    addr = 0
-    while addr < 65536:
+    text_start, text_end = engine.text_region
+    data_start, data_end = engine.data_region
+
+    addr = text_start
+    while addr <= text_end:
         val = engine._memory[addr]
         if val == 0:
             addr += 1
@@ -42,12 +57,17 @@ def save_state_to_dict(engine: Any) -> Dict[str, Any]:
         text[f"0x{addr:04X}"] = disasm
         addr += 1
 
-    for i, val in enumerate(engine._memory):
+    for i in range(data_start, data_end + 1):
+        val = engine._memory[i]
         if val != 0 and f"0x{i:04X}" not in text:
             data[f"0x{i:04X}"] = f"0x{val:04X}"
 
     return {
         "version": engine.version,
+        "setup": {
+            "text": list(engine.text_region),
+            "data": list(engine.data_region)
+        },
         "pc": engine.pc,
         "ac": engine.ac,
         "ir": engine.ir,
@@ -78,11 +98,27 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
         The version string from the state file.
     """
     version = state.get("version", "HMv1")
+    engine.version = version
+    engine._strategy = get_strategy(version)
 
     engine.pc = state.get("pc", 0)
     engine.ac = state.get("ac", 0)
     engine.ir = state.get("ir", 0)
     engine.sr = state.get("sr", 0)
+
+    setup = state.get("setup", None)
+    if setup:
+        text_region = [_parse_region_value(v) for v in setup.get("text", [0, 0x0100])]
+        data_region = [_parse_region_value(v) for v in setup.get("data", [0x0101, 0xFFFF])]
+        if len(text_region) == 2 and len(data_region) == 2:
+            try:
+                engine.set_regions(
+                    (text_region[0], text_region[1]),
+                    (data_region[0], data_region[1])
+                )
+            except ValueError:
+                engine._text_region = (0x0000, 0x0100)
+                engine._data_region = (0x0101, 0xFFFF)
 
     # Reset memory before loading sparse data
     engine._memory = [0] * 65536

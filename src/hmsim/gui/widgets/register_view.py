@@ -24,6 +24,14 @@ class RegisterView(Gtk.Box):
         self.set_margin_start(10)
         self.set_margin_end(10)
 
+        self.version_label = Gtk.Label(label="Engine: HMv1")
+        self.version_label.set_css_classes(["title", "heading"])
+        self.version_label.set_xalign(0.5)
+        self.append(self.version_label)
+
+        separator0 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        self.append(separator0)
+
         title = Gtk.Label(label="Registers")
         title.set_css_classes(["title", "heading"])
         self.append(title)
@@ -35,8 +43,8 @@ class RegisterView(Gtk.Box):
             self.registers[name] = row["value"]
             self.append(row["box"])
 
-        separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-        self.append(separator)
+        separator1 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        self.append(separator1)
 
         stats_title = Gtk.Label(label="Statistics")
         stats_title.set_css_classes(["title", "heading"])
@@ -46,6 +54,9 @@ class RegisterView(Gtk.Box):
             row = self._create_register_row(name, is_hex=False)
             self.registers[name] = row["value"]
             self.append(row["box"])
+
+    def set_version(self, version: str):
+        self.version_label.set_label(f"Engine: {version}")
 
     def _create_register_row(self, name: str, is_hex: bool = True) -> dict:
         box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
