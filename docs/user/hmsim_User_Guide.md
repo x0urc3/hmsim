@@ -62,14 +62,11 @@ The memory view displays the current contents of the 16-bit word-addressable mem
 - **Go to Address**: Use the "Go to Address" entry at the top of the memory view to quickly scroll to a specific memory location.
 
 ### Register Display
-The register panel shows the current configuration and register values:
+The register panel shows the current configuration and register values.
 - **Engine**: The active processor version (e.g., "Engine: HMv1").
-- **PC**: Program Counter (next instruction address).
-- **AC**: Accumulator (arithmetic result).
-- **IR**: Instruction Register (current instruction).
-- **SR**: Status Register (flags - HMv2+ only).
-- **Cycles**: Total execution cycles since last reset.
-- **Instructions**: Total instructions executed.
+- **PC, AC, IR, SR**: These registers can be **directly edited**. Click on a register value to enter a new one in hexadecimal (e.g., `0x1234`) or decimal format. Changes are immediately reflected across the simulator (e.g., changing the PC updates the execution highlight in the Memory View).
+- **Cycles**: Total execution cycles since last reset (read-only).
+- **Instructions**: Total instructions executed (read-only).
 
 ---
 
