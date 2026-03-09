@@ -6,6 +6,7 @@
 import json
 from typing import Any, Dict, Optional
 
+from hmsim.engine.strategies import get_strategy
 from hmsim.tools.hmdas import disassemble
 from hmsim.tools.hmasm import assemble
 
@@ -86,6 +87,8 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
         The version string from the state file.
     """
     version = state.get("version", "HMv1")
+    engine.version = version
+    engine._strategy = get_strategy(version)
 
     engine.pc = state.get("pc", 0)
     engine.ac = state.get("ac", 0)
