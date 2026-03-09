@@ -42,7 +42,9 @@ class SetupDialog(Gtk.Dialog):
         main_box.append(header)
 
         text_frame = Gtk.Frame()
-        text_frame.set_label_markup("<span foreground='#2ECC71'>│</span> Text Section (Executable Code)")
+        text_label = Gtk.Label()
+        text_label.set_markup("<span foreground='#2ECC71'>│</span> Text Section (Executable Code)")
+        text_frame.set_label_widget(text_label)
         text_frame.set_margin_bottom(10)
         main_box.append(text_frame)
 
@@ -71,7 +73,9 @@ class SetupDialog(Gtk.Dialog):
         text_row.append(self._text_end_entry)
 
         data_frame = Gtk.Frame()
-        data_frame.set_label_markup("<span foreground='#3498DB'>│</span> Data Section")
+        data_label = Gtk.Label()
+        data_label.set_markup("<span foreground='#3498DB'>│</span> Data Section")
+        data_frame.set_label_widget(data_label)
         data_frame.set_margin_bottom(10)
         main_box.append(data_frame)
 
