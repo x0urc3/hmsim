@@ -38,10 +38,10 @@ class TestVersionMismatchHandling:
             "memory": {}
         }
 
-        version = state.get("version", "HMv1")
-        loaded_version = version if version in self.VERSIONS else "HMv2"
+        arch = state.get("architecture", "HMv1")
+        loaded_arch = arch if arch in self.VERSIONS else "HMv2"
 
-        assert loaded_version == "HMv3"
+        assert loaded_arch == "HMv3"
 
     def test_hmv4_loads_correctly(self):
         state = {
@@ -53,10 +53,10 @@ class TestVersionMismatchHandling:
             "memory": {}
         }
 
-        version = state.get("version", "HMv1")
-        loaded_version = version if version in self.VERSIONS else "HMv2"
+        arch = state.get("architecture", "HMv1")
+        loaded_arch = arch if arch in self.VERSIONS else "HMv2"
 
-        assert loaded_version == "HMv4"
+        assert loaded_arch == "HMv4"
 
     def test_hmv1_loads_correctly(self):
         state = {
@@ -68,11 +68,11 @@ class TestVersionMismatchHandling:
             "memory": {"0": 0x1100}
         }
 
-        version = state.get("version", "HMv1")
-        loaded_version = version if version in self.VERSIONS else "HMv2"
+        arch = state.get("architecture", "HMv1")
+        loaded_arch = arch if arch in self.VERSIONS else "HMv2"
 
-        assert loaded_version == "HMv1"
-        assert version in self.VERSIONS
+        assert loaded_arch == "HMv1"
+        assert arch in self.VERSIONS
 
     def test_hmv2_loads_correctly(self):
         state = {
@@ -84,12 +84,12 @@ class TestVersionMismatchHandling:
             "memory": {"0": 0x1100}
         }
 
-        version = state.get("version", "HMv1")
-        loaded_version = version if version in self.VERSIONS else "HMv2"
+        arch = state.get("architecture", "HMv1")
+        loaded_arch = arch if arch in self.VERSIONS else "HMv2"
 
-        assert loaded_version == "HMv2"
+        assert loaded_arch == "HMv2"
 
-    def test_missing_version_defaults_to_hmv1(self):
+    def test_missing_architecture_defaults_to_hmv1(self):
         state = {
             "pc": 0,
             "ac": 0,
@@ -98,9 +98,9 @@ class TestVersionMismatchHandling:
             "memory": {}
         }
 
-        version = state.get("version", "HMv1")
+        arch = state.get("architecture", "HMv1")
 
-        assert version == "HMv1"
+        assert arch == "HMv1"
 
     def test_status_message_for_hmv1(self):
         version = "HMv1"
@@ -146,7 +146,7 @@ class TestVersionMismatchHandling:
         assert VERSIONS.index("HMv3") == 2
         assert VERSIONS.index("HMv4") == 3
 
-    def test_invalid_version_value_is_handled(self):
+    def test_invalid_architecture_value_is_handled(self):
         state = {
             "architecture": "INVALID",
             "pc": 0,
@@ -156,10 +156,10 @@ class TestVersionMismatchHandling:
             "memory": {}
         }
 
-        version = state.get("version", "HMv1")
-        if version not in self.VERSIONS:
-            loaded_version = "HMv2"
+        arch = state.get("architecture", "HMv1")
+        if arch not in self.VERSIONS:
+            loaded_arch = "HMv2"
         else:
-            loaded_version = version
+            loaded_arch = arch
 
-        assert loaded_version == "HMv2"
+        assert loaded_arch == "HMv2"
