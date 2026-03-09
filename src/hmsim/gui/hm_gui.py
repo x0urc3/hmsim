@@ -3,6 +3,7 @@
 # Licensed under the Apache License, Version 2.0; see LICENSE for details
 """HM Simulator GUI - Main application entry point."""
 
+import argparse
 import sys
 import os
 
@@ -21,6 +22,8 @@ if not GTK_AVAILABLE:
     print("Install with: pip install PyGObject", file=sys.stderr)
     sys.exit(1)
 
+from hmsim.engine.cpu import HMEngine
+from hmsim.engine.report import print_report
 from hmsim.gui.main_window import MainWindow
 
 
@@ -104,8 +107,74 @@ class HMApplication(Gtk.Application):
 
 
 def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="HM Simulator GUI")
+    parser.add_argument(
+        "--run-headless",
+        metavar="STATE_FILE",
+        help="Run in headless mode with the specified state file"
+    )
+    parser.add_argument(
+        "-m", "--max-cycles",
+        type=int,
+        default=1000000,
+        help="Maximum cycles before forced termination (default: 1,000,000)"
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Output report in JSON format"
+    )
+    args, remaining = parser.parse_known_args(argv)
+
+    if args.run_headless:
+        return run_headless(args.run_headless, args.max_cycles, args.json)
+
     app = HMApplication()
-    return app.run(argv)
+    return app.run(remaining)
+
+
+def run_headless(state_file: str, max_cycles: int, json_output: bool = False) -> int:
+    """Run the simulator in headless mode without GUI."""
+    try:
+        temp_engine = HMEngine("HMv1")
+        loaded_version = temp_engine.load_state(state_file)
+
+        version = loaded_version
+        if version not in HMEngine.VALID_VERSIONS:
+            version = "HMv2"
+
+        engine = HMEngine(version)
+        engine.load_state(state_file)
+
+        print(f"Loaded {version} program. Starting execution...")
+
+        try:
+            while engine.total_cycles < max_cycles:
+                engine.step()
+        except ValueError as e:
+            if "Unknown opcode" in str(e) or "not supported" in str(e):
+                print(f"\nProgram Halted: {e}")
+            else:
+                print(f"\nExecution Error: {e}", file=sys.stderr)
+                print_report(engine, json_output)
+                return 1
+        except KeyboardInterrupt:
+            print("\nExecution interrupted by user.")
+            print_report(engine, json_output)
+            return 1
+
+        if engine.total_cycles >= max_cycles:
+            print(f"\nWarning: Maximum cycles ({max_cycles}) reached.")
+
+        print_report(engine, json_output)
+        return 0
+
+    except FileNotFoundError:
+        print(f"Error: State file not found: {state_file}", file=sys.stderr)
+        return 1
+    except Exception as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
 
 
 if __name__ == '__main__':
