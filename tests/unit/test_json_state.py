@@ -243,3 +243,128 @@ class TestHMStateFormat:
 
         assert engine.text_region == (0, 256)
         assert engine.data_region == (257, 0xFFFF)
+
+
+class TestSchemaValidation:
+    @pytest.fixture
+    def engine(self):
+        return HMEngine("HMv1")
+
+    def test_valid_state_passes_validation(self, engine):
+        state = {
+            "version": "HMv1",
+            "pc": 0,
+            "ac": 0x1234,
+            "ir": 0,
+            "text": {},
+            "data": {}
+        }
+        load_state_from_dict(engine, state)
+        assert engine.ac == 0x1234
+
+    def test_invalid_ac_out_of_range(self, engine):
+        state = {
+            "version": "HMv1",
+            "pc": 0,
+            "ac": 70000,
+            "ir": 0,
+            "text": {},
+            "data": {}
+        }
+        with pytest.raises(ValueError, match="Schema validation failed"):
+            load_state_from_dict(engine, state)
+
+    def test_invalid_malformed_hex_address_ignored_during_load(self, engine):
+        state = {
+            "version": "HMv1",
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "text": {
+                "0xGGGG": "LOAD 0x100",
+                "0x0000": "LOAD 0x100"
+            },
+            "data": {}
+        }
+        load_state_from_dict(engine, state)
+        assert engine._memory[0] == 0x1100
+        assert engine._memory[0xFFFF] == 0
+
+    def test_invalid_malformed_data_value_ignored_during_load(self, engine):
+        state = {
+            "version": "HMv1",
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "text": {},
+            "data": {
+                "0x0100": "GGGG",
+                "0x0101": "0x1234"
+            }
+        }
+        load_state_from_dict(engine, state)
+        assert engine._memory[0x0101] == 0x1234
+        assert engine._memory[0x0100] == 0
+
+    def test_missing_required_field_version(self, engine):
+        state = {
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "text": {},
+            "data": {}
+        }
+        with pytest.raises(ValueError, match="Schema validation failed"):
+            load_state_from_dict(engine, state)
+
+    def test_invalid_version(self, engine):
+        state = {
+            "version": "HMv5",
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "text": {},
+            "data": {}
+        }
+        with pytest.raises(ValueError, match="Schema validation failed"):
+            load_state_from_dict(engine, state)
+
+    def test_hmv2_requires_sr(self, engine):
+        state = {
+            "version": "HMv2",
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "text": {},
+            "data": {}
+        }
+        with pytest.raises(ValueError, match="Schema validation failed"):
+            load_state_from_dict(engine, state)
+
+    def test_hmv2_with_sr_passes(self, engine):
+        state = {
+            "version": "HMv2",
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "sr": 0x4000,
+            "text": {},
+            "data": {}
+        }
+        load_state_from_dict(engine, state)
+        assert engine.sr == 0x4000
+
+    def test_invalid_address_out_of_range_ignored_during_load(self, engine):
+        state = {
+            "version": "HMv1",
+            "pc": 0,
+            "ac": 0,
+            "ir": 0,
+            "text": {
+                "0x10000": "LOAD 0x100",
+                "0x0000": "LOAD 0x100"
+            },
+            "data": {}
+        }
+        load_state_from_dict(engine, state)
+        assert engine._memory[0] == 0x1100

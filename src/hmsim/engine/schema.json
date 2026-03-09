@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HM Engine State",
+  "description": "JSON Schema for HM 16-bit processor engine state files",
+  "type": "object",
+  "required": ["version", "text", "data"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "enum": ["HMv1", "HMv2", "HMv3", "HMv4"],
+      "description": "HM processor version"
+    },
+    "pc": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "Program Counter"
+    },
+    "ac": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "Accumulator"
+    },
+    "ir": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "Instruction Register"
+    },
+    "sr": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65535,
+      "description": "Status Register (required for HMv2+)"
+    },
+    "setup": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "oneOf": [
+              {"type": "integer", "minimum": 0, "maximum": 65535},
+              {"type": "string", "pattern": "^0x[0-9A-Fa-f]{1,4}$"}
+            ]
+          }
+        },
+        "data": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "oneOf": [
+              {"type": "integer", "minimum": 0, "maximum": 65535},
+              {"type": "string", "pattern": "^0x[0-9A-Fa-f]{1,4}$"}
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "text": {
+      "type": "object",
+      "description": "Text section: memory addresses to assembled instructions",
+      "additionalProperties": {
+        "type": "string",
+        "description": "Assembly instruction mnemonic"
+      }
+    },
+    "data": {
+      "type": "object",
+      "description": "Data section: memory addresses to hex values",
+      "additionalProperties": {
+        "type": "string",
+        "description": "16-bit hex value"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "if": {
+    "properties": {
+      "version": {"enum": ["HMv1"]}
+    }
+  },
+  "then": {
+    "properties": {
+      "sr": {"type": "integer", "minimum": 0, "maximum": 65535}
+    }
+  },
+  "else": {
+    "required": ["sr"]
+  }
+}
