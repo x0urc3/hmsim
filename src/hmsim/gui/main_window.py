@@ -157,6 +157,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self.register_view = RegisterView()
         self.register_view.set_version(self.current_version)
+        self.register_view.set_register_changed_callback(self._on_register_edited)
         self.right_pane.append(self.register_view)
 
         self.memory_view = MemoryView()
@@ -362,6 +363,17 @@ class MainWindow(Gtk.ApplicationWindow):
         self.engine._memory[address] = value
         self.engine.comments.pop(address, None)
         self._refresh_editor_from_memory()
+
+    def _on_register_edited(self, name, value):
+        if name == "PC":
+            self.engine.pc = value
+        elif name == "AC":
+            self.engine.ac = value
+        elif name == "IR":
+            self.engine.ir = value
+        elif name == "SR":
+            self.engine.sr = value
+        self.engine._notify_observers()
 
     def _refresh_editor_from_memory(self):
         self._is_updating_editor = True
