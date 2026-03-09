@@ -30,3 +30,9 @@ def main_window(app):
     window = MainWindow(application=app)
     yield window
     window.close()
+
+
+@pytest.fixture
+def examples_dir():
+    """Return the path to the examples directory."""
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "examples")

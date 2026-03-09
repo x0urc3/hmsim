@@ -163,6 +163,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self.memory_view = MemoryView()
         self.memory_view.set_vexpand(True)
+        self.memory_view.set_memory(self.engine._memory)
         self.memory_view.set_memory_changed_callback(self._on_memory_edited)
         self.memory_view.set_regions(self.engine.text_region, self.engine.data_region)
         self.memory_view.ensure_populated()
@@ -416,6 +417,9 @@ class MainWindow(Gtk.ApplicationWindow):
             instructions=self.engine.total_instructions
         )
         self.memory_view.set_pc(self.engine.pc)
+        if self.engine.modified_addresses:
+            self.memory_view.refresh_addresses(self.engine.modified_addresses)
+            self.engine.clear_modified()
 
     def _on_step(self, button):
         self._clear_error()

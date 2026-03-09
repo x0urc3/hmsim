@@ -27,6 +27,7 @@ class HMEngine:
         self.total_instructions: int = 0
         self.comments: Dict[int, str] = {}
         self._memory: list[int] = [0] * 65536
+        self.modified_addresses: set[int] = set()
         self._strategy = get_strategy(version)
         self._observers: List[Callable[[], None]] = []
         self._text_region: tuple[int, int] = (0x0000, 0x0100)
@@ -105,11 +106,23 @@ class HMEngine:
         for callback in self._observers:
             callback()
 
-    def write_memory(self, address: int, value: int) -> None:
-        """Write a 16-bit value to memory."""
+    def write_memory(self, address: int, value: int, notify: bool = True) -> None:
+        """Write a 16-bit value to memory.
+
+        Args:
+            address: 16-bit memory address.
+            value: 16-bit value to write.
+            notify: If True, notify observers after write.
+        """
         if 0 <= address < 65536:
             self._memory[address] = value & 0xFFFF
-            self._notify_observers()
+            self.modified_addresses.add(address)
+            if notify:
+                self._notify_observers()
+
+    def clear_modified(self) -> None:
+        """Clear the set of modified addresses."""
+        self.modified_addresses.clear()
 
     def read_memory(self, address: int) -> int:
         """Read a 16-bit value from memory."""

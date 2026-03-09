@@ -185,6 +185,29 @@ class MemoryView(Gtk.Box):
             region_color = self._get_region_color(address)
             self._model[address] = [icon, region_color, f"0x{address:04X}", f"0x{value:04X}"]
 
+    def refresh_addresses(self, addresses):
+        """Refresh specific memory addresses in the display."""
+        if not self._is_populated:
+            return
+        for addr in addresses:
+            if 0 <= addr < 65536 and addr < len(self._model):
+                value = self._memory[addr]
+                icon = self._model[addr][0]
+                region_color = self._get_region_color(addr)
+                self._model[addr] = [icon, region_color, f"0x{addr:04X}", f"0x{value:04X}"]
+                self._modified_addresses.add(addr)
+
+    def refresh_all(self):
+        """Refresh all memory values in the display."""
+        if not self._is_populated:
+            return
+        for addr in range(65536):
+            if addr < len(self._model):
+                value = self._memory[addr]
+                icon = self._model[addr][0]
+                region_color = self._get_region_color(addr)
+                self._model[addr] = [icon, region_color, f"0x{addr:04X}", f"0x{value:04X}"]
+
     def set_memory_changed_callback(self, callback):
         self._memory_changed_callback = callback
 
