@@ -33,9 +33,6 @@ from hmsim.engine.cpu import HMEngine
 from hmsim.tools.hmdas import disassemble
 
 
-VERSIONS = ["HMv1", "HMv2", "HMv3", "HMv4"]
-
-
 class MainWindow(Gtk.ApplicationWindow):
     RUN_BATCH_SIZE = 1000
 
@@ -159,6 +156,7 @@ class MainWindow(Gtk.ApplicationWindow):
         paned.set_shrink_end_child(False)
 
         self.register_view = RegisterView()
+        self.register_view.set_version(self.current_version)
         self.right_pane.append(self.register_view)
 
         self.memory_view = MemoryView()
@@ -192,17 +190,6 @@ class MainWindow(Gtk.ApplicationWindow):
         toolbar.set_margin_start(10)
         toolbar.set_margin_end(10)
         toolbar.add_css_class("toolbar")
-
-        version_label = Gtk.Label(label="Version:")
-        toolbar.append(version_label)
-
-        self.version_dropdown = Gtk.DropDown.new_from_strings(VERSIONS)
-        self.version_dropdown.set_selected(0)
-        self.version_dropdown.connect("notify::selected", self._on_version_changed)
-        toolbar.append(self.version_dropdown)
-
-        separator1 = Gtk.Separator(orientation=Gtk.Orientation.VERTICAL)
-        toolbar.append(separator1)
 
         self.btn_reset = Gtk.Button(label="Reset")
         self.btn_reset.set_action_name("win.reset")
@@ -285,18 +272,25 @@ class MainWindow(Gtk.ApplicationWindow):
         dialog = SetupDialog(
             self,
             self.engine.text_region,
-            self.engine.data_region
+            self.engine.data_region,
+            self.current_version
         )
 
         def on_response(dialog, response):
             if response == Gtk.ResponseType.APPLY:
                 try:
                     text_region, data_region = dialog.get_regions()
+                    new_version = dialog.get_version()
+
+                    # Handle version change first as it might recreate the engine
+                    if new_version != self.current_version:
+                        self._on_version_changed(new_version)
+
                     self.engine.set_regions(text_region, data_region)
                     self.memory_view.set_regions(text_region, data_region)
                     self.editor_view.set_text_region(text_region)
                     self._refresh_editor_from_memory()
-                    self.status_bar.set_label("Memory regions updated")
+                    self.status_bar.set_label("Simulation setup updated")
                 except ValueError as e:
                     self.status_bar.set_label(f"Error: {e}")
                     self.status_bar.add_css_class("error")
@@ -317,10 +311,7 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_setup_action(self, action, param):
         self._on_setup(None)
 
-    def _on_version_changed(self, dropdown, pspec):
-        index = dropdown.get_selected()
-        new_version = VERSIONS[index]
-
+    def _on_version_changed(self, new_version):
         if new_version != self.current_version:
             old_memory = self.engine._memory.copy()
             old_pc = self.engine.pc
@@ -408,6 +399,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self._is_updating_editor = False
 
     def _update_ui(self):
+        self.register_view.set_version(self.current_version)
         self.register_view.update(
             pc=self.engine.pc,
             ac=self.engine.ac,
@@ -548,14 +540,13 @@ class MainWindow(Gtk.ApplicationWindow):
 
             version = self.engine.load_state(file_path)
 
-            if version not in VERSIONS:
+            if version not in HMEngine.VALID_VERSIONS:
                 version = "HMv2"
                 self.status_bar.set_label(f"Warning: Unknown version, loaded as HMv2")
             else:
                 self.status_bar.set_label(f"Loaded {version} state")
 
             self.current_version = version
-            self.version_dropdown.set_selected(VERSIONS.index(version))
 
             text_region = self.engine.text_region
             data_region = self.engine.data_region
@@ -573,12 +564,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self.memory_view.set_memory(self.engine._memory, state_data)
 
             if self.engine.version != version:
-                pc, ac, ir, sr, memory, comments = self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory, self.engine.comments.copy()
-                self.engine = HMEngine(version)
-                self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory, self.engine.comments = pc, ac, ir, sr, memory, comments
-                self.engine.set_regions(text_region, data_region)
-                self.editor_view.set_version(version)
-                self._connect_engine()
+                self._on_version_changed(version)
 
             setup = state.get("setup", None)
             if setup:
