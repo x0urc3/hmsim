@@ -24,7 +24,7 @@ This specification defines the development of a comprehensive simulation environ
 
 ### 3.1 Architectural Engine
 
-* **Version Selection:** The user must be able to toggle between versions 1 through 4 at initialization.
+* **Version Selection:** The user must be able to toggle between versions 1 through 4 via the **Simulator Setup** dialog. The current active version must be clearly indicated in the main UI.
 
 * **Register Set:**
   * **PC (Program Counter):** 16-bit address tracking.
@@ -92,7 +92,7 @@ The CLI tools must be cross-platform compatible:
   * **Real-time Sync:** Automated translation between the assembly editor and the memory grid. Editing assembly updates machine code, and editing memory directly triggers re-disassembly in the editor.
 * **Execution Controls:** Step, Run (continuous), and Reset functionality.
 * **Visual State Monitoring:** Real-time display of **PC**, **AC**, **IR**, and a scrollable memory grid.
-* **Persistence:** Load/Save state as HM files (.hm) with structured text and data sections.
+* **Persistence:** Load/Save state as HM files (.hm) with structured text, data, and setup sections.
 * **Error Handling:** Error messages displayed in status bar with memory address highlighting.
 
 ### 3.5 GUI Layout & Interaction Specification
@@ -103,27 +103,30 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
 *   **Header (Gtk.HeaderBar):**
     *   **Left:** File Operations (New, Open, Save).
     *   **Center:** HM Simulator Title.
-*   **Main Content (Gtk.Box - Vertical):**
-    *   **MenuBar (Gtk.PopoverMenuBar):** File, Run, Help menus.
-    *   **Toolbar (Gtk.Box):** Version Selector (HMv1–HMv2), Reset, Run, Step buttons.
+* **Main Content (Gtk.Box - Vertical):**
+    *   **MenuBar (Gtk.PopoverMenuBar):** File, Run, Setup, Help menus.
+    *   **Toolbar (Gtk.Box):** Reset, Run, Step buttons.
     *   **Paned Content (Gtk.Paned - Horizontal):**
         *   **Left Pane (Editor):** `Gtk.TextView` for assembly input with real-time assembly.
         *   **Right Pane (State):** A vertical stack containing:
-            1. **Register View:** Real-time display of PC, AC, IR, SR, and Cycles.
-            2. **Memory Grid:** Scrollable grid showing 64KB memory with Address and Value columns.
-            3. **Status Bar:** Displays "Ready" or error messages (e.g., "Error at 0x0000: Invalid opcode").
+            1. **Active Engine Indicator:** Centered label showing "Engine: HMv?".
+            2. **Register View:** Real-time display of PC, AC, IR, SR, and Cycles.
+            3. **Memory Grid:** Scrollable grid showing 64KB memory with Address and Value columns.
+            4. **Status Bar:** Displays "Ready" or error messages.
+
 
 #### 3.5.2 State Synchronization (Observer Pattern)
 *   **Engine-to-GUI:** Any change in the `HMEngine` state (registers or memory) emits a notification to observers. Visual widgets subscribe to this to update their buffers.
 *   **GUI-to-Engine:**
     *   Editing a line in the Assembly Editor triggers `hmasm` to update the corresponding memory address in real-time (with a slight debounce).
     *   Editing a value in the Memory Grid triggers the disassembler to update the Assembly Editor. This action automatically removes the comment for the edited address to ensure the documentation reflects the new code.
-    *   Changing the Version Toggle re-initializes the `HMEngine` with the appropriate `ExecutionStrategy` and re-assembles the editor text.
+    *   Changing the Version via the **Setup Dialog** re-initializes the `HMEngine` with the appropriate `ExecutionStrategy` and re-assembles the editor text.
 
 #### 3.5.3 Component Architecture
 *   **`src/hmsim/gui/hm_gui.py`**: Application entry point (`Gtk.Application`). Initializes the event loop, MenuBar, and main window.
 *   **`src/hmsim/gui/main_window.py`**: Main container managing the HeaderBar, Paned layout, and widget coordination. Handles file I/O (New/Open/Save) with sparse JSON state format.
-*   **`src/hmsim/gui/widgets/register_view.py`**: Displays PC, AC, IR, SR, and cycles in monospace hex format.
+*   **`src/hmsim/gui/widgets/setup_dialog.py`**: A configuration dialog for switching processor versions and defining memory regions (Text/Data).
+*   **`src/hmsim/gui/widgets/register_view.py`**: Displays active engine version, PC, AC, IR, SR, and cycles in monospace hex format.
 *   **`src/hmsim/gui/widgets/memory_view.py`**: `Gtk.TreeView` grid showing 64KB memory with Address and Value columns. Supports "Go to Address" search and error highlighting.
 *   **`src/hmsim/gui/widgets/file_dialog.py`**: GTK4 FileDialog utilities for Open/Save operations.
 *   **`src/hmsim/gui/widgets/editor_view.py`**: `Gtk.TextView` with bi-directional assembly/disassembly synchronization with the memory grid and error reporting.

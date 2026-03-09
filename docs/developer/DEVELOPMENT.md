@@ -80,12 +80,13 @@ hmsim
 ```
 
 ### Key Features:
-- **Assembly Editor:** Real-time assembly of mnemonics into machine code. Supports inline comments and basic syntax highlighting.
-- **Register View:** Live display of PC, AC, IR, SR, and execution cycles.
-- **Memory Grid:** Scrollable 64KB memory view with "Go to Address" functionality. Supports direct cell editing (hex/decimal) which triggers real-time re-disassembly in the Assembly Editor.
-- **Execution Controls:** Single-step execution (F10), continuous run (F5), and reset (F12).
-- **Version Selector:** Hot-swapping between HMv1 and HMv2 architectures.
-- **Persistence:** Load and save complete simulator states as `.hm` JSON files.
+- **Assembly Editor**: Real-time assembly of mnemonics into machine code. Supports inline comments and basic syntax highlighting.
+- **Register View**: Live display of active Engine version, PC, AC, IR, SR, and execution cycles.
+- **Memory Grid**: Scrollable 64KB memory view with "Go to Address" functionality. Supports direct cell editing (hex/decimal) which triggers real-time re-disassembly in the Assembly Editor.
+- **Execution Controls**: Single-step execution (F10), continuous run (F5), and reset (F12).
+- **Simulator Setup**: Hot-swapping between HMv1 through HMv4 architectures and defining memory regions.
+- **Persistence**: Load and save complete simulator states as `.hm` JSON files (including setup metadata).
+
 
 ---
 
@@ -173,13 +174,17 @@ The GUI's Help menu uses documentation bundled in the package:
 The HM Simulator is built on a modular architecture that separates the execution engine from the user interfaces.
 
 ### Core Engine (`src/hmsim/engine/`)
-- `cpu.py`: The `HMEngine` class maintains the 16-bit state machine.
+- `cpu.py`: The `HMEngine` class maintains the 16-bit state machine. It defines `VALID_VERSIONS` as the source of truth for supported architectures.
 - `isa.py`: Single source of truth for opcodes, mnemonics, and cycle counts.
 - `strategies/`: Version-specific instruction decoding and execution logic.
-- `state.py`: Handles serialization/deserialization of JSON state files.
+- `state.py`: Handles serialization/deserialization of JSON state files, including the `setup` block.
 
 ### GUI (`src/hmsim/gui/`)
 A GTK 4 implementation using the Observer pattern. The GUI listens for `state-changed` signals from the `HMEngine` to update its visual components.
+
+#### Version Management and Setup
+- **`_on_setup`**: Triggered by the "Setup" menu. It spawns the `SetupDialog` and, upon application, orchestrates the update of memory regions and potential engine re-initialization.
+- **`_on_version_changed`**: Centralized logic for hot-swapping engines. It preserves the current memory, registers, and comments, then re-assembles the program text for the new architecture.
 
 ### Markdown Renderer (`src/hmsim/gui/utils/markdown_renderer.py`)
 A custom Markdown-to-GTK-TextBuffer renderer built on `markdown-it-py`. It supports:

@@ -6,14 +6,16 @@ The HM Simulator uses a JSON-based state file format (extension `.hm`) to persis
 
 State files capture the complete runtime context of the simulator. To improve readability and debugging, the memory is divided into two logical sections:
 
-- **text**: Contains disassembled instructions (assembly mnemonics) starting from address `0x0000`. Supports inline comments using the `;` character.
-- **data**: Contains hexadecimal representations of non-zero memory locations that are not part of the program code.
+- **setup**: Stores configuration for the simulation session, including memory region boundaries.
+- **text**: Contains disassembled instructions (assembly mnemonics) within the specified text region. Supports inline comments using the `;` character.
+- **data**: Contains hexadecimal representations of non-zero memory locations that are not part of the program code or text section.
 
 ## JSON Schema
 
 | Field | Type | Range | Description |
 |-------|------|-------|-------------|
-| `version` | string | `"HMv1"`, `"HMv2"` | Simulator version (HMv3/v4 loaded as HMv2) |
+| `version` | string | `"HMv1"`, `"HMv2"`, `"HMv3"`, `"HMv4"` | Simulator version |
+| `setup` | object | See below | Simulation configuration (regions, etc.) |
 | `pc` | integer | 0 – 65535 | Program Counter (next instruction address) |
 | `ac` | integer | 0 – 65535 | Accumulator (primary data register) |
 | `ir` | integer | 0 – 65535 | Instruction Register (current instruction) |
@@ -23,17 +25,23 @@ State files capture the complete runtime context of the simulator. To improve re
 
 ## Field Details
 
+### setup (Simulation Configuration)
+
+This block defines how the simulator should interpret memory.
+- **text**: An array of two integers `[start, end]` defining the executable code region.
+- **data**: An array of two integers `[start, end]` defining the data storage region.
+
 ### text (Program Section)
 
-This section contains a linear disassembly of the program starting from address `0x0000`.
-- **Heuristic**: The simulator starts at address `0x0000` and disassembles each word sequentially.
-- **Boundary**: Disassembly continues until an invalid opcode for the current `version` is encountered.
+This section contains a linear disassembly of the program within the `setup.text` boundaries.
+- **Heuristic**: The simulator starts at the text region start and disassembles each word sequentially.
+- **Boundary**: Disassembly continues until an invalid opcode for the current `version` is encountered or the end of the text region is reached.
 - **Comments**: Assembly strings can include comments starting with `;`. These are ignored by the assembler but preserved in the `.hm` file.
 - **Format**: `{"0x0000": "LOAD 0x00A ; My comment"}`.
 
 ### data (Data Section)
 
-This section contains all non-zero memory locations that were not included in the `text` section.
+This section contains all non-zero memory locations that are not part of the `text` section.
 - **Format**: `{"0x000A": "0x0005"}`.
 
 ## Example (`add_two_numbers.hm`)
@@ -41,6 +49,10 @@ This section contains all non-zero memory locations that were not included in th
 ```json
 {
   "version": "HMv1",
+  "setup": {
+    "text": [0, 256],
+    "data": [257, 65535]
+  },
   "pc": 0,
   "ac": 0,
   "ir": 0,

@@ -8,23 +8,25 @@ This guide provides detailed information on using the HM Simulator interactive i
 
 When the simulator starts, you'll see:
 
-- **Header Bar** (top): Contains file operations (New, Open, Save), version selector, and execution controls.
+- **Header Bar** (top): Contains file operations (New, Open, Save) and execution controls.
 - **Main Area** (center): Editor for entering your program (assembly or machine code).
-- **Right Panel** (right): Shows register values (PC, AC, IR, SR) and memory contents.
+- **Right Panel** (right): Shows the active Engine version, register values (PC, AC, IR, SR), and memory contents.
 - **Status Bar** (bottom): Displays simulator status and error messages.
 
 ---
 
 ## Selecting Your HM Version
 
-Use the version dropdown in the header bar to select which HM version to simulate:
+Engine version selection is handled via the **Simulator Setup** dialog (Menu: **Setup** > **Simulator Setup...**).
+
+In the Setup dialog, you can select the processor version:
 
 - **HMv1**: Basic LOAD/STORE/ADD operations.
 - **HMv2**: Adds SUB, JMP, JMPZ.
 - **HMv3**: Adds CALL, RETURN.
 - **HMv4**: Adds indirect addressing.
 
-Switching versions updates the available instructions while preserving your current memory contents.
+Switching versions updates the available instructions while preserving your current memory contents. The active version is always displayed at the top of the Register Display.
 
 ---
 
@@ -32,7 +34,7 @@ Switching versions updates the available instructions while preserving your curr
 
 - **Run**: Execute instructions continuously at high speed (~60,000+ instructions/sec). Displays total cycles in real-time.
 - **Step**: Execute one instruction and advance the program counter.
-- **Reset**: Clear all registers (PC, AC, IR, SR, Cycles) and memory.
+- **Reset**: Clear all registers (PC, AC, IR, SR, Cycles).
 
 ---
 
@@ -45,14 +47,12 @@ Switching versions updates the available instructions while preserving your curr
 
 ### Execution Controls
 - **Step**: Execute one instruction and update all displays.
-- **Reset**: Clear all registers (PC, AC, IR, SR = 0) and memory (all zeros).
+- **Reset**: Clear all registers (PC, AC, IR, SR = 0).
 
-### Version Selector
-Drop-down menu to switch between:
-- HMv1 (LOAD, STORE, ADD)
-- HMv2 (+ SUB, JMP, JMPZ)
-- HMv3 (+ CALL, RETURN)
-- HMv4 (+ Indirect LOAD/STORE)
+### Simulator Setup
+Accessible via the **Setup** menu. Allows you to configure:
+- **Processor Version**: Switch between HMv1, HMv2, HMv3, and HMv4.
+- **Memory Regions**: Define the start and end addresses for the **Text** (executable code) and **Data** sections.
 
 ### Memory View
 The memory view displays the current contents of the 16-bit word-addressable memory (addresses 0x0000 to 0xFFFF).
@@ -62,12 +62,14 @@ The memory view displays the current contents of the 16-bit word-addressable mem
 - **Go to Address**: Use the "Go to Address" entry at the top of the memory view to quickly scroll to a specific memory location.
 
 ### Register Display
-The register panel shows current register values in hexadecimal format:
-- **PC**: Program Counter (next instruction address)
-- **AC**: Accumulator (arithmetic result)
-- **IR**: Instruction Register (current instruction)
-- **SR**: Status Register (flags - HMv2+ only)
-- **Cycles**: Total execution cycles since last reset
+The register panel shows the current configuration and register values:
+- **Engine**: The active processor version (e.g., "Engine: HMv1").
+- **PC**: Program Counter (next instruction address).
+- **AC**: Accumulator (arithmetic result).
+- **IR**: Instruction Register (current instruction).
+- **SR**: Status Register (flags - HMv2+ only).
+- **Cycles**: Total execution cycles since last reset.
+- **Instructions**: Total instructions executed.
 
 ---
 
