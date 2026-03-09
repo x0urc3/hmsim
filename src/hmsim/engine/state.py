@@ -4,11 +4,32 @@
 """HM State Persistence - Logic for loading and saving JSON state files."""
 
 import json
+from pathlib import Path
 from typing import Any, Dict, Optional
+
+import jsonschema
 
 from hmsim.engine.strategies import get_strategy
 from hmsim.tools.hmdas import disassemble
 from hmsim.tools.hmasm import assemble
+
+SCHEMA_PATH = Path(__file__).parent / "schema.json"
+
+
+def _load_schema() -> Dict[str, Any]:
+    with open(SCHEMA_PATH, "r") as f:
+        return json.load(f)
+
+
+def validate_state(state: Dict[str, Any]) -> None:
+    schema = _load_schema()
+    try:
+        jsonschema.validate(state, schema)
+    except jsonschema.ValidationError as e:
+        path = ".".join(str(p) for p in e.absolute_path) if e.absolute_path else "root"
+        raise ValueError(f"Schema validation failed at '{path}': {e.message}") from None
+    except jsonschema.SchemaError as e:
+        raise ValueError(f"Invalid schema: {e.message}") from None
 
 
 def _parse_region_value(val):
@@ -96,7 +117,11 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
 
     Returns:
         The version string from the state file.
+
+    Raises:
+        ValueError: If the state fails JSON Schema validation.
     """
+    validate_state(state)
     version = state.get("version", "HMv1")
     engine.version = version
     engine._strategy = get_strategy(version)
