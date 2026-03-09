@@ -46,3 +46,7 @@ hmdas = "hmsim.tools.hmdas:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["hmsim*", "hmsim.engine.*"]
+
+[tool.setuptools.package-data]
+hmsim = ["engine/*.json"]
