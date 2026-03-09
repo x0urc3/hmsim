@@ -165,6 +165,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.memory_view.set_vexpand(True)
         self.memory_view.set_memory_changed_callback(self._on_memory_edited)
         self.memory_view.set_regions(self.engine.text_region, self.engine.data_region)
+        self.memory_view.ensure_populated()
         self.right_pane.append(self.memory_view)
 
         self.status_bar = Gtk.Label(label="Ready")
@@ -414,7 +415,6 @@ class MainWindow(Gtk.ApplicationWindow):
             cycles=self.engine.total_cycles,
             instructions=self.engine.total_instructions
         )
-        self.memory_view.set_memory(self.engine._memory)
         self.memory_view.set_pc(self.engine.pc)
 
     def _on_step(self, button):
@@ -540,6 +540,8 @@ class MainWindow(Gtk.ApplicationWindow):
             with open(file_path, 'r') as f:
                 state = json.load(f)
 
+            self.memory_view.reset_modified_rows()
+
             version = self.engine.load_state(file_path)
 
             if version not in VERSIONS:
@@ -555,6 +557,16 @@ class MainWindow(Gtk.ApplicationWindow):
             data_region = self.engine.data_region
             self.editor_view.set_text_region(text_region)
             self.memory_view.set_regions(text_region, data_region)
+
+            state_data = {}
+            for addr_str in state.get("text", {}):
+                addr = int(addr_str, 16)
+                state_data[addr] = self.engine._memory[addr]
+            for addr_str in state.get("data", {}):
+                addr = int(addr_str, 16)
+                state_data[addr] = self.engine._memory[addr]
+
+            self.memory_view.set_memory(self.engine._memory, state_data)
 
             if self.engine.version != version:
                 pc, ac, ir, sr, memory, comments = self.engine.pc, self.engine.ac, self.engine.ir, self.engine.sr, self.engine._memory, self.engine.comments.copy()

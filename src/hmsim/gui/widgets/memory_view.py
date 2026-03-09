@@ -29,6 +29,8 @@ class MemoryView(Gtk.Box):
         self._last_pc = -1
         self._text_region = (0x0000, 0x0100)
         self._data_region = (0x0101, 0xFFFF)
+        self._modified_addresses = set()
+        self._is_populated = False
         self._setup_ui()
 
     def _setup_ui(self):
@@ -100,13 +102,28 @@ class MemoryView(Gtk.Box):
         return None
 
     def _populate_model(self):
+        if self._is_populated:
+            return
         self._model.clear()
         for addr in range(65536):
             value = self._memory[addr]
             region_color = self._get_region_color(addr)
             self._model.append(["", region_color, f"0x{addr:04X}", f"0x{value:04X}"])
+        self._is_populated = True
         if self._last_pc >= 0:
             self.set_pc(self._last_pc)
+
+    def reset_modified_rows(self):
+        """Reset only rows that were modified (had non-zero values) to zero."""
+        for addr in self._modified_addresses:
+            if 0 <= addr < 65536 and addr < len(self._model):
+                region_color = self._get_region_color(addr)
+                self._model[addr] = ["", region_color, f"0x{addr:04X}", "0x0000"]
+        self._modified_addresses.clear()
+
+    def ensure_populated(self):
+        """Ensure the model is populated (called once at startup)."""
+        self._populate_model()
 
     def _on_search(self, entry):
         text = entry.get_text()
@@ -122,10 +139,15 @@ class MemoryView(Gtk.Box):
         except ValueError:
             pass
 
-    def set_memory(self, memory):
+    def set_memory(self, memory, state_data=None):
         self._memory = memory
         self._populate_model()
         self._highlighted_path = None
+
+        if state_data:
+            for addr, value in state_data.items():
+                self.update(addr)
+                self._modified_addresses.add(addr)
 
     def set_pc(self, address):
         if not 0 <= address < 65536:
@@ -138,7 +160,12 @@ class MemoryView(Gtk.Box):
     def set_regions(self, text_range: tuple[int, int], data_range: tuple[int, int]) -> None:
         self._text_region = text_range
         self._data_region = data_range
-        self._populate_model()
+        if self._is_populated:
+            for addr in range(65536):
+                if addr < len(self._model):
+                    region_color = self._get_region_color(addr)
+                    current_value = self._model[addr][3]
+                    self._model[addr][1] = region_color
 
     def highlight_address(self, address):
         if 0 <= address < 65536:
