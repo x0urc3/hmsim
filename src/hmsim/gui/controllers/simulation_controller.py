@@ -74,6 +74,8 @@ class SimulationController:
         """Reset the engine state."""
         if self._is_running:
             self.stop()
+        else:
+            self._status_callback("Ready", False)
         self.engine.reset()
 
     def _run_loop(self):
