@@ -32,6 +32,7 @@ from hmsim.gui.widgets.setup_dialog import SetupDialog
 from hmsim.engine.cpu import HMEngine
 from hmsim.gui.state_manager import StateManager, Snapshot
 from hmsim.gui.controllers.simulation_controller import SimulationController
+from hmsim.gui.controllers.file_controller import FileController
 
 from hmsim.tools.hmdas import disassemble
 
@@ -49,7 +50,6 @@ class MainWindow(Gtk.ApplicationWindow):
         self.engine = HMEngine(self.current_arch)
         self._is_updating_editor = False
         self._help_windows = {}
-        self._current_file: Optional[Path] = None
         self.state_manager = StateManager(self._apply_snapshot)
         self.simulation_controller = SimulationController(
             self.engine,
@@ -59,6 +59,19 @@ class MainWindow(Gtk.ApplicationWindow):
             controls_callback=self._set_controls_sensitivity
         )
         self._setup_ui(application)
+        self.file_controller = FileController(
+            self,
+            self.engine,
+            self.editor_view,
+            self.memory_view,
+            self.state_manager,
+            self.simulation_controller,
+            status_callback=self._set_status,
+            update_ui_callback=self._update_ui,
+            title_callback=self._update_window_title,
+            capture_snapshot_callback=self._capture_snapshot,
+            arch_change_callback=self._on_arch_changed
+        )
         self._setup_actions()
         self._connect_engine()
 
@@ -259,10 +272,10 @@ class MainWindow(Gtk.ApplicationWindow):
         """Reset the 'modified' detection point to the current state."""
         self.state_manager.sync_base_snapshot()
 
-    def _update_window_title(self):
+    def _update_window_title(self, current_file: Optional[Path] = None):
         title = "HM Simulator"
-        if self._current_file:
-            title += f" - {self._current_file.name}"
+        if current_file:
+            title += f" - {current_file.name}"
         if self.is_modified:
             title += "*"
         self.set_title(title)
@@ -270,10 +283,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self.title_label.set_label(title)
 
     def _on_close_request(self, window):
-        if self.is_modified:
-            self._check_unsaved_changes_on_close()
-            return True  # Stop the close signal
-        return False  # Proceed with close
+        return self.file_controller.confirm_close(self.destroy)
 
     def _create_header_bar(self) -> Gtk.HeaderBar:
         header = Gtk.HeaderBar()
@@ -373,13 +383,36 @@ class MainWindow(Gtk.ApplicationWindow):
         self.add_action(action)
 
     def _on_new_action(self, action, param):
-        self._on_new(None)
+        self.file_controller.new()
 
     def _on_open_action(self, action, param):
-        self._on_open(None)
+        self.file_controller.open()
 
     def _on_save_action(self, action, param):
-        self._on_save(None)
+        self.file_controller.save()
+
+    def _on_save_as_action(self, action, param):
+        self.file_controller.save_as()
+
+    def _on_undo_action(self, action, param):
+        self.state_manager.undo()
+        self._update_window_title()
+
+    def _on_redo_action(self, action, param):
+        self.state_manager.redo()
+        self._update_window_title()
+
+    def _on_step_action(self, action, param):
+        self.simulation_controller.step()
+
+    def _on_run_action(self, action, param):
+        self.simulation_controller.run()
+
+    def _on_reset_action(self, action, param):
+        self.simulation_controller.reset()
+
+    def _on_setup_action(self, action, param):
+        self._on_setup(None)
 
     def _on_setup(self, button):
         dialog = SetupDialog(
@@ -411,18 +444,6 @@ class MainWindow(Gtk.ApplicationWindow):
 
         dialog.connect("response", on_response)
         dialog.present()
-
-    def _on_step_action(self, action, param):
-        self._on_step(None)
-
-    def _on_run_action(self, action, param):
-        self._on_run(None)
-
-    def _on_reset_action(self, action, param):
-        self._on_reset(None)
-
-    def _on_setup_action(self, action, param):
-        self._on_setup(None)
 
     def _on_arch_changed(self, new_arch):
         if new_arch != self.current_arch:
@@ -566,54 +587,6 @@ class MainWindow(Gtk.ApplicationWindow):
         self._clear_error()
         self.simulation_controller.reset()
 
-    def _on_new(self, button):
-        self._clear_error()
-        if self.is_modified:
-            self._check_unsaved_changes(self._perform_new)
-        else:
-            self._perform_new()
-
-    def _perform_new(self):
-        self.simulation_controller.reset()
-        self.engine._memory = [0] * 65536
-
-        # Reset session-bound metadata
-        from hmsim.engine.state import _get_current_timestamp, _get_debug_default
-        from hmsim import __version__
-        self.engine.metadata = {
-            "debug": _get_debug_default(),
-            "software_version": __version__,
-            "created_at": _get_current_timestamp(),
-            "updated_at": _get_current_timestamp(),
-            "log": []
-        }
-
-        self.editor_view.set_text("")
-        self._current_file = None
-        self.state_manager.reset(self._capture_snapshot())
-        self._update_window_title()
-        self._update_ui()
-
-    def _check_unsaved_changes(self, callback):
-        """Show a confirmation dialog if there are unsaved changes."""
-        dialog = Gtk.AlertDialog(
-            message="Unsaved Changes",
-            detail="You have unsaved changes. Do you want to save them before proceeding?",
-            buttons=["Save", "Discard", "Cancel"]
-        )
-
-        def on_response(dialog, result):
-            if result == 0:  # Save
-                self._on_save(None)
-                # After saving, proceed with the original action
-                # Note: This is a bit simplified as save might be cancelled
-                callback()
-            elif result == 1:  # Discard
-                callback()
-            # result == 2 is Cancel, do nothing
-
-        dialog.choose(self, None, on_response)
-
     def _show_error(self, message, address):
         self.status_bar.set_label(f"Error at 0x{address:04X}: {message}")
         self.status_bar.add_css_class("error")
@@ -623,151 +596,3 @@ class MainWindow(Gtk.ApplicationWindow):
         self.status_bar.set_label("Ready")
         self.status_bar.remove_css_class("error")
         self.memory_view.clear_highlight()
-
-    def _on_save(self, button):
-        self._clear_error()
-        if self._current_file:
-            self._save_state(self._current_file)
-        else:
-            self._on_save_as(button)
-
-    def _on_save_as(self, button):
-        self._clear_error()
-        dialog = Gtk.FileDialog(title="Save State As")
-        if self._current_file:
-            dialog.set_initial_name(self._current_file.name)
-        else:
-            dialog.set_initial_name("program.hm")
-
-        filter_hm = Gtk.FileFilter()
-        filter_hm.set_name("HM State Files (*.hm)")
-        filter_hm.add_pattern("*.hm")
-        dialog.set_default_filter(filter_hm)
-
-        def on_response(dialog, result):
-            try:
-                file = dialog.save_finish(result)
-                if file:
-                    file_path = Path(file.get_path())
-                    self._save_state(file_path)
-            except Exception as e:
-                print(f"Save As error: {e}")
-
-        dialog.save(self, None, on_response)
-
-    def _on_open(self, button):
-        self._clear_error()
-        if self.is_modified:
-            self._check_unsaved_changes(lambda: self._show_open_dialog())
-        else:
-            self._show_open_dialog()
-
-    def _show_open_dialog(self):
-        dialog = Gtk.FileDialog(title="Open State")
-        dialog.set_initial_name("program.hm")
-
-        filter_hm = Gtk.FileFilter()
-        filter_hm.set_name("HM State Files (*.hm)")
-        filter_hm.add_pattern("*.hm")
-        dialog.set_default_filter(filter_hm)
-
-        def on_response(dialog, result):
-            try:
-                file = dialog.open_finish(result)
-                if file:
-                    file_path = Path(file.get_path())
-                    self._load_state(file_path)
-            except Exception as e:
-                print(f"Open error: {e}")
-
-        dialog.open(self, None, on_response)
-
-    def _save_state(self, file_path: str | Path):
-        file_path = Path(file_path)
-        try:
-            self.status_bar.set_label(f"Saving {file_path.name}...")
-            self.engine.save_state(file_path)
-            self._current_file = file_path
-            self._sync_base_snapshot()
-            self._update_window_title()
-            self.status_bar.set_label(f"Saved to {file_path.name}")
-        except Exception as e:
-            self.status_bar.set_label(f"Error saving state: {e}")
-            self.status_bar.add_css_class("error")
-
-    def _load_state(self, file_path: str | Path):
-        file_path = Path(file_path)
-        try:
-            self.status_bar.set_label(f"Loading {file_path.name}...")
-            # Schedule the actual loading to allow status bar to update
-            GLib.idle_add(self._perform_load, file_path)
-        except Exception as e:
-            self.status_bar.set_label(f"Error loading state: {e}")
-            self.status_bar.add_css_class("error")
-            print(f"Error loading state: {e}")
-
-    def _perform_load(self, file_path: Path):
-        try:
-            with open(file_path, 'r') as f:
-                state = json.load(f)
-
-            self.memory_view.reset_modified_rows()
-            arch = self.engine.load_state(file_path)
-
-            if arch not in HMEngine.VALID_ARCHITECTURES:
-                arch = "HMv2"
-                self.status_bar.set_label(f"Warning: Unknown architecture, loaded as HMv2")
-            else:
-                self.status_bar.set_label(f"Loaded {arch} state")
-
-            self.current_arch = arch
-            self._current_file = file_path
-
-            text_region = self.engine.text_region
-            data_region = self.engine.data_region
-            self.editor_view.set_text_region(text_region)
-            self.memory_view.set_regions(text_region, data_region)
-
-            state_data = {}
-            for addr_str in state.get("text", {}):
-                addr = int(addr_str, 16)
-                state_data[addr] = self.engine._memory[addr]
-            for addr_str in state.get("data", {}):
-                addr = int(addr_str, 16)
-                state_data[addr] = self.engine._memory[addr]
-
-            self.memory_view.set_memory(self.engine._memory, state_data)
-
-            if self.engine.architecture != arch:
-                self._on_arch_changed(arch)
-
-            setup = state.get("setup", None)
-            if setup:
-                text_section = state.get("text", {})
-                if text_section:
-                    lines = []
-                    text_start = setup.get("text", [0, 256])[0]
-                    if text_section:
-                        max_addr = max(int(addr, 16) for addr in text_section.keys())
-                        for addr in range(text_start, max_addr + 1):
-                            addr_str = f"0x{addr:04X}"
-                            if addr_str in text_section:
-                                lines.append(text_section[addr_str])
-                            else:
-                                lines.append("")
-                    self.editor_view.set_text("\n".join(lines))
-
-            self._update_ui()
-            # Capture the base snapshot AFTER all updates (including editor debounce) are settled
-            GLib.timeout_add(EditorView.DEBOUNCE_DELAY + 50, self._sync_and_title)
-            return False
-        except Exception as e:
-            self.status_bar.set_label(f"Error loading state: {e}")
-            self.status_bar.add_css_class("error")
-            print(f"Error loading state: {e}")
-            return False
-
-    def _sync_and_title(self):
-        self._sync_base_snapshot()
-        self._update_window_title()
-        return False
