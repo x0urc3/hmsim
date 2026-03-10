@@ -84,6 +84,135 @@ class MainWindow(Gtk.ApplicationWindow):
         self._update_window_title()
         self.connect("close-request", self._on_close_request)
 
+    def _setup_ui(self, application=None):
+        self.set_titlebar(self._create_header_bar())
+
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
+        self.set_child(main_box)
+
+        if application:
+            menu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
+            menu_box.add_css_class("menubar")
+            main_box.append(menu_box)
+
+            file_menu = Gio.Menu()
+            file_menu.append("New", "win.new")
+            file_menu.append("Open...", "win.open")
+            file_menu.append("Save", "win.save")
+            file_menu.append("Save As...", "win.save_as")
+            file_menu.append("Quit", "app.quit")
+            file_menu_model = Gio.Menu()
+            file_menu_model.append_submenu("File", file_menu)
+
+            edit_menu = Gio.Menu()
+            edit_menu.append("Undo", "win.undo")
+            edit_menu.append("Redo", "win.redo")
+            edit_menu_model = Gio.Menu()
+            edit_menu_model.append_submenu("Edit", edit_menu)
+
+            run_menu = Gio.Menu()
+            run_menu.append("Run", "win.run")
+            run_menu.append("Step", "win.step")
+            run_menu.append("Reset", "win.reset")
+            run_menu_model = Gio.Menu()
+            run_menu_model.append_submenu("Run", run_menu)
+
+            setup_menu = Gio.Menu()
+            setup_menu.append("Simulator Setup...", "win.setup")
+            setup_menu_model = Gio.Menu()
+            setup_menu_model.append_submenu("Setup", setup_menu)
+
+            main_file_run = Gio.Menu()
+            main_file_run.append_section(None, file_menu_model)
+            main_file_run.append_section(None, edit_menu_model)
+            main_file_run.append_section(None, run_menu_model)
+            main_file_run.append_section(None, setup_menu_model)
+            menubar_left = Gtk.PopoverMenuBar.new_from_model(main_file_run)
+            menu_box.append(menubar_left)
+
+            spacer = Gtk.Box(hexpand=True)
+            menu_box.append(spacer)
+
+            help_menu = Gio.Menu()
+            help_menu.append("Tutorial", "win.show_tutorial")
+            help_menu.append("User Guide", "win.show_user_guide")
+            help_menu.append("About", "app.about")
+            help_menu_model = Gio.Menu()
+            help_menu_model.append_submenu("Help", help_menu)
+            menubar_right = Gtk.PopoverMenuBar.new_from_model(help_menu_model)
+            menu_box.append(menubar_right)
+
+            separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+            main_box.append(separator)
+
+        toolbar = self._create_toolbar()
+        main_box.append(toolbar)
+
+        # Add CSS provider
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data(b"""
+            .toolbar {
+                padding: 4px;
+                border-bottom: 1px solid @borders;
+                background-color: @theme_bg_color;
+            }
+            .menubar {
+                background-color: @theme_bg_color;
+                border-bottom: 1px solid @borders;
+            }
+            popovermenubar {
+                background-color: @theme_bg_color;
+                border-bottom: 1px solid @borders;
+                min-height: 30px;
+            }
+        """)
+        Gtk.StyleContext.add_provider_for_display(
+            self.get_display(),
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+
+        paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        paned.set_hexpand(True)
+        paned.set_vexpand(True)
+        main_box.append(paned)
+
+        self.left_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
+        paned.set_start_child(self.left_pane)
+        paned.set_resize_start_child(True)
+        paned.set_shrink_start_child(False)
+
+        self.editor_view = EditorView(arch=self.current_arch)
+        self.editor_view.set_change_callback(self._on_editor_changed)
+        self.editor_view.set_text_region(self.engine.text_region)
+        self.left_pane.append(self.editor_view)
+
+        self.right_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=False, vexpand=True)
+        self.right_pane.set_size_request(300, -1)
+        paned.set_end_child(self.right_pane)
+        paned.set_resize_end_child(False)
+        paned.set_shrink_end_child(False)
+
+        self.register_view = RegisterView()
+        self.register_view.set_architecture(self.current_arch)
+        self.register_view.set_register_changed_callback(self._on_register_edited)
+        self.right_pane.append(self.register_view)
+
+        self.memory_view = MemoryView()
+        self.memory_view.set_vexpand(True)
+        self.memory_view.set_memory(self.engine._memory)
+        self.memory_view.set_memory_changed_callback(self._on_memory_edited)
+        self.memory_view.set_regions(self.engine.text_region, self.engine.data_region)
+        self.memory_view.ensure_populated()
+        self.right_pane.append(self.memory_view)
+
+        self.status_bar = Gtk.Label(label="Ready")
+        self.status_bar.set_margin_top(5)
+        self.status_bar.set_margin_bottom(5)
+        self.status_bar.set_margin_start(10)
+        self.status_bar.set_margin_end(10)
+        self.right_pane.append(self.status_bar)
+
     @property
     def is_modified(self) -> bool:
         """Dynamically check if current state differs from last save/load."""
@@ -504,7 +633,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _on_new(self, button):
         self._clear_error()
-        if self._is_modified:
+        if self.is_modified:
             self._check_unsaved_changes(self._perform_new)
         else:
             self._perform_new()
@@ -593,7 +722,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _on_open(self, button):
         self._clear_error()
-        if self._is_modified:
+        if self.is_modified:
             self._check_unsaved_changes(lambda: self._show_open_dialog())
         else:
             self._show_open_dialog()
