@@ -70,6 +70,27 @@ The register panel shows the current configuration and register values.
 
 ---
 
+## Session Provenance and Audit Logs
+
+The HM Simulator includes a built-in auditing system that tracks the "Chain of Custody" for every state file. This is particularly useful for educational settings to track project evolution.
+
+### Automatic Metadata
+Every `.hm` file automatically includes a `metadata` section (located at the bottom of the file) that contains:
+- **Created At**: The exact timestamp when the simulation session was first started.
+- **Updated At**: The timestamp of the most recent save operation.
+- **Software Version**: The version of the HM Simulator used to save the file.
+
+### The Audit Log
+The simulator maintains a persistent **Log** of every unique environment where the file has been saved.
+- **Session-Bound**: The log follows the simulation data. If you use "Save As" to create a new file, the entire history of the original session is preserved in the new file.
+- **Latest Entry Logic**: To keep the file clean, the simulator only adds a new entry if the file is saved on a *different* machine. Multiple saves on the same computer will simply update the timestamp of the existing entry.
+- **Information Captured**: When "Debug" mode is active (default), the log records the Operating System, Hostname, and Platform details.
+
+### Starting a Fresh Session
+To clear the audit trail and start a completely new project with a fresh "Created At" timestamp, use the **File > New** command. This resets the internal session metadata.
+
+---
+
 ## Learning Path Suggestions
 
 ### Beginner Level - Master HMv1

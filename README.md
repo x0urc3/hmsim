@@ -37,6 +37,10 @@ Every instruction simulates the exact number of clock cycles defined in the ISA.
 
 The HM processor uses a unified 16-bit word for both instructions and data. This simplicity lets you focus on learning concepts without getting bogged down in architectural complexity.
 
+### Session Provenance & Audit
+
+HM Simulator features a built-in auditing system that tracks the lifecycle of your projects. Every `.hm` state file maintains a "Chain of Custody" log, recording when it was created and which machines were used to modify it. This session-bound metadata follows your data even through "Save As" operations, providing a reliable audit trail for educational purposes.
+
 ## Understanding the Architecture
 
 ### Registers

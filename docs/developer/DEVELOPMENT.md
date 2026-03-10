@@ -168,16 +168,21 @@ The GUI's Help menu uses documentation bundled in the package:
 - The application detects running from frozen bundle and locates docs appropriately.
 
 ---
-
 ## Internal Architecture
 
 The HM Simulator is built on a modular architecture that separates the execution engine from the user interfaces.
 
 ### Core Engine (`src/hmsim/engine/`)
-- `cpu.py`: The `HMEngine` class maintains the 16-bit state machine. It defines `VALID_VERSIONS` as the source of truth for supported architectures.
+- `cpu.py`: The `HMEngine` class maintains the 16-bit state machine. It defines `VALID_VERSIONS` as the source of truth for supported architectures. It also maintains **Session-Bound Metadata** including provenance (`created_at`) and audit logs (`log`).
 - `isa.py`: Single source of truth for opcodes, mnemonics, and cycle counts.
 - `strategies/`: Version-specific instruction decoding and execution logic.
-- `state.py`: Handles serialization/deserialization of JSON state files, including the `setup` block. Validates all `.hm` files against a strict JSON Schema (`schema.json`).
+- `state.py`: Handles serialization/deserialization of JSON state files, including the `setup` and `metadata` blocks. Validates all `.hm` files against a strict JSON Schema (`schema.json`).
+
+#### Persistence and Auditing Logic
+State files use the standard JSON structure defined in `schema.json`. The `state.py` module implements specific logic for audit persistence:
+- **Session-Binding**: When a state file is loaded, the `HMEngine` ingests its `metadata` into memory. During subsequent "Save" or "Save As" operations, the engine uses this in-memory metadata rather than re-reading the target file on disk. This ensures that history is preserved even if the filename changes.
+- **Audit Log Deduplication**: The `log` array tracks environment details (OS, Hostname). The saving logic compares the current environment against the *last* log entry. If they match, the entry is updated with a new timestamp and software version; otherwise, a new entry is appended.
+- **Ordered Serialization**: To maintain manual readability, the metadata block is serialized at the **bottom** of the JSON file using insertion-ordered dictionaries.
 
 ### GUI (`src/hmsim/gui/`)
 A GTK 4 implementation using the Observer pattern. The GUI listens for `state-changed` signals from the `HMEngine` to update its visual components.
