@@ -90,23 +90,23 @@ hmsim
 
 ### State Management and History System
 
-The `MainWindow` uses a robust **Snapshot-based State Management** system to handle change detection and history tracking.
+The GUI uses a robust **Snapshot-based State Management** system, decoupled from the main window via the `StateManager` class.
 
 #### 1. Snapshots
-The `Snapshot` dataclass captures an atomic state of the simulator, including:
+The `Snapshot` dataclass (in `state_manager.py`) captures an atomic state of the simulator, including:
 - **Editor Text**: The current string in the assembly editor.
 - **Memory Hash**: An MD5 hash of the memory's data region for efficient comparison.
 - **Configuration**: Active architecture, text region, and data region.
 
 #### 2. Change Detection
-Instead of a simple boolean flag, `is_modified` is a computed property that compares the current live state against a `_base_snapshot`.
-- **Loading**: When a file is loaded, a new base snapshot is captured after a short delay (to allow the initial assembly to settle). This prevents the "assembly-on-load" process from being incorrectly flagged as a user modification.
+Instead of a simple boolean flag, `is_modified` is a property of the `StateManager` that compares the current live state against a `_base_snapshot`.
+- **Loading**: When a file is loaded, a new base snapshot is synchronized after the initial assembly settles. This prevents the loading process from being incorrectly flagged as a user modification.
 - **Reverting**: If a user manually undoes their changes until the state matches the base snapshot, the modified indicator (`*`) automatically clears.
 
 #### 3. History (Undo/Redo)
-The `MainWindow` maintains an internal history stack of snapshots.
+The `StateManager` maintains an internal history stack of snapshots.
 - **Tracking**: A new snapshot is pushed onto the stack whenever the editor text changes (debounced) or a memory cell is edited.
-- **Restoration**: `_apply_snapshot` restores the editor text, re-assembles it to memory, and synchronizes the engine and UI.
+- **Restoration**: Redo and Undo operations request the `MainWindow` to apply a specific snapshot, which restores the editor text and re-assembles it to memory.
 
 ---
 
@@ -205,11 +205,21 @@ State files use the standard JSON structure defined in `schema.json`. The `state
 - **Ordered Serialization**: To maintain manual readability, the metadata block is serialized at the **bottom** of the JSON file using insertion-ordered dictionaries.
 
 ### GUI (`src/hmsim/gui/`)
-A GTK 4 implementation using the Observer pattern. The GUI listens for `state-changed` signals from the `HMEngine` to update its visual components.
+A GTK 4 implementation using the Controller-View pattern to separate orchestration from layout. The GUI listens for `state-changed` signals from the `HMEngine` to update its visual components via the Observer pattern.
+
+#### Main Orchestration (`main_window.py`)
+The `MainWindow` acts as a lean coordinator. It initializes the UI components and delegates complex logic to specialized controllers.
+
+#### GUI Controllers (`src/hmsim/gui/controllers/`)
+- **SimulationController**: Manages the continuous run loop using `GLib.idle_add`, single-stepping, and runtime error reporting. It ensures that the engine and UI remain synchronized during high-speed execution.
+- **FileController**: Encapsulates all file I/O logic, including `Gtk.FileDialog` interaction, unsaved change safety checks, and session-bound metadata synchronization between the engine and the filesystem.
+
+#### State and History (`state_manager.py`)
+A standalone manager for capturing simulator snapshots and maintaining the undo/redo history stack.
 
 #### Version Management and Setup
-- **`_on_setup`**: Triggered by the "Setup" menu. It spawns the `SetupDialog` and, upon application, orchestrates the update of memory regions and potential engine re-initialization.
-- **`_on_version_changed`**: Centralized logic for hot-swapping engines. It preserves the current memory, registers, and comments, then re-assembles the program text for the new architecture.
+- **`SetupDialog`**: Spawns from the "Setup" menu to configure memory regions and engine architectures.
+- **Hot-Swapping**: When the architecture changes, the controllers orchestrate the preservation of memory and registers while the `HMEngine` is re-initialized with the new strategy.
 
 ### Markdown Renderer (`src/hmsim/gui/utils/markdown_renderer.py`)
 A custom Markdown-to-GTK-TextBuffer renderer built on `markdown-it-py`. It supports:
