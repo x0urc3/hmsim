@@ -5,8 +5,27 @@
 
 import json
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any, List
+
+@dataclass(frozen=True)
+class Snapshot:
+    """Represents an atomic state of the simulator for comparison and history."""
+    editor_text: str
+    memory_hash: bytes
+    architecture: str
+    text_region: tuple[int, int]
+    data_region: tuple[int, int]
+
+    def __eq__(self, other):
+        if not isinstance(other, Snapshot):
+            return False
+        return (self.editor_text == other.editor_text and
+                self.memory_hash == other.memory_hash and
+                self.architecture == other.architecture and
+                self.text_region == other.text_region and
+                self.data_region == other.data_region)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
@@ -52,189 +71,58 @@ class MainWindow(Gtk.ApplicationWindow):
         self._is_updating_editor = False
         self._help_windows = {}
         self._current_file: Optional[Path] = None
-        self._is_modified = False
+        self._base_snapshot: Optional[Snapshot] = None
         self._setup_ui(application)
         self._setup_actions()
         self._connect_engine()
+
+        # Capture initial base snapshot (empty state)
+        self._sync_base_snapshot()
         self._update_window_title()
         self.connect("close-request", self._on_close_request)
 
-    def _on_close_request(self, window):
-        if self._is_modified:
-            self._check_unsaved_changes_on_close()
-            return True  # Stop the close signal
-        return False  # Proceed with close
+    @property
+    def is_modified(self) -> bool:
+        """Dynamically check if current state differs from last save/load."""
+        if not self._base_snapshot:
+            return False
+        return self._capture_snapshot() != self._base_snapshot
 
-    def _check_unsaved_changes_on_close(self):
-        """Show a confirmation dialog on close if there are unsaved changes."""
-        dialog = Gtk.AlertDialog(
-            message="Unsaved Changes",
-            detail="You have unsaved changes. Do you want to save them before closing?",
-            buttons=["Save", "Discard", "Cancel"]
+    def _capture_snapshot(self) -> Snapshot:
+        """Create a lightweight representation of the current application state."""
+        import hashlib
+        # Hash memory data region only for efficiency
+        start, end = self.engine.data_region
+        data_to_hash = bytes(self.engine._memory[start:end+1])
+        mem_hash = hashlib.md5(data_to_hash).digest()
+
+        return Snapshot(
+            editor_text=self.editor_view.get_text(),
+            memory_hash=mem_hash,
+            architecture=self.current_arch,
+            text_region=self.engine.text_region,
+            data_region=self.engine.data_region
         )
 
-        def on_response(dialog, result):
-            if result == 0:  # Save
-                # Note: This is complex because we want to close AFTER save finishes
-                # For now, we'll just try to save and then quit
-                self._save_state_and_quit()
-            elif result == 1:  # Discard
-                self.destroy()
-            # result == 2 is Cancel, do nothing
-
-        dialog.choose(self, None, on_response)
-
-    def _save_state_and_quit(self):
-        if self._current_file:
-            self.engine.save_state(self._current_file)
-            self.destroy()
-            return
-
-        dialog = Gtk.FileDialog(title="Save State before closing")
-        dialog.set_initial_name("program.hm")
-
-        def on_response(dialog, result):
-            try:
-                file = dialog.save_finish(result)
-                if file:
-                    file_path = Path(file.get_path())
-                    self.engine.save_state(file_path)
-                    self.destroy()
-            except Exception as e:
-                print(f"Save error on close: {e}")
-
-        dialog.save(self, None, on_response)
-
-    def _setup_ui(self, app=None):
-        self.set_titlebar(self._create_header_bar())
-
-        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
-        self.set_child(main_box)
-
-        if app:
-            menu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
-            menu_box.add_css_class("menubar")
-            main_box.append(menu_box)
-
-            file_menu = Gio.Menu()
-            file_menu.append("New", "win.new")
-            file_menu.append("Open...", "win.open")
-            file_menu.append("Save", "win.save")
-            file_menu.append("Quit", "app.quit")
-            file_menu_model = Gio.Menu()
-            file_menu_model.append_submenu("File", file_menu)
-
-            run_menu = Gio.Menu()
-            run_menu.append("Run", "win.run")
-            run_menu.append("Step", "win.step")
-            run_menu.append("Reset", "win.reset")
-            run_menu_model = Gio.Menu()
-            run_menu_model.append_submenu("Run", run_menu)
-
-            setup_menu = Gio.Menu()
-            setup_menu.append("Simulator Setup...", "win.setup")
-            setup_menu_model = Gio.Menu()
-            setup_menu_model.append_submenu("Setup", setup_menu)
-
-            main_file_run = Gio.Menu()
-            main_file_run.append_section(None, file_menu_model)
-            main_file_run.append_section(None, run_menu_model)
-            main_file_run.append_section(None, setup_menu_model)
-            menubar_left = Gtk.PopoverMenuBar.new_from_model(main_file_run)
-            menu_box.append(menubar_left)
-
-            spacer = Gtk.Box(hexpand=True)
-            menu_box.append(spacer)
-
-            help_menu = Gio.Menu()
-            help_menu.append("Tutorial", "win.show_tutorial")
-            help_menu.append("User Guide", "win.show_user_guide")
-            help_menu.append("About", "app.about")
-            help_menu_model = Gio.Menu()
-            help_menu_model.append_submenu("Help", help_menu)
-            menubar_right = Gtk.PopoverMenuBar.new_from_model(help_menu_model)
-            menu_box.append(menubar_right)
-
-            separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-            main_box.append(separator)
-
-        toolbar = self._create_toolbar()
-        main_box.append(toolbar)
-
-        # Add CSS provider
-        css_provider = Gtk.CssProvider()
-        css_provider.load_from_data(b"""
-            .toolbar {
-                padding: 4px;
-                border-bottom: 1px solid @borders;
-                background-color: @theme_bg_color;
-            }
-            .menubar {
-                background-color: @theme_bg_color;
-                border-bottom: 1px solid @borders;
-            }
-            popovermenubar {
-                background-color: @theme_bg_color;
-                border-bottom: 1px solid @borders;
-                min-height: 30px;
-            }
-        """)
-        Gtk.StyleContext.add_provider_for_display(
-            self.get_display(),
-            css_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-        )
-
-        paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        paned.set_hexpand(True)
-        paned.set_vexpand(True)
-        main_box.append(paned)
-
-        self.left_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
-        paned.set_start_child(self.left_pane)
-        paned.set_resize_start_child(True)
-        paned.set_shrink_start_child(False)
-
-        self.editor_view = EditorView(arch=self.current_arch)
-        self.editor_view.set_change_callback(self._on_editor_changed)
-        self.editor_view.set_text_region(self.engine.text_region)
-        self.left_pane.append(self.editor_view)
-
-        self.right_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=False, vexpand=True)
-        self.right_pane.set_size_request(300, -1)
-        paned.set_end_child(self.right_pane)
-        paned.set_resize_end_child(False)
-        paned.set_shrink_end_child(False)
-
-        self.register_view = RegisterView()
-        self.register_view.set_architecture(self.current_arch)
-        self.register_view.set_register_changed_callback(self._on_register_edited)
-        self.right_pane.append(self.register_view)
-
-        self.memory_view = MemoryView()
-        self.memory_view.set_vexpand(True)
-        self.memory_view.set_memory(self.engine._memory)
-        self.memory_view.set_memory_changed_callback(self._on_memory_edited)
-        self.memory_view.set_regions(self.engine.text_region, self.engine.data_region)
-        self.memory_view.ensure_populated()
-        self.right_pane.append(self.memory_view)
-
-        self.status_bar = Gtk.Label(label="Ready")
-        self.status_bar.set_margin_top(5)
-        self.status_bar.set_margin_bottom(5)
-        self.status_bar.set_margin_start(10)
-        self.status_bar.set_margin_end(10)
-        self.right_pane.append(self.status_bar)
+    def _sync_base_snapshot(self):
+        """Reset the 'modified' detection point to the current state."""
+        self._base_snapshot = self._capture_snapshot()
 
     def _update_window_title(self):
         title = "HM Simulator"
         if self._current_file:
             title += f" - {self._current_file.name}"
-        if self._is_modified:
+        if self.is_modified:
             title += "*"
         self.set_title(title)
         if hasattr(self, 'title_label'):
             self.title_label.set_label(title)
+
+    def _on_close_request(self, window):
+        if self.is_modified:
+            self._check_unsaved_changes_on_close()
+            return True  # Stop the close signal
+        return False  # Proceed with close
 
     def _create_header_bar(self) -> Gtk.HeaderBar:
         header = Gtk.HeaderBar()
@@ -272,12 +160,16 @@ class MainWindow(Gtk.ApplicationWindow):
         self._add_action("new", self._on_new_action)
         self._add_action("open", self._on_open_action)
         self._add_action("save", self._on_save_action)
+        self._add_action("save_as", self._on_save_as_action)
         self._add_action("step", self._on_step_action)
         self._add_action("run", self._on_run_action)
         self._add_action("reset", self._on_reset_action)
         self._add_action("setup", self._on_setup_action)
         self._add_action("show_tutorial", self._on_show_tutorial)
         self._add_action("show_user_guide", self._on_show_user_guide)
+
+    def _on_save_as_action(self, action, param):
+        self._on_save_as(None)
 
     def _get_docs_path(self) -> Path:
         import hmsim
@@ -414,7 +306,6 @@ class MainWindow(Gtk.ApplicationWindow):
         if self._is_updating_editor:
             return
         self._clear_error()
-        self._is_modified = True
         self._update_window_title()
         errors = self.editor_view.assemble_to_engine(self.engine)
         if errors:
@@ -425,7 +316,6 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_memory_edited(self, address, value):
         self.engine._memory[address] = value
         self.engine.comments.pop(address, None)
-        self._is_modified = True
         self._update_window_title()
         self._refresh_editor_from_memory()
 
@@ -564,7 +454,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self.editor_view.set_text("")
         self._current_file = None
-        self._is_modified = False
+        self._sync_base_snapshot()
         self._update_window_title()
         self._update_ui()
 
@@ -656,7 +546,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self.status_bar.set_label(f"Saving {file_path.name}...")
             self.engine.save_state(file_path)
             self._current_file = file_path
-            self._is_modified = False
+            self._sync_base_snapshot()
             self._update_window_title()
             self.status_bar.set_label(f"Saved to {file_path.name}")
         except Exception as e:
@@ -690,8 +580,6 @@ class MainWindow(Gtk.ApplicationWindow):
 
             self.current_arch = arch
             self._current_file = file_path
-            self._is_modified = False
-            self._update_window_title()
 
             text_region = self.engine.text_region
             data_region = self.engine.data_region
@@ -728,9 +616,16 @@ class MainWindow(Gtk.ApplicationWindow):
                     self.editor_view.set_text("\n".join(lines))
 
             self._update_ui()
+            # Capture the base snapshot AFTER all updates (including editor debounce) are settled
+            GLib.timeout_add(EditorView.DEBOUNCE_DELAY + 50, self._sync_and_title)
             return False
         except Exception as e:
             self.status_bar.set_label(f"Error loading state: {e}")
             self.status_bar.add_css_class("error")
             print(f"Error loading state: {e}")
             return False
+
+    def _sync_and_title(self):
+        self._sync_base_snapshot()
+        self._update_window_title()
+        return False
