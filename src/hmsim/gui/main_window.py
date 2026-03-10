@@ -88,64 +88,67 @@ class MainWindow(Gtk.ApplicationWindow):
         self.set_child(main_box)
 
         if application:
-            menu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
-            menu_box.add_css_class("menubar")
-            main_box.append(menu_box)
+            main_box.append(self._create_menubar())
+            main_box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
 
-            file_menu = Gio.Menu()
-            file_menu.append("New", "win.new")
-            file_menu.append("Open...", "win.open")
-            file_menu.append("Save", "win.save")
-            file_menu.append("Save As...", "win.save_as")
-            file_menu.append("Quit", "app.quit")
-            file_menu_model = Gio.Menu()
-            file_menu_model.append_submenu("File", file_menu)
+        main_box.append(self._create_toolbar())
+        self._setup_styles()
+        main_box.append(self._create_main_content())
 
-            edit_menu = Gio.Menu()
-            edit_menu.append("Undo", "win.undo")
-            edit_menu.append("Redo", "win.redo")
-            edit_menu_model = Gio.Menu()
-            edit_menu_model.append_submenu("Edit", edit_menu)
+    def _create_menubar(self) -> Gtk.Box:
+        menu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
+        menu_box.add_css_class("menubar")
 
-            run_menu = Gio.Menu()
-            run_menu.append("Run", "win.run")
-            run_menu.append("Step", "win.step")
-            run_menu.append("Reset", "win.reset")
-            run_menu_model = Gio.Menu()
-            run_menu_model.append_submenu("Run", run_menu)
+        file_menu = Gio.Menu()
+        file_menu.append("New", "win.new")
+        file_menu.append("Open...", "win.open")
+        file_menu.append("Save", "win.save")
+        file_menu.append("Save As...", "win.save_as")
+        file_menu.append("Quit", "app.quit")
+        file_menu_model = Gio.Menu()
+        file_menu_model.append_submenu("File", file_menu)
 
-            setup_menu = Gio.Menu()
-            setup_menu.append("Simulator Setup...", "win.setup")
-            setup_menu_model = Gio.Menu()
-            setup_menu_model.append_submenu("Setup", setup_menu)
+        edit_menu = Gio.Menu()
+        edit_menu.append("Undo", "win.undo")
+        edit_menu.append("Redo", "win.redo")
+        edit_menu_model = Gio.Menu()
+        edit_menu_model.append_submenu("Edit", edit_menu)
 
-            main_file_run = Gio.Menu()
-            main_file_run.append_section(None, file_menu_model)
-            main_file_run.append_section(None, edit_menu_model)
-            main_file_run.append_section(None, run_menu_model)
-            main_file_run.append_section(None, setup_menu_model)
-            menubar_left = Gtk.PopoverMenuBar.new_from_model(main_file_run)
-            menu_box.append(menubar_left)
+        run_menu = Gio.Menu()
+        run_menu.append("Run", "win.run")
+        run_menu.append("Step", "win.step")
+        run_menu.append("Reset", "win.reset")
+        run_menu_model = Gio.Menu()
+        run_menu_model.append_submenu("Run", run_menu)
 
-            spacer = Gtk.Box(hexpand=True)
-            menu_box.append(spacer)
+        setup_menu = Gio.Menu()
+        setup_menu.append("Simulator Setup...", "win.setup")
+        setup_menu_model = Gio.Menu()
+        setup_menu_model.append_submenu("Setup", setup_menu)
 
-            help_menu = Gio.Menu()
-            help_menu.append("Tutorial", "win.show_tutorial")
-            help_menu.append("User Guide", "win.show_user_guide")
-            help_menu.append("About", "app.about")
-            help_menu_model = Gio.Menu()
-            help_menu_model.append_submenu("Help", help_menu)
-            menubar_right = Gtk.PopoverMenuBar.new_from_model(help_menu_model)
-            menu_box.append(menubar_right)
+        main_file_run = Gio.Menu()
+        main_file_run.append_section(None, file_menu_model)
+        main_file_run.append_section(None, edit_menu_model)
+        main_file_run.append_section(None, run_menu_model)
+        main_file_run.append_section(None, setup_menu_model)
+        menubar_left = Gtk.PopoverMenuBar.new_from_model(main_file_run)
+        menu_box.append(menubar_left)
 
-            separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
-            main_box.append(separator)
+        spacer = Gtk.Box(hexpand=True)
+        menu_box.append(spacer)
 
-        toolbar = self._create_toolbar()
-        main_box.append(toolbar)
+        help_menu = Gio.Menu()
+        help_menu.append("Tutorial", "win.show_tutorial")
+        help_menu.append("User Guide", "win.show_user_guide")
+        help_menu.append("About", "app.about")
+        help_menu_model = Gio.Menu()
+        help_menu_model.append_submenu("Help", help_menu)
+        menubar_right = Gtk.PopoverMenuBar.new_from_model(help_menu_model)
+        menu_box.append(menubar_right)
 
-        # Add CSS provider
+        return menu_box
+
+    def _setup_styles(self):
         css_provider = Gtk.CssProvider()
         css_provider.load_from_data(b"""
             .toolbar {
@@ -169,10 +172,10 @@ class MainWindow(Gtk.ApplicationWindow):
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
+    def _create_main_content(self) -> Gtk.Paned:
         paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
         paned.set_hexpand(True)
         paned.set_vexpand(True)
-        main_box.append(paned)
 
         self.left_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
         paned.set_start_child(self.left_pane)
@@ -209,6 +212,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.status_bar.set_margin_start(10)
         self.status_bar.set_margin_end(10)
         self.right_pane.append(self.status_bar)
+
+        return paned
 
     @property
     def is_modified(self) -> bool:
