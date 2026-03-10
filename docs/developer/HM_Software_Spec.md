@@ -135,13 +135,16 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
     *   Changing the Architecture via the **Setup Dialog** re-initializes the `HMEngine` with the appropriate `ExecutionStrategy` and re-assembles the editor text.
 
 #### 3.5.3 Component Architecture
-*   **`src/hmsim/gui/hm_gui.py`**: Application entry point (`Gtk.Application`). Initializes the event loop, MenuBar, and main window. Defines global keyboard shortcuts (`Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S`, `Ctrl+Z`, `Ctrl+Y`).
-*   **`src/hmsim/gui/main_window.py`**: Main container managing the HeaderBar, Paned layout, and widget coordination. Implements **Snapshot Manager** for `is_modified` detection and History tracking. Handles file I/O (New/Open/Save/Save As) using `pathlib.Path`.
-*   **`src/hmsim/gui/widgets/setup_dialog.py`**: A configuration dialog for switching processor architectures and defining memory regions (Text/Data).
-*   **`src/hmsim/gui/widgets/register_view.py`**: Displays active engine version, PC, AC, IR, SR, and cycles in monospace hex format.
-*   **`src/hmsim/gui/widgets/memory_view.py`**: `Gtk.TreeView` grid showing 64KB memory with Address and Value columns. Supports "Go to Address" search and error highlighting.
-*   **`src/hmsim/gui/widgets/file_dialog.py`**: GTK4 FileDialog utilities for Open/Save operations.
-*   **`src/hmsim/gui/widgets/editor_view.py`**: `Gtk.TextView` with bi-directional assembly/disassembly synchronization with the memory grid and error reporting.
+*   **`src/hmsim/gui/hm_gui.py`**: Application entry point (`Gtk.Application`). Initializes the event loop and main window. Defines global keyboard shortcuts.
+*   **`src/hmsim/gui/main_window.py`**: Lean orchestrator managing the HeaderBar, Paned layout, and coordination between controllers and specialized widgets.
+*   **`src/hmsim/gui/state_manager.py`**: Manages application state snapshots and undo/redo history. Implements `is_modified` detection by comparing current state to a base baseline.
+*   **`src/hmsim/gui/controllers/simulation_controller.py`**: Manages the simulator's execution flow, including the idle-loop run cycle, single-stepping, and error handling.
+*   **`src/hmsim/gui/controllers/file_controller.py`**: Handles file I/O operations (New, Open, Save, Save As), safety interceptors for unsaved changes, and metadata synchronization.
+*   **`src/hmsim/gui/widgets/`**: Specialized visual components:
+    *   `setup_dialog.py`: Configuration for architecture and memory regions.
+    *   `register_view.py`: Monospace display of registers and cycles.
+    *   `memory_view.py`: `Gtk.TreeView` for 64KB memory with highlighting.
+    *   `editor_view.py`: Assembly editor with real-time sync.
 
 ---
 
@@ -191,7 +194,11 @@ hmsim/
 │       ├── gui/            # GTK 4 GUI Module
 │       │   ├── __init__.py
 │       │   ├── hm_gui.py   # Entry point
-│       │   ├── main_window.py
+│       │   ├── main_window.py # Lean Orchestrator
+│       │   ├── state_manager.py # Snapshot and History Logic
+│       │   ├── controllers/ # Controller Layer
+│       │   │   ├── simulation_controller.py
+│       │   │   └── file_controller.py
 │       │   └── widgets/    # Custom Gtk.Widgets (Registers, Memory view)
 │       └── tools/          # CLI Utility Suite
 │           ├── __init__.py

@@ -114,7 +114,7 @@ class TestFunctionalRegression:
     def test_registers_update_after_step(self, main_window):
         main_window.engine._memory[0] = 0x1100
         initial_pc = main_window.engine.pc
-        main_window._on_step(main_window.btn_step)
+        main_window.simulation_controller.step()
         assert main_window.engine.pc != initial_pc, "PC should change after step"
 
     def test_memory_view_displays_memory(self, main_window):
@@ -130,7 +130,7 @@ class TestFunctionalRegression:
 
     def test_status_bar_shows_ready_after_reset(self, main_window):
         main_window._show_error("Some error", 0)
-        main_window._on_reset(main_window.btn_reset)
+        main_window.simulation_controller.reset()
         assert main_window.status_bar.get_label() == "Ready"
 
 
