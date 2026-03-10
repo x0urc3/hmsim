@@ -10,16 +10,16 @@ When the simulator starts, you'll see:
 
 - **Header Bar** (top): Contains file operations (New, Open, Save) and execution controls.
 - **Main Area** (center): Editor for entering your program (assembly or machine code).
-- **Right Panel** (right): Shows the active Engine version, register values (PC, AC, IR, SR), and memory contents.
+- **Right Panel** (right): Shows the active Processor Architecture, register values (PC, AC, IR, SR), and memory contents.
 - **Status Bar** (bottom): Displays simulator status and error messages.
 
 ---
 
 ## Selecting Your HM Version
 
-Engine version selection is handled via the **Simulator Setup** dialog (Menu: **Setup** > **Simulator Setup...**).
+Processor Architecture selection is handled via the **Simulator Setup** dialog (Menu: **Setup** > **Simulator Setup...**).
 
-In the Setup dialog, you can select the processor version:
+In the Setup dialog, you can select the processor architecture:
 
 - **HMv1**: Basic LOAD/STORE/ADD operations.
 - **HMv2**: Adds SUB, JMP, JMPZ.
@@ -63,7 +63,7 @@ The memory view displays the current contents of the 16-bit word-addressable mem
 
 ### Register Display
 The register panel shows the current configuration and register values.
-- **Engine**: The active processor version (e.g., "Engine: HMv1").
+- **Engine**: The active processor architecture (e.g., "Engine: HMv1").
 - **PC, AC, IR, SR**: These registers can be **directly edited**. Click on a register value to enter a new one in hexadecimal (e.g., `0x1234`) or decimal format. Changes are immediately reflected across the simulator (e.g., changing the PC updates the execution highlight in the Memory View).
 - **Cycles**: Total execution cycles since last reset (read-only).
 - **Instructions**: Total instructions executed (read-only).

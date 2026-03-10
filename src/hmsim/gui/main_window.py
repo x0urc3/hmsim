@@ -550,15 +550,15 @@ class MainWindow(Gtk.ApplicationWindow):
 
             self.memory_view.reset_modified_rows()
 
-            version = self.engine.load_state(file_path)
+            arch = self.engine.load_state(file_path)
 
-            if version not in HMEngine.VALID_ARCHITECTURES:
-                version = "HMv2"
+            if arch not in HMEngine.VALID_ARCHITECTURES:
+                arch = "HMv2"
                 self.status_bar.set_label(f"Warning: Unknown architecture, loaded as HMv2")
             else:
-                self.status_bar.set_label(f"Loaded {version} state")
+                self.status_bar.set_label(f"Loaded {arch} state")
 
-            self.current_arch = version
+            self.current_arch = arch
 
             text_region = self.engine.text_region
             data_region = self.engine.data_region
@@ -575,8 +575,8 @@ class MainWindow(Gtk.ApplicationWindow):
 
             self.memory_view.set_memory(self.engine._memory, state_data)
 
-            if self.engine.architecture != version:
-                self._on_arch_changed(version)
+            if self.engine.architecture != arch:
+                self._on_arch_changed(arch)
 
             setup = state.get("setup", None)
             if setup:

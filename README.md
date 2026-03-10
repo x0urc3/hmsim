@@ -4,9 +4,9 @@ An educational 16-bit microprocessor simulator for learning Instruction Set Arch
 
 ## What is HM Simulator?
 
-HM (Hypothetical Microprocessor) Simulator is a multi-version emulator designed specifically for teaching and learning microprocessor fundamentals. The simulator implements a clean, 16-bit RISC-style processor architecture that closely follows the educational examples found in William Stallings' classic textbook *Computer Organization and Architecture*.
+HM (Hypothetical Microprocessor) Simulator is a multi-architecture emulator designed specifically for teaching and learning microprocessor fundamentals. The simulator implements a clean, 16-bit RISC-style processor architecture that closely follows the educational examples found in William Stallings' classic textbook *Computer Organization and Architecture*.
 
-The HM processor family evolves through four versions (HMv1 through HMv4), each adding new capabilities. This incremental design mirrors the historical evolution of real microprocessors, making it an ideal tool for:
+The HM processor family evolves through four architectures (HMv1 through HMv4), each adding new capabilities. This incremental design mirrors the historical evolution of real microprocessors, making it an ideal tool for:
 
 - **Students** learning computer architecture for the first time
 - **Educators** teaching ISA concepts with hands-on experimentation
@@ -18,7 +18,7 @@ Unlike complex modern processors, HM uses a simple accumulator-based architectur
 
 ### Incremental Complexity
 
-The four HM versions provide a natural learning progression:
+The four HM architectures provide a natural learning progression:
 
 - **HMv1**: Master the basics of LOAD, STORE, and ADD operations
 - **HMv2**: Add branching (JMP, JMPZ) and learn about status flags
@@ -78,9 +78,9 @@ Note: This differs from two's complement, which is common in modern processors.
 
 ## Instruction Set Reference
 
-Each HM version adds new instructions while preserving all previous ones:
+Each HM architecture adds new instructions while preserving all previous ones:
 
-| Version | Incremental Instructions | Opcode Map |
+| Architecture | Incremental Instructions | Opcode Map |
 |---------|--------------------------|------------|
 | **HMv1** | `LOAD`, `STORE`, `ADD` | 0x1, 0x2, 0x5 |
 | **HMv2** | `SUB`, `JMP`, `JMPZ` | 0x6, 0x8, 0x9 |

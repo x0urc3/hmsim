@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # Copyright 2026 Khairulmizam Samsudin <xource@gmail.com>
 # Licensed under the Apache License, Version 2.0; see LICENSE for details
-"""Execution strategies for HM processor versions.
+"""Execution strategies for HM processor architectures.
 
-This module implements the Strategy pattern to support version-specific
+This module implements the Strategy pattern to support architecture-specific
 instruction execution for HMv1-HMv4.
 """
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 
 class ExecutionStrategy(ABC):
-    """Base class for version-specific execution strategies."""
+    """Base class for architecture-specific execution strategies."""
 
     def execute(self, engine: "HMEngine", opcode: int, address: int) -> int:
         """Execute instruction and return cycle count.
@@ -45,7 +45,7 @@ class ExecutionStrategy(ABC):
 
     @abstractmethod
     def _execute_extended(self, engine: "HMEngine", opcode: int, address: int) -> int:
-        """Handle version-specific opcodes.
+        """Handle architecture-specific opcodes.
 
         Args:
             engine: The CPU engine instance.
@@ -62,14 +62,14 @@ class ExecutionStrategy(ABC):
 
 
 class HMv1Strategy(ExecutionStrategy):
-    """Execution strategy for HMv1 processor."""
+    """Execution strategy for HMv1 architecture."""
 
     def _execute_extended(self, engine: "HMEngine", opcode: int, address: int) -> int:
         raise ValueError(f"Unknown opcode: {opcode:#x}")
 
 
 class HMv2Strategy(ExecutionStrategy):
-    """Execution strategy for HMv2 processor."""
+    """Execution strategy for HMv2 architecture."""
 
     def _execute_extended(self, engine: "HMEngine", opcode: int, address: int) -> int:
         from ..isa import OP_SUB, OP_JMP, OP_JMPZ
@@ -90,7 +90,7 @@ class HMv2Strategy(ExecutionStrategy):
 
 
 class HMv3Strategy(ExecutionStrategy):
-    """Execution strategy for HMv3 processor (subroutine support)."""
+    """Execution strategy for HMv3 architecture (subroutine support)."""
 
     def _execute_extended(self, engine: "HMEngine", opcode: int, address: int) -> int:
         from ..isa import OP_CALL, OP_RETURN
@@ -107,7 +107,7 @@ class HMv3Strategy(ExecutionStrategy):
 
 
 class HMv4Strategy(ExecutionStrategy):
-    """Execution strategy for HMv4 processor (indirect addressing)."""
+    """Execution strategy for HMv4 architecture (indirect addressing)."""
 
     def _execute_extended(self, engine: "HMEngine", opcode: int, address: int) -> int:
         from ..isa import OP_LOAD_INDIRECT, OP_STORE_INDIRECT

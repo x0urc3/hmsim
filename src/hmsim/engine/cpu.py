@@ -166,8 +166,8 @@ class HMEngine:
             # TODO: Implement OF (Overflow Flag) - needed for signed arithmetic
             # if overflow detected: self.sr |= 0x1000
 
-    def _check_version_support(self, opcode: int) -> None:
-        """Check if opcode is supported in current version."""
+    def _check_arch_support(self, opcode: int) -> None:
+        """Check if opcode is supported in current architecture."""
         opcode_to_mnemonic = {v[0]: k for k, v in HMV1_ISA.items()}
         mnemonic = opcode_to_mnemonic.get(opcode)
         if mnemonic and mnemonic not in self.isa:
@@ -196,7 +196,7 @@ class HMEngine:
         Returns:
             Number of cycles consumed.
         """
-        self._check_version_support(opcode)
+        self._check_arch_support(opcode)
         return self._strategy.execute(self, opcode, address)
 
     def step(self, notify: bool = True) -> int:

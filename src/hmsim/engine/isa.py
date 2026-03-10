@@ -5,7 +5,7 @@
 
 This module serves as the single source of truth for the HM processor
 instruction set. It defines opcodes, mnemonics, and cycle counts for
-each processor version.
+each processor architecture.
 """
 
 from typing import Dict, Tuple
@@ -88,7 +88,7 @@ def get_mnemonic(opcode: int, arch: str = "HMv1") -> str:
 
     Args:
         opcode: 4-bit opcode value (0-15)
-        arch: HM architecture (HMv1 or HMv2)
+        arch: HM architecture (HMv1 through HMv4)
 
     Returns:
         Mnemonic string, or "???" if unknown opcode.
