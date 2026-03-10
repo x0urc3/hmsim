@@ -4,6 +4,7 @@
 """HM Simulator - Main Window."""
 
 import sys
+import array
 from pathlib import Path
 from typing import Optional, List
 
@@ -347,7 +348,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _capture_snapshot(self) -> Snapshot:
         start, end = self.engine.data_region
-        data_to_hash = bytes(self.engine._memory[start:end+1])
+        data_to_hash = array.array('H', self.engine._memory[start:end+1]).tobytes()
 
         return self.state_manager.capture_snapshot(
             editor_text=self.editor_view.get_text(),
