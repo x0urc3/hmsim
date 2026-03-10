@@ -57,14 +57,16 @@ class FileController:
         else:
             self._show_open_dialog()
 
-    def save(self):
+    def save(self, on_finish: Optional[Callable[[], None]] = None):
         """Save the current state."""
         if self.current_file:
             self._save_state(self.current_file)
+            if on_finish:
+                on_finish()
         else:
-            self.save_as()
+            self.save_as(on_finish)
 
-    def save_as(self):
+    def save_as(self, on_finish: Optional[Callable[[], None]] = None):
         """Save the current state to a new file."""
         dialog = Gtk.FileDialog(title="Save State As")
         if self.current_file:
@@ -83,6 +85,8 @@ class FileController:
                 if file:
                     file_path = Path(file.get_path())
                     self._save_state(file_path)
+                    if on_finish:
+                        on_finish()
             except Exception as e:
                 print(f"Save As error: {e}")
 
@@ -227,11 +231,14 @@ class FileController:
         )
 
         def on_response(dialog, result):
-            if result == 0:  # Save
-                self.save()
-                callback()
-            elif result == 1:  # Discard
-                callback()
-            # result == 2 is Cancel, do nothing
+            try:
+                idx = dialog.choose_finish(result)
+                if idx == 0:  # Save
+                    self.save(on_finish=callback)
+                elif idx == 1:  # Discard
+                    callback()
+                # idx == 2 is Cancel, do nothing
+            except Exception as e:
+                print(f"Error in unsaved changes dialog: {e}")
 
         dialog.choose(self.window, None, on_response)
