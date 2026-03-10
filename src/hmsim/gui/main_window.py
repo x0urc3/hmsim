@@ -498,7 +498,7 @@ class MainWindow(Gtk.ApplicationWindow):
             text_start, text_end = self.engine.text_region
             max_addr = text_start - 1
 
-            for addr in range(text_start, text_end + 1):
+            for addr in range(text_end, text_start - 1, -1):
                 if self.engine._memory[addr] != 0 or addr in self.engine.comments:
                     max_addr = addr
                     break
