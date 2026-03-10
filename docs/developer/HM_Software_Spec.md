@@ -93,6 +93,13 @@ The CLI tools must be cross-platform compatible:
 * **Execution Controls:** Step, Run (continuous), and Reset functionality.
 * **Visual State Monitoring:** Real-time display of **PC**, **AC**, **IR**, and a scrollable memory grid.
 * **Persistence:** Load/Save state as HM files (.hm) with structured text, data, and setup sections.
+* **Advanced File Operations:**
+    * **Save vs. Save As:** The simulator must distinguish between saving to the active file and saving to a new location.
+    * **Modified Detection:** The window title must reflect the unsaved status with an asterisk (`*`). This detection must be data-driven (comparing the current state to a "base snapshot") to ensure that initial file loading/assembly does not trigger a false "modified" flag.
+    * **Safety Interceptors:** "New," "Open," and "Quit" operations must intercept and prompt the user if there are unsaved changes.
+* **History Management (Undo/Redo):**
+    * **Session History:** The simulator must track a complete history of state snapshots, allowing the user to undo and redo changes to assembly, memory, and architecture.
+    * **Granularity:** Changes should be captured after a debounce period (for typing) or immediately upon direct memory/register editing.
 * **Session-Bound Provenance & Audit:**
     * **Metadata Headers:** Every file must persist a `metadata` object containing `created_at`, `updated_at`, and `software_version`.
     * **Audit Log:** An automated `log` array that tracks every unique environment (OS, hostname, platform) where the file has been modified.
@@ -106,10 +113,10 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
 
 #### 3.5.1 Layout Topology
 *   **Header (Gtk.HeaderBar):**
-    *   **Left:** File Operations (New, Open, Save).
-    *   **Center:** HM Simulator Title.
+    *   **Left:** File Operations (New, Open, Save, Save As).
+    *   **Center:** Dynamic Window Title (Program Name - Filename*).
 * **Main Content (Gtk.Box - Vertical):**
-    *   **MenuBar (Gtk.PopoverMenuBar):** File, Run, Setup, Help menus.
+    *   **MenuBar (Gtk.PopoverMenuBar):** File, Edit (Undo/Redo), Run, Setup, Help menus.
     *   **Toolbar (Gtk.Box):** Reset, Run, Step buttons.
     *   **Paned Content (Gtk.Paned - Horizontal):**
         *   **Left Pane (Editor):** `Gtk.TextView` for assembly input with real-time assembly.
@@ -128,8 +135,8 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
     *   Changing the Architecture via the **Setup Dialog** re-initializes the `HMEngine` with the appropriate `ExecutionStrategy` and re-assembles the editor text.
 
 #### 3.5.3 Component Architecture
-*   **`src/hmsim/gui/hm_gui.py`**: Application entry point (`Gtk.Application`). Initializes the event loop, MenuBar, and main window.
-*   **`src/hmsim/gui/main_window.py`**: Main container managing the HeaderBar, Paned layout, and widget coordination. Handles file I/O (New/Open/Save) with sparse JSON state format.
+*   **`src/hmsim/gui/hm_gui.py`**: Application entry point (`Gtk.Application`). Initializes the event loop, MenuBar, and main window. Defines global keyboard shortcuts (`Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S`, `Ctrl+Z`, `Ctrl+Y`).
+*   **`src/hmsim/gui/main_window.py`**: Main container managing the HeaderBar, Paned layout, and widget coordination. Implements **Snapshot Manager** for `is_modified` detection and History tracking. Handles file I/O (New/Open/Save/Save As) using `pathlib.Path`.
 *   **`src/hmsim/gui/widgets/setup_dialog.py`**: A configuration dialog for switching processor architectures and defining memory regions (Text/Data).
 *   **`src/hmsim/gui/widgets/register_view.py`**: Displays active engine version, PC, AC, IR, SR, and cycles in monospace hex format.
 *   **`src/hmsim/gui/widgets/memory_view.py`**: `Gtk.TreeView` grid showing 64KB memory with Address and Value columns. Supports "Go to Address" search and error highlighting.
