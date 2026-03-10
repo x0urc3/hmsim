@@ -479,6 +479,18 @@ class MainWindow(Gtk.ApplicationWindow):
         self._clear_error()
         self.engine.reset()
         self.engine._memory = [0] * 65536
+
+        # Reset session-bound metadata
+        from hmsim.engine.state import _get_current_timestamp, _get_debug_default
+        from hmsim import __version__
+        self.engine.metadata = {
+            "debug": _get_debug_default(),
+            "software_version": __version__,
+            "created_at": _get_current_timestamp(),
+            "updated_at": _get_current_timestamp(),
+            "log": []
+        }
+
         self.editor_view.set_text("")
         self._update_ui()
 

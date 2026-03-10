@@ -146,7 +146,19 @@ hmsim/
 
 ---
 
-## 5. Testing Guidelines
+## 5. Metadata & Audit Logging
+
+The HM Simulator implements a session-bound metadata system for auditability.
+
+- **Storage**: The `HMEngine` class maintains a `metadata` dictionary containing `created_at`, `updated_at`, `software_version`, and a `log` array.
+- **Persistence**: Managed by `src/hmsim/engine/state.py`.
+- **Session-Binding**: When loading a file, the metadata is ingested into the engine. Saving pulls from the engine's memory, ensuring history follows the data across "Save As" operations.
+- **Audit Log**: Tracks `machine_info` (OS, Hostname, Platform). Deduplicates entries by updating the last entry if the machine hasn't changed.
+- **Reset**: `MainWindow._on_new` explicitly resets the engine metadata to start a fresh audit trail.
+
+---
+
+## 6. Testing Guidelines
 
 ```python
 import pytest

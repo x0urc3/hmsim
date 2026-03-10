@@ -1,8 +1,14 @@
 {
   "architecture": "HMv3",
   "setup": {
-    "text": [0, 9],
-    "data": [10, 65535]
+    "text": [
+      0,
+      9
+    ],
+    "data": [
+      10,
+      65535
+    ]
   },
   "pc": 0,
   "ac": 0,
@@ -21,5 +27,12 @@
   "data": {
     "0x000a": "0x0002",
     "0x000b": "0x0005"
+  },
+  "metadata": {
+    "debug": true,
+    "software_version": "1.0.0",
+    "created_at": "2026-03-10T00:00:00",
+    "updated_at": "2026-03-10T00:00:00",
+    "log": []
   }
 }

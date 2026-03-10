@@ -93,6 +93,11 @@ The CLI tools must be cross-platform compatible:
 * **Execution Controls:** Step, Run (continuous), and Reset functionality.
 * **Visual State Monitoring:** Real-time display of **PC**, **AC**, **IR**, and a scrollable memory grid.
 * **Persistence:** Load/Save state as HM files (.hm) with structured text, data, and setup sections.
+* **Session-Bound Provenance & Audit:**
+    * **Metadata Headers:** Every file must persist a `metadata` object containing `created_at`, `updated_at`, and `software_version`.
+    * **Audit Log:** An automated `log` array that tracks every unique environment (OS, hostname, platform) where the file has been modified.
+    * **Session Continuity:** Metadata must be bound to the simulation engine, not the file, ensuring that "Save As" correctly transfers the entire history of the session.
+    * **State-Dependent Persistence:** "File > New" resets the engine's internal session metadata, whereas loading a file inherits its ancestral history.
 * **Error Handling:** Error messages displayed in status bar with memory address highlighting.
 
 ### 3.5 GUI Layout & Interaction Specification
