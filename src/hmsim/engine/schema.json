@@ -98,7 +98,8 @@
                   "os": { "type": "string" },
                   "hostname": { "type": "string" },
                   "platform": { "type": "string" }
-                }
+                },
+                "required": ["os", "hostname", "platform"]
               },
               "relevant_info": { "type": "string" }
             }

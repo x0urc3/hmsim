@@ -118,69 +118,56 @@ def save_state_to_dict(engine: Any) -> Dict[str, Any]:
     }
 
 def save_state(engine: Any, file_path: str, debug: Optional[bool] = None) -> None:
-    """Save engine state to a JSON file with metadata tracking.
+    """Save engine state to a JSON file with session-bound metadata tracking.
 
     Args:
         engine: The HMEngine instance.
         file_path: Path to the output JSON file.
-        debug: If True, enables debug logging. Defaults to True for new files.
+        debug: If provided, overrides the session's debug setting.
     """
     state = save_state_to_dict(engine)
-    path = Path(file_path)
 
-    if path.exists() and path.stat().st_size > 0:
-        with open(file_path, 'r') as f:
-            existing_state = json.load(f)
+    # Use session-bound metadata from the engine
+    session_metadata = engine.metadata
 
-        existing_metadata = existing_state.get("metadata", {})
-        created_at = existing_metadata.get("created_at", _get_current_timestamp())
-        existing_log: List[Dict[str, Any]] = existing_metadata.get("log", [])
-
-        if debug is None:
-            debug = existing_metadata.get("debug", _get_debug_default())
-    else:
-        created_at = _get_current_timestamp()
-        existing_log = []
-
-        if debug is None:
-            debug = _get_debug_default()
+    if debug is not None:
+        session_metadata["debug"] = debug
 
     updated_at = _get_current_timestamp()
     software_version = __version__
 
-    log: List[Dict[str, Any]] = existing_log
+    # Update top-level fields
+    session_metadata["updated_at"] = updated_at
+    session_metadata["software_version"] = software_version
 
-    if debug:
+    if session_metadata.get("debug", _get_debug_default()):
         current_machine_info = _get_machine_info()
+        log = session_metadata.get("log", [])
 
-        if existing_log:
-            last_entry = existing_log[-1]
+        if log:
+            last_entry = log[-1]
             last_machine = last_entry.get("machine_info", {})
             if last_machine == current_machine_info:
+                # Same machine/user: Update existing entry
                 last_entry["timestamp"] = updated_at
                 last_entry["software_version"] = software_version
             else:
-                log = existing_log + [{
+                # Different machine/user: Append new entry
+                log.append({
                     "timestamp": updated_at,
                     "software_version": software_version,
                     "machine_info": current_machine_info,
                     "relevant_info": ""
-                }]
+                })
         else:
-            log = [{
+            # First log entry
+            log.append({
                 "timestamp": updated_at,
                 "software_version": software_version,
                 "machine_info": current_machine_info,
                 "relevant_info": ""
-            }]
-
-    metadata = {
-        "debug": debug,
-        "software_version": software_version,
-        "created_at": created_at,
-        "updated_at": updated_at,
-        "log": log
-    }
+            })
+        session_metadata["log"] = log
 
     ordered_state: Dict[str, Any] = {}
     ordered_state["architecture"] = state["architecture"]
@@ -191,7 +178,7 @@ def save_state(engine: Any, file_path: str, debug: Optional[bool] = None) -> Non
     ordered_state["sr"] = state["sr"]
     ordered_state["text"] = state["text"]
     ordered_state["data"] = state["data"]
-    ordered_state["metadata"] = metadata
+    ordered_state["metadata"] = session_metadata
 
     with open(file_path, 'w') as f:
         json.dump(ordered_state, f, indent=2)
@@ -220,6 +207,20 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
     engine.ac = state.get("ac", 0)
     engine.ir = state.get("ir", 0)
     engine.sr = state.get("sr", 0)
+
+    # Ingest metadata into engine session
+    metadata = state.get("metadata")
+    if metadata:
+        engine.metadata = metadata
+    else:
+        # For legacy files missing metadata, initialize a fresh session
+        engine.metadata = {
+            "debug": _get_debug_default(),
+            "software_version": __version__,
+            "created_at": _get_current_timestamp(),
+            "updated_at": _get_current_timestamp(),
+            "log": []
+        }
 
     setup = state.get("setup", None)
     if setup:

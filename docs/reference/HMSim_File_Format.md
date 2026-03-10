@@ -24,6 +24,7 @@ Memory is divided into two logical sections:
 | `sr` | integer | 0 – 65535 | Status Register (HMv2+ only) |
 | `text` | object | keys: `0xXXXX`, values: string | Program section (assembly + optional `; comment`) |
 | `data` | object | keys: `0xXXXX`, values: `0xXXXX` | Data section (hexadecimal values) |
+| `metadata` | object | See below | File provenance and log (audit trail) |
 
 ## Field Details
 
@@ -46,6 +47,21 @@ This section contains a linear disassembly of the program within the `setup.text
 This section contains all non-zero memory locations that are not part of the `text` section.
 - **Format**: `{"0x000A": "0x0005"}`.
 
+### metadata (File Provenance and Audit Log)
+
+This section tracks the lifecycle of the state file and is always placed at the bottom of the JSON object.
+- **debug**: Boolean. If `true`, machine-specific information is recorded in the `log`.
+- **software_version**: The version of `hmsim` that last saved the file.
+- **created_at**: ISO 8601 timestamp of when the file was first created.
+- **updated_at**: ISO 8601 timestamp of the most recent save.
+- **log**: An array of objects tracking session metadata.
+  - **timestamp**: ISO 8601 timestamp of the session.
+  - **software_version**: Version of `hmsim` used.
+  - **machine_info**: Environmental details (OS, Hostname, Platform).
+  - **relevant_info**: Reserved for future use.
+
+The simulator uses a **Latest Entry Logic** for the `log`: if a file is saved multiple times on the same machine (matched by `machine_info`), the last entry in the log is updated rather than appending a new one.
+
 ## Example (`add_two_numbers.hm`)
 
 ```json
@@ -67,6 +83,24 @@ This section contains all non-zero memory locations that are not part of the `te
   "data": {
     "0x000A": "0x0005",
     "0x000B": "0x0007"
+  },
+  "metadata": {
+    "debug": true,
+    "software_version": "1.0.0",
+    "created_at": "2026-03-10T10:00:00",
+    "updated_at": "2026-03-10T11:00:00",
+    "log": [
+      {
+        "timestamp": "2026-03-10T11:00:00",
+        "software_version": "1.0.0",
+        "machine_info": {
+          "os": "Linux",
+          "hostname": "workstation",
+          "platform": "Linux-6.5.0-amd64"
+        },
+        "relevant_info": ""
+      }
+    ]
   }
 }
 ```

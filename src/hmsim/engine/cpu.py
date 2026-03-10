@@ -3,8 +3,10 @@
 # Licensed under the Apache License, Version 2.0; see LICENSE for details
 """HM CPU Engine - Core simulation for HM processor family."""
 
-from typing import Callable, Dict, List, Optional
+import datetime
+from typing import Any, Callable, Dict, List, Optional
 
+from hmsim import __version__
 from .isa import ARCH_ISA, HMV1_ISA
 from .strategies import get_strategy
 from .state import load_state, save_state
@@ -32,6 +34,15 @@ class HMEngine:
         self._observers: List[Callable[[], None]] = []
         self._text_region: tuple[int, int] = (0x0000, 0x0100)
         self._data_region: tuple[int, int] = (0x0101, 0xFFFF)
+
+        # Initialize session-bound metadata
+        self.metadata: Dict[str, Any] = {
+            "debug": True,
+            "software_version": __version__,
+            "created_at": datetime.datetime.now().isoformat(),
+            "updated_at": datetime.datetime.now().isoformat(),
+            "log": []
+        }
 
     @property
     def text_region(self) -> tuple[int, int]:

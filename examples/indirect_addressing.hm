@@ -1,8 +1,14 @@
 {
   "architecture": "HMv4",
   "setup": {
-    "text": [0, 4],
-    "data": [5, 65535]
+    "text": [
+      0,
+      4
+    ],
+    "data": [
+      5,
+      65535
+    ]
   },
   "pc": 0,
   "ac": 0,
