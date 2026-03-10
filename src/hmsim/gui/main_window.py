@@ -72,12 +72,15 @@ class MainWindow(Gtk.ApplicationWindow):
         self._help_windows = {}
         self._current_file: Optional[Path] = None
         self._base_snapshot: Optional[Snapshot] = None
+        self._history_stack: List[Snapshot] = []
+        self._history_index: int = -1
         self._setup_ui(application)
         self._setup_actions()
         self._connect_engine()
 
         # Capture initial base snapshot (empty state)
         self._sync_base_snapshot()
+        self._push_history(self._base_snapshot)
         self._update_window_title()
         self.connect("close-request", self._on_close_request)
 
@@ -103,6 +106,65 @@ class MainWindow(Gtk.ApplicationWindow):
             text_region=self.engine.text_region,
             data_region=self.engine.data_region
         )
+
+    def _push_history(self, snapshot: Snapshot):
+        """Add a snapshot to the undo stack, discarding any redo history."""
+        # If this snapshot is identical to the current one, skip
+        if self._history_index >= 0 and self._history_stack[self._history_index] == snapshot:
+            return
+
+        # Truncate redo history
+        self._history_stack = self._history_stack[:self._history_index + 1]
+        self._history_stack.append(snapshot)
+        self._history_index += 1
+
+        # Optional: Limit history size
+        if len(self._history_stack) > 100:
+            self._history_stack.pop(0)
+            self._history_index -= 1
+
+    def _on_undo(self):
+        if self._history_index > 0:
+            self._history_index -= 1
+            self._apply_snapshot(self._history_stack[self._history_index])
+            self._update_window_title()
+
+    def _on_redo(self):
+        if self._history_index < len(self._history_stack) - 1:
+            self._history_index += 1
+            self._apply_snapshot(self._history_stack[self._history_index])
+            self._update_window_title()
+
+    def _apply_snapshot(self, snapshot: Snapshot):
+        """Restore application state from a snapshot."""
+        # Block editor updates to prevent recursive signals
+        self._is_updating_editor = True
+        try:
+            self.editor_view.set_text(snapshot.editor_text)
+
+            # Update engine configuration if needed
+            if snapshot.architecture != self.current_arch:
+                self.current_arch = snapshot.architecture
+                self.engine = HMEngine(self.current_arch)
+                self.editor_view.set_architecture(self.current_arch)
+                self._connect_engine()
+
+            if (snapshot.text_region != self.engine.text_region or
+                snapshot.data_region != self.engine.data_region):
+                self.engine.set_regions(snapshot.text_region, snapshot.data_region)
+                self.memory_view.set_regions(snapshot.text_region, snapshot.data_region)
+                self.editor_view.set_text_region(snapshot.text_region)
+
+            # Re-assemble text to memory (synchronous)
+            self.editor_view.assemble_to_engine(self.engine)
+
+            # Memory is technically restored by the re-assembly, but we might
+            # need to handle data region specifically if memory_hash implies it.
+            # In Phase 2, we assume editor + assembly is enough for now.
+
+            self._update_ui()
+        finally:
+            self._is_updating_editor = False
 
     def _sync_base_snapshot(self):
         """Reset the 'modified' detection point to the current state."""
@@ -161,12 +223,20 @@ class MainWindow(Gtk.ApplicationWindow):
         self._add_action("open", self._on_open_action)
         self._add_action("save", self._on_save_action)
         self._add_action("save_as", self._on_save_as_action)
+        self._add_action("undo", self._on_undo_action)
+        self._add_action("redo", self._on_redo_action)
         self._add_action("step", self._on_step_action)
         self._add_action("run", self._on_run_action)
         self._add_action("reset", self._on_reset_action)
         self._add_action("setup", self._on_setup_action)
         self._add_action("show_tutorial", self._on_show_tutorial)
         self._add_action("show_user_guide", self._on_show_user_guide)
+
+    def _on_undo_action(self, action, param):
+        self._on_undo()
+
+    def _on_redo_action(self, action, param):
+        self._on_redo()
 
     def _on_save_as_action(self, action, param):
         self._on_save_as(None)
@@ -306,6 +376,7 @@ class MainWindow(Gtk.ApplicationWindow):
         if self._is_updating_editor:
             return
         self._clear_error()
+        self._push_history(self._capture_snapshot())
         self._update_window_title()
         errors = self.editor_view.assemble_to_engine(self.engine)
         if errors:
@@ -316,6 +387,7 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_memory_edited(self, address, value):
         self.engine._memory[address] = value
         self.engine.comments.pop(address, None)
+        self._push_history(self._capture_snapshot())
         self._update_window_title()
         self._refresh_editor_from_memory()
 
