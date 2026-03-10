@@ -31,13 +31,12 @@ from hmsim.gui.widgets.help_window import HelpWindow
 from hmsim.gui.widgets.setup_dialog import SetupDialog
 from hmsim.engine.cpu import HMEngine
 from hmsim.gui.state_manager import StateManager, Snapshot
+from hmsim.gui.controllers.simulation_controller import SimulationController
 
 from hmsim.tools.hmdas import disassemble
 
 
 class MainWindow(Gtk.ApplicationWindow):
-    RUN_BATCH_SIZE = 1000
-
     def __init__(self, application=None):
         super().__init__(
             application=application,
@@ -48,12 +47,17 @@ class MainWindow(Gtk.ApplicationWindow):
         self.set_resizable(True)
         self.current_arch = "HMv1"
         self.engine = HMEngine(self.current_arch)
-        self._is_running = False
-        self._run_source_id = None
         self._is_updating_editor = False
         self._help_windows = {}
         self._current_file: Optional[Path] = None
         self.state_manager = StateManager(self._apply_snapshot)
+        self.simulation_controller = SimulationController(
+            self.engine,
+            update_ui_callback=self._update_ui,
+            show_error_callback=self._show_error,
+            status_callback=self._set_status,
+            controls_callback=self._set_controls_sensitivity
+        )
         self._setup_ui(application)
         self._setup_actions()
         self._connect_engine()
@@ -433,6 +437,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
             self.current_arch = new_arch
             self.engine = HMEngine(self.current_arch)
+            self.simulation_controller.set_engine(self.engine)
 
             self.engine._memory = old_memory
             self.engine.pc = old_pc
@@ -537,55 +542,29 @@ class MainWindow(Gtk.ApplicationWindow):
             self.memory_view.refresh_addresses(self.engine.modified_addresses)
             self.engine.clear_modified()
 
+    def _set_status(self, message: str, is_error: bool):
+        self.status_bar.set_label(message)
+        if is_error:
+            self.status_bar.add_css_class("error")
+        else:
+            self.status_bar.remove_css_class("error")
+
+    def _set_controls_sensitivity(self, sensitive: bool):
+        """Enable or disable UI controls based on simulation state."""
+        self.btn_run.set_label("Run" if sensitive else "Stop")
+        self.btn_step.set_sensitive(sensitive)
+        self.btn_reset.set_sensitive(sensitive)
+
     def _on_step(self, button):
         self._clear_error()
-        try:
-            self.engine.step()
-        except Exception as e:
-            self._show_error(str(e), self.engine.pc)
+        self.simulation_controller.step()
 
     def _on_run(self, button):
-        if self._is_running:
-            self._stop_run()
-        else:
-            self._start_run()
-
-    def _start_run(self):
-        self._is_running = True
-        self.btn_run.set_label("Stop")
-        self.btn_step.set_sensitive(False)
-        self.btn_reset.set_sensitive(False)
-        self.status_bar.set_label("Running...")
-        self._run_source_id = GLib.idle_add(self._run_loop)
-
-    def _stop_run(self):
-        self._is_running = False
-        if self._run_source_id is not None:
-            GLib.source_remove(self._run_source_id)
-            self._run_source_id = None
-        self.btn_run.set_label("Run")
-        self.btn_step.set_sensitive(True)
-        self.btn_reset.set_sensitive(True)
-        self.status_bar.set_label("Ready")
-        self.status_bar.remove_css_class("error")
-
-    def _run_loop(self):
-        if not self._is_running:
-            return GLib.SOURCE_REMOVE
-        try:
-            self.engine.run_batch(self.RUN_BATCH_SIZE)
-        except Exception as e:
-            self._update_ui()
-            self._stop_run()
-            self._show_error(str(e), self.engine.pc)
-            return GLib.SOURCE_REMOVE
-        return GLib.SOURCE_CONTINUE
+        self.simulation_controller.run()
 
     def _on_reset(self, button):
         self._clear_error()
-        if self._is_running:
-            self._stop_run()
-        self.engine.reset()
+        self.simulation_controller.reset()
 
     def _on_new(self, button):
         self._clear_error()
@@ -595,7 +574,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self._perform_new()
 
     def _perform_new(self):
-        self.engine.reset()
+        self.simulation_controller.reset()
         self.engine._memory = [0] * 65536
 
         # Reset session-bound metadata
