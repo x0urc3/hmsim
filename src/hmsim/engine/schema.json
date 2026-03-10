@@ -77,6 +77,35 @@
         "type": "string",
         "description": "16-bit hex value"
       }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "debug": { "type": "boolean", "default": true },
+        "software_version": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "log": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "timestamp": { "type": "string", "format": "date-time" },
+              "software_version": { "type": "string" },
+              "machine_info": {
+                "type": "object",
+                "properties": {
+                  "os": { "type": "string" },
+                  "hostname": { "type": "string" },
+                  "platform": { "type": "string" }
+                }
+              },
+              "relevant_info": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["created_at", "updated_at", "software_version"]
     }
   },
   "additionalProperties": false,

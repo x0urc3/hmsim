@@ -18,5 +18,12 @@
     "0x0005": "0x1000",
     "0x0006": "0x2000",
     "0x1000": "0xABCD"
+  },
+  "metadata": {
+    "debug": true,
+    "software_version": "1.0.0",
+    "created_at": "2026-03-10T00:00:00",
+    "updated_at": "2026-03-10T00:00:00",
+    "log": []
   }
 }

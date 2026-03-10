@@ -3,12 +3,16 @@
 # Licensed under the Apache License, Version 2.0; see LICENSE for details
 """HM State Persistence - Logic for loading and saving JSON state files."""
 
+import datetime
 import json
+import platform
+import socket
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import jsonschema
 
+from hmsim import __version__
 from hmsim.engine.strategies import get_strategy
 from hmsim.tools.hmdas import disassemble
 from hmsim.tools.hmasm import assemble
@@ -19,6 +23,22 @@ SCHEMA_PATH = Path(__file__).parent / "schema.json"
 def _load_schema() -> Dict[str, Any]:
     with open(SCHEMA_PATH, "r") as f:
         return json.load(f)
+
+
+def _get_current_timestamp() -> str:
+    return datetime.datetime.now().isoformat()
+
+
+def _get_machine_info() -> Dict[str, str]:
+    return {
+        "os": platform.system(),
+        "hostname": socket.gethostname(),
+        "platform": platform.platform()
+    }
+
+
+def _get_debug_default() -> bool:
+    return True
 
 
 def validate_state(state: Dict[str, Any]) -> None:
@@ -97,16 +117,84 @@ def save_state_to_dict(engine: Any) -> Dict[str, Any]:
         "data": data
     }
 
-def save_state(engine: Any, file_path: str) -> None:
-    """Save engine state to a JSON file.
+def save_state(engine: Any, file_path: str, debug: Optional[bool] = None) -> None:
+    """Save engine state to a JSON file with metadata tracking.
 
     Args:
         engine: The HMEngine instance.
         file_path: Path to the output JSON file.
+        debug: If True, enables debug logging. Defaults to True for new files.
     """
     state = save_state_to_dict(engine)
+    path = Path(file_path)
+
+    if path.exists() and path.stat().st_size > 0:
+        with open(file_path, 'r') as f:
+            existing_state = json.load(f)
+
+        existing_metadata = existing_state.get("metadata", {})
+        created_at = existing_metadata.get("created_at", _get_current_timestamp())
+        existing_log: List[Dict[str, Any]] = existing_metadata.get("log", [])
+
+        if debug is None:
+            debug = existing_metadata.get("debug", _get_debug_default())
+    else:
+        created_at = _get_current_timestamp()
+        existing_log = []
+
+        if debug is None:
+            debug = _get_debug_default()
+
+    updated_at = _get_current_timestamp()
+    software_version = __version__
+
+    log: List[Dict[str, Any]] = existing_log
+
+    if debug:
+        current_machine_info = _get_machine_info()
+
+        if existing_log:
+            last_entry = existing_log[-1]
+            last_machine = last_entry.get("machine_info", {})
+            if last_machine == current_machine_info:
+                last_entry["timestamp"] = updated_at
+                last_entry["software_version"] = software_version
+            else:
+                log = existing_log + [{
+                    "timestamp": updated_at,
+                    "software_version": software_version,
+                    "machine_info": current_machine_info,
+                    "relevant_info": ""
+                }]
+        else:
+            log = [{
+                "timestamp": updated_at,
+                "software_version": software_version,
+                "machine_info": current_machine_info,
+                "relevant_info": ""
+            }]
+
+    metadata = {
+        "debug": debug,
+        "software_version": software_version,
+        "created_at": created_at,
+        "updated_at": updated_at,
+        "log": log
+    }
+
+    ordered_state: Dict[str, Any] = {}
+    ordered_state["architecture"] = state["architecture"]
+    ordered_state["setup"] = state["setup"]
+    ordered_state["pc"] = state["pc"]
+    ordered_state["ac"] = state["ac"]
+    ordered_state["ir"] = state["ir"]
+    ordered_state["sr"] = state["sr"]
+    ordered_state["text"] = state["text"]
+    ordered_state["data"] = state["data"]
+    ordered_state["metadata"] = metadata
+
     with open(file_path, 'w') as f:
-        json.dump(state, f, indent=2)
+        json.dump(ordered_state, f, indent=2)
 
 def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
     """Load engine state from a dictionary.
