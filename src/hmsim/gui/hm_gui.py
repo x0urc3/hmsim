@@ -5,9 +5,9 @@
 
 import argparse
 import sys
-import os
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 try:
     import gi
@@ -137,18 +137,19 @@ def main(argv: list[str] | None = None) -> int:
     return app.run(remaining)
 
 
-def run_headless(state_file: str, max_cycles: int, json_output: bool = False) -> int:
+def run_headless(state_file: str | Path, max_cycles: int, json_output: bool = False) -> int:
     """Run the simulator in headless mode without GUI."""
+    state_file_path = Path(state_file)
     try:
         temp_engine = HMEngine("HMv1")
-        loaded_arch = temp_engine.load_state(state_file)
+        loaded_arch = temp_engine.load_state(state_file_path)
 
         architecture = loaded_arch
         if architecture not in HMEngine.VALID_ARCHITECTURES:
             architecture = "HMv2"
 
         engine = HMEngine(architecture)
-        engine.load_state(state_file)
+        engine.load_state(state_file_path)
 
         print(f"Loaded {architecture} program. Starting execution...")
 
@@ -174,7 +175,7 @@ def run_headless(state_file: str, max_cycles: int, json_output: bool = False) ->
         return 0
 
     except FileNotFoundError:
-        print(f"Error: State file not found: {state_file}", file=sys.stderr)
+        print(f"Error: State file not found: {state_file_path}", file=sys.stderr)
         return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

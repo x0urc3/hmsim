@@ -117,7 +117,7 @@ def save_state_to_dict(engine: Any) -> Dict[str, Any]:
         "data": data
     }
 
-def save_state(engine: Any, file_path: str, debug: Optional[bool] = None) -> None:
+def save_state(engine: Any, file_path: str | Path, debug: Optional[bool] = None) -> None:
     """Save engine state to a JSON file with session-bound metadata tracking.
 
     Args:
@@ -268,7 +268,7 @@ def load_state_from_dict(engine: Any, state: Dict[str, Any]) -> str:
 
     return architecture
 
-def load_state(engine: Any, file_path: str) -> str:
+def load_state(engine: Any, file_path: str | Path) -> str:
     """Load engine state from a JSON file.
 
     Args:

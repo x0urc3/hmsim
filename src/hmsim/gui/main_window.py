@@ -5,9 +5,10 @@
 
 import json
 import sys
-import os
+from pathlib import Path
+from typing import Optional
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 try:
     import gi
@@ -50,9 +51,59 @@ class MainWindow(Gtk.ApplicationWindow):
         self._run_source_id = None
         self._is_updating_editor = False
         self._help_windows = {}
+        self._current_file: Optional[Path] = None
+        self._is_modified = False
         self._setup_ui(application)
         self._setup_actions()
         self._connect_engine()
+        self._update_window_title()
+        self.connect("close-request", self._on_close_request)
+
+    def _on_close_request(self, window):
+        if self._is_modified:
+            self._check_unsaved_changes_on_close()
+            return True  # Stop the close signal
+        return False  # Proceed with close
+
+    def _check_unsaved_changes_on_close(self):
+        """Show a confirmation dialog on close if there are unsaved changes."""
+        dialog = Gtk.AlertDialog(
+            message="Unsaved Changes",
+            detail="You have unsaved changes. Do you want to save them before closing?",
+            buttons=["Save", "Discard", "Cancel"]
+        )
+
+        def on_response(dialog, result):
+            if result == 0:  # Save
+                # Note: This is complex because we want to close AFTER save finishes
+                # For now, we'll just try to save and then quit
+                self._save_state_and_quit()
+            elif result == 1:  # Discard
+                self.destroy()
+            # result == 2 is Cancel, do nothing
+
+        dialog.choose(self, None, on_response)
+
+    def _save_state_and_quit(self):
+        if self._current_file:
+            self.engine.save_state(self._current_file)
+            self.destroy()
+            return
+
+        dialog = Gtk.FileDialog(title="Save State before closing")
+        dialog.set_initial_name("program.hm")
+
+        def on_response(dialog, result):
+            try:
+                file = dialog.save_finish(result)
+                if file:
+                    file_path = Path(file.get_path())
+                    self.engine.save_state(file_path)
+                    self.destroy()
+            except Exception as e:
+                print(f"Save error on close: {e}")
+
+        dialog.save(self, None, on_response)
 
     def _setup_ui(self, app=None):
         self.set_titlebar(self._create_header_bar())
@@ -175,12 +226,22 @@ class MainWindow(Gtk.ApplicationWindow):
         self.status_bar.set_margin_end(10)
         self.right_pane.append(self.status_bar)
 
+    def _update_window_title(self):
+        title = "HM Simulator"
+        if self._current_file:
+            title += f" - {self._current_file.name}"
+        if self._is_modified:
+            title += "*"
+        self.set_title(title)
+        if hasattr(self, 'title_label'):
+            self.title_label.set_label(title)
+
     def _create_header_bar(self) -> Gtk.HeaderBar:
         header = Gtk.HeaderBar()
         header.set_show_title_buttons(True)
 
-        title_label = Gtk.Label(label="HM Simulator")
-        header.set_title_widget(title_label)
+        self.title_label = Gtk.Label(label="HM Simulator")
+        header.set_title_widget(self.title_label)
 
         return header
 
@@ -218,18 +279,18 @@ class MainWindow(Gtk.ApplicationWindow):
         self._add_action("show_tutorial", self._on_show_tutorial)
         self._add_action("show_user_guide", self._on_show_user_guide)
 
-    def _get_docs_path(self) -> str:
+    def _get_docs_path(self) -> Path:
         import hmsim
         if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-            base_path = sys._MEIPASS
-            return os.path.join(base_path, 'docs')
+            base_path = Path(sys._MEIPASS)
+            return base_path / 'docs'
         else:
-            base_path = os.path.dirname(os.path.abspath(hmsim.__file__))
-            return os.path.join(base_path, '..', '..', 'docs')
+            base_path = Path(hmsim.__file__).resolve().parent
+            return base_path / '..' / '..' / 'docs'
 
-    def _resolve_help_file(self, filename: str) -> str:
+    def _resolve_help_file(self, filename: str) -> Path:
         docs_path = self._get_docs_path()
-        return os.path.join(docs_path, 'user', filename)
+        return docs_path / 'user' / filename
 
     def _on_show_tutorial(self, action, param):
         self._show_help_window('tutorial', 'Tutorial', 'Tutorial.md')
@@ -353,6 +414,8 @@ class MainWindow(Gtk.ApplicationWindow):
         if self._is_updating_editor:
             return
         self._clear_error()
+        self._is_modified = True
+        self._update_window_title()
         errors = self.editor_view.assemble_to_engine(self.engine)
         if errors:
             for addr, error in errors:
@@ -362,6 +425,8 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_memory_edited(self, address, value):
         self.engine._memory[address] = value
         self.engine.comments.pop(address, None)
+        self._is_modified = True
+        self._update_window_title()
         self._refresh_editor_from_memory()
 
     def _on_register_edited(self, name, value):
@@ -477,6 +542,12 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _on_new(self, button):
         self._clear_error()
+        if self._is_modified:
+            self._check_unsaved_changes(self._perform_new)
+        else:
+            self._perform_new()
+
+    def _perform_new(self):
         self.engine.reset()
         self.engine._memory = [0] * 65536
 
@@ -492,7 +563,30 @@ class MainWindow(Gtk.ApplicationWindow):
         }
 
         self.editor_view.set_text("")
+        self._current_file = None
+        self._is_modified = False
+        self._update_window_title()
         self._update_ui()
+
+    def _check_unsaved_changes(self, callback):
+        """Show a confirmation dialog if there are unsaved changes."""
+        dialog = Gtk.AlertDialog(
+            message="Unsaved Changes",
+            detail="You have unsaved changes. Do you want to save them before proceeding?",
+            buttons=["Save", "Discard", "Cancel"]
+        )
+
+        def on_response(dialog, result):
+            if result == 0:  # Save
+                self._on_save(None)
+                # After saving, proceed with the original action
+                # Note: This is a bit simplified as save might be cancelled
+                callback()
+            elif result == 1:  # Discard
+                callback()
+            # result == 2 is Cancel, do nothing
+
+        dialog.choose(self, None, on_response)
 
     def _show_error(self, message, address):
         self.status_bar.set_label(f"Error at 0x{address:04X}: {message}")
@@ -506,6 +600,10 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _on_save(self, button):
         self._clear_error()
+        if self._current_file:
+            self._save_state(self._current_file)
+            return
+
         dialog = Gtk.FileDialog(title="Save State")
         dialog.set_initial_name("program.hm")
 
@@ -518,15 +616,21 @@ class MainWindow(Gtk.ApplicationWindow):
             try:
                 file = dialog.save_finish(result)
                 if file:
-                    file_path = file.get_path()
+                    file_path = Path(file.get_path())
                     self._save_state(file_path)
             except Exception as e:
                 print(f"Save error: {e}")
 
-        dialog.save(None, None, on_response)
+        dialog.save(self, None, on_response)
 
     def _on_open(self, button):
         self._clear_error()
+        if self._is_modified:
+            self._check_unsaved_changes(lambda: self._show_open_dialog())
+        else:
+            self._show_open_dialog()
+
+    def _show_open_dialog(self):
         dialog = Gtk.FileDialog(title="Open State")
         dialog.set_initial_name("program.hm")
 
@@ -539,29 +643,43 @@ class MainWindow(Gtk.ApplicationWindow):
             try:
                 file = dialog.open_finish(result)
                 if file:
-                    file_path = file.get_path()
+                    file_path = Path(file.get_path())
                     self._load_state(file_path)
             except Exception as e:
                 print(f"Open error: {e}")
 
-        dialog.open(None, None, on_response)
+        dialog.open(self, None, on_response)
 
-    def _save_state(self, file_path):
+    def _save_state(self, file_path: str | Path):
+        file_path = Path(file_path)
         try:
+            self.status_bar.set_label(f"Saving {file_path.name}...")
             self.engine.save_state(file_path)
-            self.status_bar.set_label(f"Saved to {os.path.basename(file_path)}")
+            self._current_file = file_path
+            self._is_modified = False
+            self._update_window_title()
+            self.status_bar.set_label(f"Saved to {file_path.name}")
         except Exception as e:
             self.status_bar.set_label(f"Error saving state: {e}")
             self.status_bar.add_css_class("error")
 
-    def _load_state(self, file_path):
+    def _load_state(self, file_path: str | Path):
+        file_path = Path(file_path)
         try:
-            import json
+            self.status_bar.set_label(f"Loading {file_path.name}...")
+            # Schedule the actual loading to allow status bar to update
+            GLib.idle_add(self._perform_load, file_path)
+        except Exception as e:
+            self.status_bar.set_label(f"Error loading state: {e}")
+            self.status_bar.add_css_class("error")
+            print(f"Error loading state: {e}")
+
+    def _perform_load(self, file_path: Path):
+        try:
             with open(file_path, 'r') as f:
                 state = json.load(f)
 
             self.memory_view.reset_modified_rows()
-
             arch = self.engine.load_state(file_path)
 
             if arch not in HMEngine.VALID_ARCHITECTURES:
@@ -571,6 +689,9 @@ class MainWindow(Gtk.ApplicationWindow):
                 self.status_bar.set_label(f"Loaded {arch} state")
 
             self.current_arch = arch
+            self._current_file = file_path
+            self._is_modified = False
+            self._update_window_title()
 
             text_region = self.engine.text_region
             data_region = self.engine.data_region
@@ -595,19 +716,21 @@ class MainWindow(Gtk.ApplicationWindow):
                 text_section = state.get("text", {})
                 if text_section:
                     lines = []
-                    max_addr = max(int(addr, 16) for addr in text_section.keys())
                     text_start = setup.get("text", [0, 256])[0]
-                    for addr in range(text_start, max_addr + 1):
-                        addr_str = f"0x{addr:04X}"
-                        if addr_str in text_section:
-                            lines.append(text_section[addr_str])
-                        else:
-                            lines.append("")
+                    if text_section:
+                        max_addr = max(int(addr, 16) for addr in text_section.keys())
+                        for addr in range(text_start, max_addr + 1):
+                            addr_str = f"0x{addr:04X}"
+                            if addr_str in text_section:
+                                lines.append(text_section[addr_str])
+                            else:
+                                lines.append("")
                     self.editor_view.set_text("\n".join(lines))
 
             self._update_ui()
-
+            return False
         except Exception as e:
             self.status_bar.set_label(f"Error loading state: {e}")
             self.status_bar.add_css_class("error")
             print(f"Error loading state: {e}")
+            return False
