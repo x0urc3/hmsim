@@ -63,7 +63,10 @@ class HMApplication(Gtk.Application):
                 program_name="HM Simulator",
                 version=__version__,
                 comments="A multi-version simulator for the HM 16-bit processor family (v1-v4)",
+                copyright="Copyright 2026 Khairulmizam Samsudin",
+                authors=["Khairulmizam Samsudin <xource@gmail.com>"],
                 website="https://github.com/hmsim/hmsim",
+                license_type=Gtk.License.APACHE_2_0,
             )
             dialog.present()
 
@@ -138,16 +141,16 @@ def run_headless(state_file: str, max_cycles: int, json_output: bool = False) ->
     """Run the simulator in headless mode without GUI."""
     try:
         temp_engine = HMEngine("HMv1")
-        loaded_version = temp_engine.load_state(state_file)
+        loaded_arch = temp_engine.load_state(state_file)
 
-        version = loaded_version
-        if version not in HMEngine.VALID_VERSIONS:
-            version = "HMv2"
+        architecture = loaded_arch
+        if architecture not in HMEngine.VALID_ARCHITECTURES:
+            architecture = "HMv2"
 
-        engine = HMEngine(version)
+        engine = HMEngine(architecture)
         engine.load_state(state_file)
 
-        print(f"Loaded {version} program. Starting execution...")
+        print(f"Loaded {architecture} program. Starting execution...")
 
         try:
             while engine.total_cycles < max_cycles:

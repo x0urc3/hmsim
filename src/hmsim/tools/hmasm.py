@@ -7,7 +7,8 @@ import argparse
 import sys
 from typing import Optional
 
-from hmsim.engine.isa import VERSION_ISA, OP_LOAD_INDIRECT, OP_STORE_INDIRECT
+from hmsim import __version__
+from hmsim.engine.isa import ARCH_ISA, OP_LOAD_INDIRECT, OP_STORE_INDIRECT
 
 ZERO_OPERAND_MNEMONICS = {
     "HMv1": set(),
@@ -21,12 +22,12 @@ INDIRECT_MNEMONICS = {"LOAD", "STORE"}
 REMOVED_MNEMONICS = {"LOAD_INDIRECT", "STORE_INDIRECT"}
 
 
-def assemble(instruction: str, version: str = "HMv1") -> int:
+def assemble(instruction: str, arch: str = "HMv1") -> int:
     """Assemble an instruction string into machine code.
 
     Args:
         instruction: String like "LOAD 100", "STORE 0x200", "ADD 0b1010"
-        version: HM version (HMv1 or HMv2)
+        arch: HM architecture (HMv1 or HMv2)
 
     Returns:
         16-bit machine code word.
@@ -40,10 +41,10 @@ def assemble(instruction: str, version: str = "HMv1") -> int:
         raise ValueError(f"Invalid instruction format: {instruction}")
     if len(parts) == 1:
         mnemonic = parts[0].upper()
-        isa = VERSION_ISA[version]
+        isa = ARCH_ISA[arch]
         if mnemonic not in isa:
-            raise ValueError(f"Unknown mnemonic '{mnemonic}' for {version}")
-        if mnemonic not in ZERO_OPERAND_MNEMONICS[version]:
+            raise ValueError(f"Unknown mnemonic '{mnemonic}' for {arch}")
+        if mnemonic not in ZERO_OPERAND_MNEMONICS[arch]:
             raise ValueError(f"Invalid instruction format: {instruction}")
         opcode = isa[mnemonic][0]
         return opcode << 12
@@ -53,15 +54,15 @@ def assemble(instruction: str, version: str = "HMv1") -> int:
 
     if mnemonic in REMOVED_MNEMONICS:
         raise ValueError(
-            f"Unknown mnemonic '{mnemonic}' for {version}. "
+            f"Unknown mnemonic '{mnemonic}' for {arch}. "
             f"Use 'LOAD (address)' or 'STORE (address)' for indirect addressing."
         )
 
-    isa = VERSION_ISA[version]
+    isa = ARCH_ISA[arch]
     if mnemonic not in isa:
-        raise ValueError(f"Unknown mnemonic '{mnemonic}' for {version}")
+        raise ValueError(f"Unknown mnemonic '{mnemonic}' for {arch}")
 
-    if mnemonic in ZERO_OPERAND_MNEMONICS[version]:
+    if mnemonic in ZERO_OPERAND_MNEMONICS[arch]:
         opcode = isa[mnemonic][0]
         return opcode << 12
 
@@ -100,9 +101,14 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     parser.add_argument(
         "-v", "--version",
+        action="version",
+        version=f"%(prog)s {__version__}"
+    )
+    parser.add_argument(
+        "-a", "--arch",
         default="HMv1",
         choices=["HMv1", "HMv2", "HMv3", "HMv4"],
-        help="HM processor version (default: HMv1)"
+        help="HM processor architecture (default: HMv1)"
     )
     parser.add_argument(
         "instruction",
@@ -112,12 +118,12 @@ def main(argv: Optional[list[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     if not args.instruction:
-        print("Usage: hmasm [-v HMv1|HMv2] <instruction>", file=sys.stderr)
-        print("Example: hmasm -v HMv2 'SUB 100'", file=sys.stderr)
+        print("Usage: hmasm [-a HMv1|HMv2|HMv3|HMv4] <instruction>", file=sys.stderr)
+        print("Example: hmasm -a HMv2 'SUB 100'", file=sys.stderr)
         return 1
 
     try:
-        result = assemble(args.instruction, args.version)
+        result = assemble(args.instruction, args.arch)
         print(f"0x{result:04X}")
         return 0
     except ValueError as e:

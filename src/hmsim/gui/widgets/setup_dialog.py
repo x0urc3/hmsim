@@ -20,7 +20,7 @@ except ImportError:
 from hmsim.engine.cpu import HMEngine
 
 class SetupDialog(Gtk.Dialog):
-    def __init__(self, parent, current_text_region, current_data_region, current_version):
+    def __init__(self, parent, current_text_region, current_data_region, current_arch):
         super().__init__(
             title="Simulator Setup",
             transient_for=parent,
@@ -32,7 +32,7 @@ class SetupDialog(Gtk.Dialog):
         self._text_end = current_text_region[1]
         self._data_start = current_data_region[0]
         self._data_end = current_data_region[1]
-        self._version = current_version
+        self._arch = current_arch
 
         self._setup_ui()
 
@@ -44,26 +44,26 @@ class SetupDialog(Gtk.Dialog):
         header.set_margin_bottom(10)
         main_box.append(header)
 
-        version_frame = Gtk.Frame()
-        version_label = Gtk.Label(label="Processor Version")
-        version_frame.set_label_widget(version_label)
-        version_frame.set_margin_bottom(10)
-        main_box.append(version_frame)
+        arch_frame = Gtk.Frame()
+        arch_label = Gtk.Label(label="Processor Architecture")
+        arch_frame.set_label_widget(arch_label)
+        arch_frame.set_margin_bottom(10)
+        main_box.append(arch_frame)
 
-        version_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        version_box.set_margin_top(10)
-        version_box.set_margin_bottom(10)
-        version_box.set_margin_start(10)
-        version_box.set_margin_end(10)
-        version_frame.set_child(version_box)
+        arch_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        arch_box.set_margin_top(10)
+        arch_box.set_margin_bottom(10)
+        arch_box.set_margin_start(10)
+        arch_box.set_margin_end(10)
+        arch_frame.set_child(arch_box)
 
-        version_box.append(Gtk.Label(label="Version:"))
-        self._version_dropdown = Gtk.DropDown.new_from_strings(list(HMEngine.VALID_VERSIONS))
+        arch_box.append(Gtk.Label(label="Architecture:"))
+        self._arch_dropdown = Gtk.DropDown.new_from_strings(list(HMEngine.VALID_ARCHITECTURES))
         try:
-            self._version_dropdown.set_selected(list(HMEngine.VALID_VERSIONS).index(self._version))
+            self._arch_dropdown.set_selected(list(HMEngine.VALID_ARCHITECTURES).index(self._arch))
         except ValueError:
-            self._version_dropdown.set_selected(0)
-        version_box.append(self._version_dropdown)
+            self._arch_dropdown.set_selected(0)
+        arch_box.append(self._arch_dropdown)
 
         header_mem = Gtk.Label(label="Define Memory Regions")
         header_mem.set_css_classes(["title", "heading"])
@@ -162,8 +162,8 @@ class SetupDialog(Gtk.Dialog):
             te = self._parse_hex(self._text_end_entry.get_text())
             ds = self._parse_hex(self._data_start_entry.get_text())
             de = self._parse_hex(self._data_end_entry.get_text())
-            version_idx = self._version_dropdown.get_selected()
-            version = list(HMEngine.VALID_VERSIONS)[version_idx]
+            arch_idx = self._arch_dropdown.get_selected()
+            arch = list(HMEngine.VALID_ARCHITECTURES)[arch_idx]
 
             if not (0 <= ts <= te <= 0xFFFF and 0 <= ds <= de <= 0xFFFF):
                 self._show_error("All addresses must be within 0x0000-0xFFFF and start <= end")
@@ -177,7 +177,7 @@ class SetupDialog(Gtk.Dialog):
             self._text_end = te
             self._data_start = ds
             self._data_end = de
-            self._version = version
+            self._arch = arch
 
             self.response(Gtk.ResponseType.APPLY)
             self.close()
@@ -192,5 +192,5 @@ class SetupDialog(Gtk.Dialog):
     def get_regions(self) -> tuple[tuple[int, int], tuple[int, int]]:
         return ((self._text_start, self._text_end), (self._data_start, self._data_end))
 
-    def get_version(self) -> str:
-        return self._version
+    def get_architecture(self) -> str:
+        return self._arch

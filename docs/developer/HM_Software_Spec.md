@@ -1,6 +1,6 @@
 # Software Requirements Specification: HM-Series Integrated Development Suite
 
-This document defines the requirements for a multi-version simulator for the **HM** (Hypothetical Microprocessor) family. The suite enables architectural exploration from **HMv1** through **HMv4** using a unified GUI and CLI toolset.
+This document defines the requirements for a multi-architecture simulator for the **HM** (Hypothetical Microprocessor) family. The suite enables architectural exploration from **HMv1** through **HMv4** using a unified GUI and CLI toolset.
 
 ---
 
@@ -24,7 +24,7 @@ This specification defines the development of a comprehensive simulation environ
 
 ### 3.1 Architectural Engine
 
-* **Version Selection:** The user must be able to toggle between versions 1 through 4 via the **Simulator Setup** dialog. The current active version must be clearly indicated in the main UI.
+* **Architecture Selection:** The user must be able to toggle between versions 1 through 4 via the **Simulator Setup** dialog. The current active architecture must be clearly indicated in the main UI.
 
 * **Register Set:**
   * **PC (Program Counter):** 16-bit address tracking.
@@ -54,7 +54,7 @@ This specification defines the development of a comprehensive simulation environ
 
 ### 3.2 Instruction Set (Incremental Support)
 
-Each version inherits all instructions from the previous version:
+Each architecture inherits all instructions from the previous version:
 
 | Version | Incremental Instructions | Cycle Counts |
 | --- | --- | --- |
@@ -85,7 +85,7 @@ The CLI tools must be cross-platform compatible:
 
 ### 3.4 Graphical User Interface (GTK 4)
 
-* **Version Toggle:** A global selector to switch between HMv1–HMv4 logic (preserves state when switching).
+* **Architecture Toggle:** A global selector to switch between HMv1–HMv4 logic (preserves state when switching).
 * **Integrated Code Editor:** A dual-mode text editor that supports:
   * **Assembly Input:** Direct writing of mnemonics with basic syntax highlighting.
   * **Machine Code Input:** A direct-editing mode in the memory grid for manipulation of 16-bit binary memory values.
@@ -120,12 +120,12 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
 *   **GUI-to-Engine:**
     *   Editing a line in the Assembly Editor triggers `hmasm` to update the corresponding memory address in real-time (with a slight debounce).
     *   Editing a value in the Memory Grid triggers the disassembler to update the Assembly Editor. This action automatically removes the comment for the edited address to ensure the documentation reflects the new code.
-    *   Changing the Version via the **Setup Dialog** re-initializes the `HMEngine` with the appropriate `ExecutionStrategy` and re-assembles the editor text.
+    *   Changing the Architecture via the **Setup Dialog** re-initializes the `HMEngine` with the appropriate `ExecutionStrategy` and re-assembles the editor text.
 
 #### 3.5.3 Component Architecture
 *   **`src/hmsim/gui/hm_gui.py`**: Application entry point (`Gtk.Application`). Initializes the event loop, MenuBar, and main window.
 *   **`src/hmsim/gui/main_window.py`**: Main container managing the HeaderBar, Paned layout, and widget coordination. Handles file I/O (New/Open/Save) with sparse JSON state format.
-*   **`src/hmsim/gui/widgets/setup_dialog.py`**: A configuration dialog for switching processor versions and defining memory regions (Text/Data).
+*   **`src/hmsim/gui/widgets/setup_dialog.py`**: A configuration dialog for switching processor architectures and defining memory regions (Text/Data).
 *   **`src/hmsim/gui/widgets/register_view.py`**: Displays active engine version, PC, AC, IR, SR, and cycles in monospace hex format.
 *   **`src/hmsim/gui/widgets/memory_view.py`**: `Gtk.TreeView` grid showing 64KB memory with Address and Value columns. Supports "Go to Address" search and error highlighting.
 *   **`src/hmsim/gui/widgets/file_dialog.py`**: GTK4 FileDialog utilities for Open/Save operations.
@@ -137,7 +137,7 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
 
 ### 4.1 Design Patterns
 
-* **Strategy Pattern:** Used to swap instruction decoding logic based on the selected HM version.
+* **Strategy Pattern:** Used to swap instruction decoding logic based on the selected HM architecture.
 * **Observer Pattern:** The Engine notifies the GUI of register/memory changes to decouple logic from the view.
 
 ### 4.2 Testing Strategy

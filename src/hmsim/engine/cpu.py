@@ -5,7 +5,7 @@
 
 from typing import Callable, Dict, List, Optional
 
-from .isa import VERSION_ISA, HMV1_ISA
+from .isa import ARCH_ISA, HMV1_ISA
 from .strategies import get_strategy
 from .state import load_state, save_state
 
@@ -13,12 +13,12 @@ from .state import load_state, save_state
 class HMEngine:
     """Engine for HM processor simulation (supports HMv1-HMv4)."""
 
-    VALID_VERSIONS = ("HMv1", "HMv2", "HMv3", "HMv4")
+    VALID_ARCHITECTURES = ("HMv1", "HMv2", "HMv3", "HMv4")
 
-    def __init__(self, version: str = "HMv1") -> None:
-        if version not in self.VALID_VERSIONS:
-            raise ValueError(f"Invalid version: {version}. Valid: {self.VALID_VERSIONS}")
-        self.version: str = version
+    def __init__(self, architecture: str = "HMv1") -> None:
+        if architecture not in self.VALID_ARCHITECTURES:
+            raise ValueError(f"Invalid architecture: {architecture}. Valid: {self.VALID_ARCHITECTURES}")
+        self.architecture: str = architecture
         self.pc: int = 0x0000
         self.ir: int = 0x0000
         self.ac: int = 0x0000
@@ -28,7 +28,7 @@ class HMEngine:
         self.comments: Dict[int, str] = {}
         self._memory: list[int] = [0] * 65536
         self.modified_addresses: set[int] = set()
-        self._strategy = get_strategy(version)
+        self._strategy = get_strategy(architecture)
         self._observers: List[Callable[[], None]] = []
         self._text_region: tuple[int, int] = (0x0000, 0x0100)
         self._data_region: tuple[int, int] = (0x0101, 0xFFFF)
@@ -83,11 +83,11 @@ class HMEngine:
             file_path: Path to the input JSON file.
 
         Returns:
-            The version string from the state file.
+            The architecture string from the state file.
         """
-        version = load_state(self, file_path)
+        architecture = load_state(self, file_path)
         self._notify_observers()
-        return version
+        return architecture
 
     def save_state(self, file_path: str) -> None:
         """Save engine state to a JSON file.
@@ -143,8 +143,8 @@ class HMEngine:
 
     @property
     def isa(self) -> dict:
-        """Get the ISA definition for this version."""
-        return VERSION_ISA[self.version]
+        """Get the ISA definition for this architecture."""
+        return ARCH_ISA[self.architecture]
 
     def _update_sr(self, result: int) -> None:
         """Update Status Register flags based on arithmetic result.
@@ -155,7 +155,7 @@ class HMEngine:
         - Bit 13 (EF): Equality Flag - TODO: Not yet implemented
         - Bit 12 (OF): Overflow Flag - TODO: Not yet implemented
         """
-        if self.version == "HMv2":
+        if self.architecture == "HMv2":
             self.sr = 0
             if result & 0x8000:
                 self.sr |= 0x8000
@@ -166,12 +166,12 @@ class HMEngine:
             # TODO: Implement OF (Overflow Flag) - needed for signed arithmetic
             # if overflow detected: self.sr |= 0x1000
 
-    def _check_version_support(self, opcode: int) -> None:
-        """Check if opcode is supported in current version."""
+    def _check_arch_support(self, opcode: int) -> None:
+        """Check if opcode is supported in current architecture."""
         opcode_to_mnemonic = {v[0]: k for k, v in HMV1_ISA.items()}
         mnemonic = opcode_to_mnemonic.get(opcode)
         if mnemonic and mnemonic not in self.isa:
-            raise ValueError(f"Opcode {opcode:#x} not supported in {self.version}")
+            raise ValueError(f"Opcode {opcode:#x} not supported in {self.architecture}")
 
     def decode(self, instruction: int) -> tuple[int, int]:
         """Decode instruction into opcode and address.
@@ -196,7 +196,7 @@ class HMEngine:
         Returns:
             Number of cycles consumed.
         """
-        self._check_version_support(opcode)
+        self._check_arch_support(opcode)
         return self._strategy.execute(self, opcode, address)
 
     def step(self, notify: bool = True) -> int:

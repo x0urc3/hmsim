@@ -33,7 +33,7 @@ We need to place our data values in memory. Let's put them at addresses 10, 11, 
 
 ## Step 3: Enter and Run
 1. **Launch the HM Simulator**: Open the application using `hmsim`.
-2. **Select HMv1**: Go to **Setup** > **Simulator Setup...** in the menu, select **HMv1** from the version dropdown, and click **Apply**.
+2. **Select HMv1**: Go to **Setup** > **Simulator Setup...** in the menu, select **HMv1** from the architecture dropdown, and click **Apply**.
 3. **Enter Instructions**: In the Assembly Editor (left pane), type the instructions:
    ```assembly
    LOAD 10

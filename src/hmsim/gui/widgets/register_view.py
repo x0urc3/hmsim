@@ -28,10 +28,10 @@ class RegisterView(Gtk.Box):
         self._updating = False
         self._current_values = {"PC": 0, "AC": 0, "IR": 0, "SR": 0}
 
-        self.version_label = Gtk.Label(label="Engine: HMv1")
-        self.version_label.set_css_classes(["title", "heading"])
-        self.version_label.set_xalign(0.5)
-        self.append(self.version_label)
+        self.arch_label = Gtk.Label(label="Arch: HMv1")
+        self.arch_label.set_css_classes(["title", "heading"])
+        self.arch_label.set_xalign(0.5)
+        self.append(self.arch_label)
 
         separator0 = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
         self.append(separator0)
@@ -104,8 +104,8 @@ class RegisterView(Gtk.Box):
         for name in ["PC", "AC", "IR", "SR"]:
             self._model.append([f"{name}:", "0x0000"])
 
-    def set_version(self, version: str):
-        self.version_label.set_label(f"Engine: {version}")
+    def set_architecture(self, arch: str):
+        self.arch_label.set_label(f"Arch: {arch}")
 
     def update(self, pc: int, ac: int, ir: int, sr: int, cycles: int = 0, instructions: int = 0):
         self._current_values = {"PC": pc, "AC": ac, "IR": ir, "SR": sr}

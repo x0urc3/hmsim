@@ -16,7 +16,7 @@ hmsim_cli <state_file.hm> [options]
 ```
 
 **Options:**
-- `-v, --version {HMv1,HMv2}`: Override the processor version (default: read from state file).
+- `-v, --version {HMv1,HMv2}`: Override the processor architecture (default: read from state file).
 - `-m, --max-cycles N`: Set a hard limit on execution cycles to prevent infinite loops (default: 1,000,000).
 
 **Example:**
@@ -81,7 +81,7 @@ hmsim
 
 ### Key Features:
 - **Assembly Editor**: Real-time assembly of mnemonics into machine code. Supports inline comments and basic syntax highlighting.
-- **Register View**: Live display of active Engine version, PC, AC, IR, SR, and execution cycles. Supports **direct editing** of PC, AC, IR, and SR registers (hex/decimal).
+- **Register View**: Live display of active Processor Architecture, PC, AC, IR, SR, and execution cycles. Supports **direct editing** of PC, AC, IR, and SR registers (hex/decimal).
 - **Memory Grid**: Scrollable 64KB memory view with "Go to Address" functionality. Supports direct cell editing (hex/decimal) which triggers real-time re-disassembly in the Assembly Editor.
 - **Execution Controls**: Single-step execution (F10), continuous run (F5), and reset (F12).
 - **Simulator Setup**: Hot-swapping between HMv1 through HMv4 architectures and defining memory regions.

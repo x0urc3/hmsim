@@ -110,4 +110,4 @@ class TestVersionSupport:
     def test_invalid_version(self):
         with pytest.raises(ValueError) as exc_info:
             HMEngine("HMv5")
-        assert "Invalid version" in str(exc_info.value)
+        assert "Invalid architecture" in str(exc_info.value)

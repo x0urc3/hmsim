@@ -40,7 +40,7 @@ class TestHMStateFormat:
 
     def test_load_text_section_assembles_instructions(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -58,7 +58,7 @@ class TestHMStateFormat:
 
     def test_load_data_section_populates_memory(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -76,7 +76,7 @@ class TestHMStateFormat:
 
     def test_load_with_both_text_and_data(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -146,7 +146,7 @@ class TestHMStateFormat:
 
     def test_load_invalid_assembly_ignored(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -161,7 +161,7 @@ class TestHMStateFormat:
 
     def test_load_invalid_data_ignored(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -178,7 +178,7 @@ class TestHMStateFormat:
 
     def test_load_registers_from_state(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 100,
             "ac": 0x1234,
             "ir": 0x5678,
@@ -195,7 +195,7 @@ class TestHMStateFormat:
 
     def test_load_default_values(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "text": {},
             "data": {}
         }
@@ -208,7 +208,7 @@ class TestHMStateFormat:
 
     def test_load_setup_with_hex_notation(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "setup": {
                 "text": ["0x0", "0x3"],
                 "data": ["0x4", "0xffff"]
@@ -227,7 +227,7 @@ class TestHMStateFormat:
 
     def test_load_setup_with_mixed_notation(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "setup": {
                 "text": ["0x0", 256],
                 "data": [257, "0xffff"]
@@ -252,7 +252,7 @@ class TestSchemaValidation:
 
     def test_valid_state_passes_validation(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 0,
             "ac": 0x1234,
             "ir": 0,
@@ -264,7 +264,7 @@ class TestSchemaValidation:
 
     def test_invalid_ac_out_of_range(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 0,
             "ac": 70000,
             "ir": 0,
@@ -276,7 +276,7 @@ class TestSchemaValidation:
 
     def test_invalid_malformed_hex_address_ignored_during_load(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -292,7 +292,7 @@ class TestSchemaValidation:
 
     def test_invalid_malformed_data_value_ignored_during_load(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -319,7 +319,7 @@ class TestSchemaValidation:
 
     def test_invalid_version(self, engine):
         state = {
-            "version": "HMv5",
+            "architecture": "HMv5",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -331,7 +331,7 @@ class TestSchemaValidation:
 
     def test_hmv2_requires_sr(self, engine):
         state = {
-            "version": "HMv2",
+            "architecture": "HMv2",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -343,7 +343,7 @@ class TestSchemaValidation:
 
     def test_hmv2_with_sr_passes(self, engine):
         state = {
-            "version": "HMv2",
+            "architecture": "HMv2",
             "pc": 0,
             "ac": 0,
             "ir": 0,
@@ -356,7 +356,7 @@ class TestSchemaValidation:
 
     def test_invalid_address_out_of_range_ignored_during_load(self, engine):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 0,
             "ac": 0,
             "ir": 0,

@@ -7,6 +7,7 @@ import argparse
 import sys
 from typing import Optional
 
+from hmsim import __version__
 from hmsim.engine.isa import get_mnemonic, OP_LOAD_INDIRECT, OP_STORE_INDIRECT
 
 ZERO_OPERAND_MNEMONICS = {
@@ -17,12 +18,12 @@ ZERO_OPERAND_MNEMONICS = {
 }
 
 
-def disassemble(machine_code: int, version: str = "HMv1") -> str:
+def disassemble(machine_code: int, arch: str = "HMv1") -> str:
     """Disassemble a 16-bit machine code word to mnemonic.
 
     Args:
         machine_code: 16-bit machine code word
-        version: HM version (HMv1 or HMv2)
+        arch: HM architecture (HMv1 or HMv2)
 
     Returns:
         Disassembled string in format "MNEMONIC 0xADDRESS" or just "MNEMONIC" for 0-operand instructions
@@ -30,10 +31,10 @@ def disassemble(machine_code: int, version: str = "HMv1") -> str:
     opcode = (machine_code >> 12) & 0xF
     address = machine_code & 0x0FFF
 
-    mnemonic = get_mnemonic(opcode, version)
+    mnemonic = get_mnemonic(opcode, arch)
     if mnemonic == "???":
         return f"{mnemonic} 0x{address:03X}"
-    if mnemonic in ZERO_OPERAND_MNEMONICS.get(version, set()):
+    if mnemonic in ZERO_OPERAND_MNEMONICS.get(arch, set()):
         return mnemonic
     if opcode == OP_LOAD_INDIRECT or opcode == OP_STORE_INDIRECT:
         return f"{mnemonic} (0x{address:03X})"
@@ -47,9 +48,14 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     parser.add_argument(
         "-v", "--version",
+        action="version",
+        version=f"%(prog)s {__version__}"
+    )
+    parser.add_argument(
+        "-a", "--arch",
         default="HMv1",
         choices=["HMv1", "HMv2", "HMv3", "HMv4"],
-        help="HM processor version (default: HMv1)"
+        help="HM processor architecture (default: HMv1)"
     )
     parser.add_argument(
         "hex_value",
@@ -67,7 +73,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if not 0 <= machine_code <= 0xFFFF:
             raise ValueError(f"Value out of range (0-65535): {machine_code}")
 
-        result = disassemble(machine_code, args.version)
+        result = disassemble(machine_code, args.arch)
         print(result)
         return 0
     except ValueError as e:

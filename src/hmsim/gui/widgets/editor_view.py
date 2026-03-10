@@ -23,11 +23,11 @@ from hmsim.tools.hmasm import assemble
 class EditorView(Gtk.ScrolledWindow):
     DEBOUNCE_DELAY = 300
 
-    def __init__(self, version: str = "HMv1"):
+    def __init__(self, arch: str = "HMv1"):
         super().__init__()
         self.set_hexpand(True)
         self.set_vexpand(True)
-        self._version = version
+        self._arch = arch
         self._change_callback = None
         self._debounce_source_id = None
         self._max_addr_touched = -1
@@ -51,8 +51,8 @@ class EditorView(Gtk.ScrolledWindow):
     def set_change_callback(self, callback):
         self._change_callback = callback
 
-    def set_version(self, version: str):
-        self._version = version
+    def set_architecture(self, arch: str):
+        self._arch = arch
 
     def set_text_region(self, text_region: tuple[int, int]):
         self._text_region = text_region
@@ -93,9 +93,9 @@ class EditorView(Gtk.ScrolledWindow):
                 result[i] = line
         return result
 
-    def parse_and_assemble(self, version: str = None):
-        if version is None:
-            version = self._version
+    def parse_and_assemble(self, arch: str = None):
+        if arch is None:
+            arch = self._arch
         text = self.get_text()
         lines = text.split('\n')
         memory = {}
@@ -111,7 +111,7 @@ class EditorView(Gtk.ScrolledWindow):
                     comments[i] = original_line.split(';', 1)[1].strip()
 
                 try:
-                    machine_code = assemble(code_part, version)
+                    machine_code = assemble(code_part, arch)
                     memory[i] = machine_code
                 except (ValueError, KeyError) as e:
                     errors.append((i, str(e)))
@@ -125,7 +125,7 @@ class EditorView(Gtk.ScrolledWindow):
         return memory, comments, errors
 
     def assemble_to_engine(self, engine):
-        memory, comments, errors = self.parse_and_assemble(engine.version)
+        memory, comments, errors = self.parse_and_assemble(engine.architecture)
 
         text_start, text_end = self._text_region
         max_text_size = text_end - text_start + 1

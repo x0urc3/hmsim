@@ -27,8 +27,8 @@ class TestWidgetExistence:
     def test_register_view_exists(self, main_window):
         assert hasattr(main_window, 'register_view')
         assert main_window.register_view is not None
-        assert hasattr(main_window.register_view, 'version_label')
-        assert main_window.register_view.version_label is not None
+        assert hasattr(main_window.register_view, 'arch_label')
+        assert main_window.register_view.arch_label is not None
 
     def test_memory_view_exists(self, main_window):
         assert hasattr(main_window, 'memory_view')
@@ -59,9 +59,9 @@ class TestInitialState:
         assert main_window.btn_step.get_sensitive() is True
         assert main_window.btn_run.get_sensitive() is True
 
-    def test_version_default_hmv1(self, main_window):
-        assert main_window.register_view.version_label.get_label() == "Engine: HMv1"
-        assert main_window.current_version == "HMv1"
+    def test_architecture_default_hmv1(self, main_window):
+        assert main_window.register_view.arch_label.get_label() == "Arch: HMv1"
+        assert main_window.current_arch == "HMv1"
 
     def test_status_bar_initial(self, main_window):
         assert main_window.status_bar.get_label() == "Ready"

@@ -44,8 +44,8 @@ class MainWindow(Gtk.ApplicationWindow):
             default_height=800
         )
         self.set_resizable(True)
-        self.current_version = "HMv1"
-        self.engine = HMEngine(self.current_version)
+        self.current_arch = "HMv1"
+        self.engine = HMEngine(self.current_arch)
         self._is_running = False
         self._run_source_id = None
         self._is_updating_editor = False
@@ -144,7 +144,7 @@ class MainWindow(Gtk.ApplicationWindow):
         paned.set_resize_start_child(True)
         paned.set_shrink_start_child(False)
 
-        self.editor_view = EditorView(version=self.current_version)
+        self.editor_view = EditorView(arch=self.current_arch)
         self.editor_view.set_change_callback(self._on_editor_changed)
         self.editor_view.set_text_region(self.engine.text_region)
         self.left_pane.append(self.editor_view)
@@ -156,7 +156,7 @@ class MainWindow(Gtk.ApplicationWindow):
         paned.set_shrink_end_child(False)
 
         self.register_view = RegisterView()
-        self.register_view.set_version(self.current_version)
+        self.register_view.set_architecture(self.current_arch)
         self.register_view.set_register_changed_callback(self._on_register_edited)
         self.right_pane.append(self.register_view)
 
@@ -274,18 +274,18 @@ class MainWindow(Gtk.ApplicationWindow):
             self,
             self.engine.text_region,
             self.engine.data_region,
-            self.current_version
+            self.current_arch
         )
 
         def on_response(dialog, response):
             if response == Gtk.ResponseType.APPLY:
                 try:
                     text_region, data_region = dialog.get_regions()
-                    new_version = dialog.get_version()
+                    new_arch = dialog.get_architecture()
 
-                    # Handle version change first as it might recreate the engine
-                    if new_version != self.current_version:
-                        self._on_version_changed(new_version)
+                    # Handle architecture change first as it might recreate the engine
+                    if new_arch != self.current_arch:
+                        self._on_arch_changed(new_arch)
 
                     self.engine.set_regions(text_region, data_region)
                     self.memory_view.set_regions(text_region, data_region)
@@ -312,8 +312,8 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_setup_action(self, action, param):
         self._on_setup(None)
 
-    def _on_version_changed(self, new_version):
-        if new_version != self.current_version:
+    def _on_arch_changed(self, new_arch):
+        if new_arch != self.current_arch:
             old_memory = self.engine._memory.copy()
             old_pc = self.engine.pc
             old_ac = self.engine.ac
@@ -323,8 +323,8 @@ class MainWindow(Gtk.ApplicationWindow):
             old_text_region = self.engine.text_region
             old_data_region = self.engine.data_region
 
-            self.current_version = new_version
-            self.engine = HMEngine(self.current_version)
+            self.current_arch = new_arch
+            self.engine = HMEngine(self.current_arch)
 
             self.engine._memory = old_memory
             self.engine.pc = old_pc
@@ -334,7 +334,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self.engine.comments = old_comments
             self.engine.set_regions(old_text_region, old_data_region)
 
-            self.editor_view.set_version(new_version)
+            self.editor_view.set_architecture(new_arch)
             self.editor_view.set_text_region(old_text_region)
             errors = self.editor_view.assemble_to_engine(self.engine)
 
@@ -398,7 +398,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 if machine_code == 0 and not has_comment:
                     lines.append("")
                 else:
-                    line = disassemble(machine_code, self.current_version)
+                    line = disassemble(machine_code, self.current_arch)
                     if line.startswith("???"):
                         lines.append("")
                     else:
@@ -411,7 +411,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self._is_updating_editor = False
 
     def _update_ui(self):
-        self.register_view.set_version(self.current_version)
+        self.register_view.set_architecture(self.current_arch)
         self.register_view.update(
             pc=self.engine.pc,
             ac=self.engine.ac,
@@ -550,15 +550,15 @@ class MainWindow(Gtk.ApplicationWindow):
 
             self.memory_view.reset_modified_rows()
 
-            version = self.engine.load_state(file_path)
+            arch = self.engine.load_state(file_path)
 
-            if version not in HMEngine.VALID_VERSIONS:
-                version = "HMv2"
-                self.status_bar.set_label(f"Warning: Unknown version, loaded as HMv2")
+            if arch not in HMEngine.VALID_ARCHITECTURES:
+                arch = "HMv2"
+                self.status_bar.set_label(f"Warning: Unknown architecture, loaded as HMv2")
             else:
-                self.status_bar.set_label(f"Loaded {version} state")
+                self.status_bar.set_label(f"Loaded {arch} state")
 
-            self.current_version = version
+            self.current_arch = arch
 
             text_region = self.engine.text_region
             data_region = self.engine.data_region
@@ -575,8 +575,8 @@ class MainWindow(Gtk.ApplicationWindow):
 
             self.memory_view.set_memory(self.engine._memory, state_data)
 
-            if self.engine.version != version:
-                self._on_version_changed(version)
+            if self.engine.architecture != arch:
+                self._on_arch_changed(arch)
 
             setup = state.get("setup", None)
             if setup:

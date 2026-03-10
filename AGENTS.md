@@ -1,6 +1,6 @@
 # AGENTS.md - HM Simulator Development Guide
 
-HM-Sim is a multi-version simulator for the HM (Hypothetical Microprocessor) 16-bit processor family (v1-v4). Python 3.10+, pytest for testing, PyGObject (GTK 4) for GUI.
+HM-Sim is a multi-architecture simulator for the HM (Hypothetical Microprocessor) 16-bit processor family (v1-v4). Python 3.10+, pytest for testing, PyGObject (GTK 4) for GUI.
 
 ---
 
@@ -128,7 +128,7 @@ hmsim/
 │           ├── test_setup.py
 │           ├── test_controls.py
 │           ├── test_simulation.py
-│           ├── test_version.py
+│           ├── test_architecture.py
 │           ├── test_io.py
 │           └── test_feedback.py
 ├── docs/
@@ -140,7 +140,7 @@ hmsim/
 
 ## 4. Design Patterns
 
-1. **Strategy Pattern:** Version-specific instruction decoding (HMv1-v4)
+1. **Strategy Pattern:** Architecture-specific instruction decoding (HMv1-v4)
 2. **Observer Pattern:** Engine notifies GUI of register/memory changes
 3. **State Machine:** CPU as 16-bit state machine
 
@@ -169,9 +169,9 @@ class TestHMv1Engine:
 
 ---
 
-## 6. Version-Specific Behavior
+## 6. Architecture-Specific Behavior
 
-| Version | Instructions | Notes |
+| Architecture | Instructions | Notes |
 |---------|--------------|-------|
 | HMv1 | LOAD, STORE, ADD | Base instruction set |
 | HMv2 | + SUB, JMP, JMPZ | Adds status register (SR) |

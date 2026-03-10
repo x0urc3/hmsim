@@ -13,7 +13,7 @@ class TestFileOperations:
 
     def test_load_state_updates_engine_and_ui(self, main_window):
         state = {
-            "version": "HMv1",
+            "architecture": "HMv1",
             "pc": 0x0100,
             "ac": 0xABCD,
             "ir": 0x0000,
