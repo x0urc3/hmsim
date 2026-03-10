@@ -63,7 +63,10 @@ class HMApplication(Gtk.Application):
                 program_name="HM Simulator",
                 version=__version__,
                 comments="A multi-version simulator for the HM 16-bit processor family (v1-v4)",
+                copyright="Copyright 2026 Khairulmizam Samsudin",
+                author="Khairulmizam Samsudin <xource@gmail.com>",
                 website="https://github.com/hmsim/hmsim",
+                license_type=Gtk.License.APACHE_2_0,
             )
             dialog.present()
 
