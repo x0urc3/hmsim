@@ -41,22 +41,37 @@ class TestMenuBar:
         menubar = getattr(app, 'menubar_model', app.get_menubar())
         assert menubar is not None
 
-        # Check menus exist (File, Run, Help)
-        assert menubar.get_n_items() == 3
+        # Check menus exist (File, Edit, Run, Help)
+        assert menubar.get_n_items() == 4
 
         # Check items in first menu (File)
         file_menu_item = menubar.get_item_link(0, Gio.MENU_LINK_SUBMENU)
         assert file_menu_item is not None
-        # File: New, Open, Save, Quit
-        assert file_menu_item.get_n_items() == 4
+        # File: New, Open, Save, Save As, Quit
+        assert file_menu_item.get_n_items() == 5
 
         # Verify action names for some items
         # New
         value = file_menu_item.get_item_attribute_value(0, "action", GLib.VariantType.new("s"))
         assert value.get_string() == "win.new"
-        # Quit
+        # Save As
         value = file_menu_item.get_item_attribute_value(3, "action", GLib.VariantType.new("s"))
+        assert value.get_string() == "win.save_as"
+        # Quit
+        value = file_menu_item.get_item_attribute_value(4, "action", GLib.VariantType.new("s"))
         assert value.get_string() == "app.quit"
+
+        # Check items in second menu (Edit)
+        edit_menu_item = menubar.get_item_link(1, Gio.MENU_LINK_SUBMENU)
+        assert edit_menu_item is not None
+        # Edit: Undo, Redo
+        assert edit_menu_item.get_n_items() == 2
+        # Undo
+        value = edit_menu_item.get_item_attribute_value(0, "action", GLib.VariantType.new("s"))
+        assert value.get_string() == "win.undo"
+        # Redo
+        value = edit_menu_item.get_item_attribute_value(1, "action", GLib.VariantType.new("s"))
+        assert value.get_string() == "win.redo"
 
     def test_accelerators(self, app):
         """Verify that accelerators are correctly set."""
