@@ -6,6 +6,7 @@
 import json
 import os
 import tempfile
+from pathlib import Path
 from gi.repository import GLib
 
 
@@ -30,11 +31,8 @@ class TestFileOperations:
             temp_path = f.name
 
         try:
-            main_window._load_state(temp_path)
-
-            # Wait for GLib.idle_add in _load_state to finish
-            while GLib.MainContext.default().iteration(False):
-                pass
+            # Call _perform_load directly instead of _load_state to ensure synchronous execution in test
+            main_window.file_controller._perform_load(Path(temp_path))
 
             assert main_window.engine.pc == 0x0100
             assert main_window.engine.ac == 0xABCD

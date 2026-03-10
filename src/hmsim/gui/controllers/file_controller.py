@@ -180,6 +180,23 @@ class FileController:
             if self.engine.architecture != arch:
                 self._arch_change_callback(arch)
 
+            setup = state.get("setup", None)
+            if setup:
+                text_section = state.get("text", {})
+                if text_section:
+                    lines = []
+                    text_start = setup.get("text", [0, 256])[0]
+                    max_addr = text_start - 1
+                    if text_section:
+                        max_addr = max(int(addr, 16) for addr in text_section.keys())
+                        for addr in range(text_start, max_addr + 1):
+                            addr_str = f"0x{addr:04X}"
+                            if addr_str in text_section:
+                                lines.append(text_section[addr_str])
+                            else:
+                                lines.append("")
+                    self.editor_view.set_text("\n".join(lines))
+
             self._update_ui_callback()
 
             # Use same timing logic for sync

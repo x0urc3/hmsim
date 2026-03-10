@@ -3,10 +3,9 @@
 # Licensed under the Apache License, Version 2.0; see LICENSE for details
 """HM Simulator - Main Window."""
 
-import json
 import sys
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, List
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
@@ -50,6 +49,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.engine = HMEngine(self.current_arch)
         self._is_updating_editor = False
         self._help_windows = {}
+
         self.state_manager = StateManager(self._apply_snapshot)
         self.simulation_controller = SimulationController(
             self.engine,
@@ -58,7 +58,9 @@ class MainWindow(Gtk.ApplicationWindow):
             status_callback=self._set_status,
             controls_callback=self._set_controls_sensitivity
         )
+
         self._setup_ui(application)
+
         self.file_controller = FileController(
             self,
             self.engine,
@@ -72,6 +74,7 @@ class MainWindow(Gtk.ApplicationWindow):
             capture_snapshot_callback=self._capture_snapshot,
             arch_change_callback=self._on_arch_changed
         )
+
         self._setup_actions()
         self._connect_engine()
 
@@ -215,81 +218,6 @@ class MainWindow(Gtk.ApplicationWindow):
 
         return paned
 
-    @property
-    def is_modified(self) -> bool:
-        """Dynamically check if current state differs from last save/load."""
-        return self.state_manager.is_modified
-
-    def _capture_snapshot(self) -> Snapshot:
-        """Create a lightweight representation of the current application state."""
-        # Hash memory data region only for efficiency
-        start, end = self.engine.data_region
-        data_to_hash = bytes(self.engine._memory[start:end+1])
-
-        return self.state_manager.capture_snapshot(
-            editor_text=self.editor_view.get_text(),
-            memory_data=data_to_hash,
-            architecture=self.current_arch,
-            text_region=self.engine.text_region,
-            data_region=self.engine.data_region
-        )
-
-    def _on_undo(self):
-        self.state_manager.undo()
-        self._update_window_title()
-
-    def _on_redo(self):
-        self.state_manager.redo()
-        self._update_window_title()
-
-    def _apply_snapshot(self, snapshot: Snapshot):
-        """Restore application state from a snapshot."""
-        # Block editor updates to prevent recursive signals
-        self._is_updating_editor = True
-        try:
-            self.editor_view.set_text(snapshot.editor_text)
-
-            # Update engine configuration if needed
-            if snapshot.architecture != self.current_arch:
-                self.current_arch = snapshot.architecture
-                self.engine = HMEngine(self.current_arch)
-                self.editor_view.set_architecture(self.current_arch)
-                self._connect_engine()
-
-            if (snapshot.text_region != self.engine.text_region or
-                snapshot.data_region != self.engine.data_region):
-                self.engine.set_regions(snapshot.text_region, snapshot.data_region)
-                self.memory_view.set_regions(snapshot.text_region, snapshot.data_region)
-                self.editor_view.set_text_region(snapshot.text_region)
-
-            # Re-assemble text to memory (synchronous)
-            self.editor_view.assemble_to_engine(self.engine)
-
-            # Memory is technically restored by the re-assembly, but we might
-            # need to handle data region specifically if memory_hash implies it.
-            # In Phase 2, we assume editor + assembly is enough for now.
-
-            self._update_ui()
-        finally:
-            self._is_updating_editor = False
-
-    def _sync_base_snapshot(self):
-        """Reset the 'modified' detection point to the current state."""
-        self.state_manager.sync_base_snapshot()
-
-    def _update_window_title(self, current_file: Optional[Path] = None):
-        title = "HM Simulator"
-        if current_file:
-            title += f" - {current_file.name}"
-        if self.is_modified:
-            title += "*"
-        self.set_title(title)
-        if hasattr(self, 'title_label'):
-            self.title_label.set_label(title)
-
-    def _on_close_request(self, window):
-        return self.file_controller.confirm_close(self.destroy)
-
     def _create_header_bar(self) -> Gtk.HeaderBar:
         header = Gtk.HeaderBar()
         header.set_show_title_buttons(True)
@@ -336,15 +264,45 @@ class MainWindow(Gtk.ApplicationWindow):
         self._add_action("show_tutorial", self._on_show_tutorial)
         self._add_action("show_user_guide", self._on_show_user_guide)
 
-    def _on_undo_action(self, action, param):
-        self._on_undo()
+    def _add_action(self, name, callback):
+        action = Gio.SimpleAction.new(name, None)
+        action.connect("activate", callback)
+        self.add_action(action)
 
-    def _on_redo_action(self, action, param):
-        self._on_redo()
+    # Action Handlers
+    def _on_new_action(self, action, param):
+        self.file_controller.new()
+
+    def _on_open_action(self, action, param):
+        self.file_controller.open()
+
+    def _on_save_action(self, action, param):
+        self.file_controller.save()
 
     def _on_save_as_action(self, action, param):
-        self._on_save_as(None)
+        self.file_controller.save_as()
 
+    def _on_undo_action(self, action, param):
+        self.state_manager.undo()
+        self._update_window_title(self.file_controller.current_file)
+
+    def _on_redo_action(self, action, param):
+        self.state_manager.redo()
+        self._update_window_title(self.file_controller.current_file)
+
+    def _on_step_action(self, action, param):
+        self.simulation_controller.step()
+
+    def _on_run_action(self, action, param):
+        self.simulation_controller.run()
+
+    def _on_reset_action(self, action, param):
+        self.simulation_controller.reset()
+
+    def _on_setup_action(self, action, param):
+        self._on_setup(None)
+
+    # Support methods for Help and Docs
     def _get_docs_path(self) -> Path:
         import hmsim
         if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
@@ -382,42 +340,59 @@ class MainWindow(Gtk.ApplicationWindow):
         self._help_windows[key] = help_window
         help_window.present()
 
-    def _add_action(self, name, callback):
-        action = Gio.SimpleAction.new(name, None)
-        action.connect("activate", callback)
-        self.add_action(action)
+    # Core State Management and UI Updates
+    @property
+    def is_modified(self) -> bool:
+        return self.state_manager.is_modified
 
-    def _on_new_action(self, action, param):
-        self.file_controller.new()
+    def _capture_snapshot(self) -> Snapshot:
+        start, end = self.engine.data_region
+        data_to_hash = bytes(self.engine._memory[start:end+1])
 
-    def _on_open_action(self, action, param):
-        self.file_controller.open()
+        return self.state_manager.capture_snapshot(
+            editor_text=self.editor_view.get_text(),
+            memory_data=data_to_hash,
+            architecture=self.current_arch,
+            text_region=self.engine.text_region,
+            data_region=self.engine.data_region
+        )
 
-    def _on_save_action(self, action, param):
-        self.file_controller.save()
+    def _apply_snapshot(self, snapshot: Snapshot):
+        self._is_updating_editor = True
+        try:
+            self.editor_view.set_text(snapshot.editor_text)
 
-    def _on_save_as_action(self, action, param):
-        self.file_controller.save_as()
+            if snapshot.architecture != self.current_arch:
+                self.current_arch = snapshot.architecture
+                self.engine = HMEngine(self.current_arch)
+                self.simulation_controller.set_engine(self.engine)
+                self.file_controller.set_engine(self.engine)
+                self.editor_view.set_architecture(self.current_arch)
+                self._connect_engine()
 
-    def _on_undo_action(self, action, param):
-        self.state_manager.undo()
-        self._update_window_title()
+            if (snapshot.text_region != self.engine.text_region or
+                snapshot.data_region != self.engine.data_region):
+                self.engine.set_regions(snapshot.text_region, snapshot.data_region)
+                self.memory_view.set_regions(snapshot.text_region, snapshot.data_region)
+                self.editor_view.set_text_region(snapshot.text_region)
 
-    def _on_redo_action(self, action, param):
-        self.state_manager.redo()
-        self._update_window_title()
+            self.editor_view.assemble_to_engine(self.engine)
+            self._update_ui()
+        finally:
+            self._is_updating_editor = False
 
-    def _on_step_action(self, action, param):
-        self.simulation_controller.step()
+    def _update_window_title(self, current_file: Optional[Path] = None):
+        title = "HM Simulator"
+        if current_file:
+            title += f" - {current_file.name}"
+        if self.is_modified:
+            title += "*"
+        self.set_title(title)
+        if hasattr(self, 'title_label'):
+            self.title_label.set_label(title)
 
-    def _on_run_action(self, action, param):
-        self.simulation_controller.run()
-
-    def _on_reset_action(self, action, param):
-        self.simulation_controller.reset()
-
-    def _on_setup_action(self, action, param):
-        self._on_setup(None)
+    def _on_close_request(self, window):
+        return self.file_controller.confirm_close(self.destroy)
 
     def _on_setup(self, button):
         dialog = SetupDialog(
@@ -433,7 +408,6 @@ class MainWindow(Gtk.ApplicationWindow):
                     text_region, data_region = dialog.get_regions()
                     new_arch = dialog.get_architecture()
 
-                    # Handle architecture change first as it might recreate the engine
                     if new_arch != self.current_arch:
                         self._on_arch_changed(new_arch)
 
@@ -441,10 +415,9 @@ class MainWindow(Gtk.ApplicationWindow):
                     self.memory_view.set_regions(text_region, data_region)
                     self.editor_view.set_text_region(text_region)
                     self._refresh_editor_from_memory()
-                    self.status_bar.set_label("Simulation setup updated")
+                    self._set_status("Simulation setup updated", False)
                 except ValueError as e:
-                    self.status_bar.set_label(f"Error: {e}")
-                    self.status_bar.add_css_class("error")
+                    self._set_status(f"Error: {e}", True)
             dialog.destroy()
 
         dialog.connect("response", on_response)
@@ -464,6 +437,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self.current_arch = new_arch
             self.engine = HMEngine(self.current_arch)
             self.simulation_controller.set_engine(self.engine)
+            self.file_controller.set_engine(self.engine)
 
             self.engine._memory = old_memory
             self.engine.pc = old_pc
@@ -493,7 +467,7 @@ class MainWindow(Gtk.ApplicationWindow):
             return
         self._clear_error()
         self.state_manager.push_history(self._capture_snapshot())
-        self._update_window_title()
+        self._update_window_title(self.file_controller.current_file)
         errors = self.editor_view.assemble_to_engine(self.engine)
         if errors:
             for addr, error in errors:
@@ -504,7 +478,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.engine._memory[address] = value
         self.engine.comments.pop(address, None)
         self.state_manager.push_history(self._capture_snapshot())
-        self._update_window_title()
+        self._update_window_title(self.file_controller.current_file)
         self._refresh_editor_from_memory()
 
     def _on_register_edited(self, name, value):
@@ -581,23 +555,10 @@ class MainWindow(Gtk.ApplicationWindow):
         self.btn_step.set_sensitive(sensitive)
         self.btn_reset.set_sensitive(sensitive)
 
-    def _on_step(self, button):
-        self._clear_error()
-        self.simulation_controller.step()
-
-    def _on_run(self, button):
-        self.simulation_controller.run()
-
-    def _on_reset(self, button):
-        self._clear_error()
-        self.simulation_controller.reset()
-
     def _show_error(self, message, address):
-        self.status_bar.set_label(f"Error at 0x{address:04X}: {message}")
-        self.status_bar.add_css_class("error")
+        self._set_status(f"Error at 0x{address:04X}: {message}", True)
         self.memory_view.highlight_address(address)
 
     def _clear_error(self):
-        self.status_bar.set_label("Ready")
-        self.status_bar.remove_css_class("error")
+        self._set_status("Ready", False)
         self.memory_view.clear_highlight()
