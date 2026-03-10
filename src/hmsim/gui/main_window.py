@@ -564,10 +564,16 @@ class MainWindow(Gtk.ApplicationWindow):
         self._clear_error()
         if self._current_file:
             self._save_state(self._current_file)
-            return
+        else:
+            self._on_save_as(button)
 
-        dialog = Gtk.FileDialog(title="Save State")
-        dialog.set_initial_name("program.hm")
+    def _on_save_as(self, button):
+        self._clear_error()
+        dialog = Gtk.FileDialog(title="Save State As")
+        if self._current_file:
+            dialog.set_initial_name(self._current_file.name)
+        else:
+            dialog.set_initial_name("program.hm")
 
         filter_hm = Gtk.FileFilter()
         filter_hm.set_name("HM State Files (*.hm)")
@@ -581,7 +587,7 @@ class MainWindow(Gtk.ApplicationWindow):
                     file_path = Path(file.get_path())
                     self._save_state(file_path)
             except Exception as e:
-                print(f"Save error: {e}")
+                print(f"Save As error: {e}")
 
         dialog.save(self, None, on_response)
 
