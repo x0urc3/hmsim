@@ -5,27 +5,8 @@
 
 import json
 import sys
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Dict, Any, List
-
-@dataclass(frozen=True)
-class Snapshot:
-    """Represents an atomic state of the simulator for comparison and history."""
-    editor_text: str
-    memory_hash: bytes
-    architecture: str
-    text_region: tuple[int, int]
-    data_region: tuple[int, int]
-
-    def __eq__(self, other):
-        if not isinstance(other, Snapshot):
-            return False
-        return (self.editor_text == other.editor_text and
-                self.memory_hash == other.memory_hash and
-                self.architecture == other.architecture and
-                self.text_region == other.text_region and
-                self.data_region == other.data_region)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
@@ -49,6 +30,7 @@ from hmsim.gui.widgets.editor_view import EditorView
 from hmsim.gui.widgets.help_window import HelpWindow
 from hmsim.gui.widgets.setup_dialog import SetupDialog
 from hmsim.engine.cpu import HMEngine
+from hmsim.gui.state_manager import StateManager, Snapshot
 
 from hmsim.tools.hmdas import disassemble
 
@@ -71,16 +53,14 @@ class MainWindow(Gtk.ApplicationWindow):
         self._is_updating_editor = False
         self._help_windows = {}
         self._current_file: Optional[Path] = None
-        self._base_snapshot: Optional[Snapshot] = None
-        self._history_stack: List[Snapshot] = []
-        self._history_index: int = -1
+        self.state_manager = StateManager(self._apply_snapshot)
         self._setup_ui(application)
         self._setup_actions()
         self._connect_engine()
 
         # Capture initial base snapshot (empty state)
-        self._sync_base_snapshot()
-        self._push_history(self._base_snapshot)
+        initial_snapshot = self._capture_snapshot()
+        self.state_manager.reset(initial_snapshot)
         self._update_window_title()
         self.connect("close-request", self._on_close_request)
 
@@ -216,53 +196,29 @@ class MainWindow(Gtk.ApplicationWindow):
     @property
     def is_modified(self) -> bool:
         """Dynamically check if current state differs from last save/load."""
-        if not self._base_snapshot:
-            return False
-        return self._capture_snapshot() != self._base_snapshot
+        return self.state_manager.is_modified
 
     def _capture_snapshot(self) -> Snapshot:
         """Create a lightweight representation of the current application state."""
-        import hashlib
         # Hash memory data region only for efficiency
         start, end = self.engine.data_region
         data_to_hash = bytes(self.engine._memory[start:end+1])
-        mem_hash = hashlib.md5(data_to_hash).digest()
 
-        return Snapshot(
+        return self.state_manager.capture_snapshot(
             editor_text=self.editor_view.get_text(),
-            memory_hash=mem_hash,
+            memory_data=data_to_hash,
             architecture=self.current_arch,
             text_region=self.engine.text_region,
             data_region=self.engine.data_region
         )
 
-    def _push_history(self, snapshot: Snapshot):
-        """Add a snapshot to the undo stack, discarding any redo history."""
-        # If this snapshot is identical to the current one, skip
-        if self._history_index >= 0 and self._history_stack[self._history_index] == snapshot:
-            return
-
-        # Truncate redo history
-        self._history_stack = self._history_stack[:self._history_index + 1]
-        self._history_stack.append(snapshot)
-        self._history_index += 1
-
-        # Optional: Limit history size
-        if len(self._history_stack) > 100:
-            self._history_stack.pop(0)
-            self._history_index -= 1
-
     def _on_undo(self):
-        if self._history_index > 0:
-            self._history_index -= 1
-            self._apply_snapshot(self._history_stack[self._history_index])
-            self._update_window_title()
+        self.state_manager.undo()
+        self._update_window_title()
 
     def _on_redo(self):
-        if self._history_index < len(self._history_stack) - 1:
-            self._history_index += 1
-            self._apply_snapshot(self._history_stack[self._history_index])
-            self._update_window_title()
+        self.state_manager.redo()
+        self._update_window_title()
 
     def _apply_snapshot(self, snapshot: Snapshot):
         """Restore application state from a snapshot."""
@@ -297,7 +253,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _sync_base_snapshot(self):
         """Reset the 'modified' detection point to the current state."""
-        self._base_snapshot = self._capture_snapshot()
+        self.state_manager.sync_base_snapshot()
 
     def _update_window_title(self):
         title = "HM Simulator"
@@ -505,7 +461,7 @@ class MainWindow(Gtk.ApplicationWindow):
         if self._is_updating_editor:
             return
         self._clear_error()
-        self._push_history(self._capture_snapshot())
+        self.state_manager.push_history(self._capture_snapshot())
         self._update_window_title()
         errors = self.editor_view.assemble_to_engine(self.engine)
         if errors:
@@ -516,7 +472,7 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_memory_edited(self, address, value):
         self.engine._memory[address] = value
         self.engine.comments.pop(address, None)
-        self._push_history(self._capture_snapshot())
+        self.state_manager.push_history(self._capture_snapshot())
         self._update_window_title()
         self._refresh_editor_from_memory()
 
@@ -655,7 +611,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self.editor_view.set_text("")
         self._current_file = None
-        self._sync_base_snapshot()
+        self.state_manager.reset(self._capture_snapshot())
         self._update_window_title()
         self._update_ui()
 
