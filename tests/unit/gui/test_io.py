@@ -6,6 +6,7 @@
 import json
 import os
 import tempfile
+from gi.repository import GLib
 
 
 class TestFileOperations:
@@ -30,6 +31,10 @@ class TestFileOperations:
 
         try:
             main_window._load_state(temp_path)
+
+            # Wait for GLib.idle_add in _load_state to finish
+            while GLib.MainContext.default().iteration(False):
+                pass
 
             assert main_window.engine.pc == 0x0100
             assert main_window.engine.ac == 0xABCD

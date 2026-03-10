@@ -5,9 +5,9 @@
 
 import argparse
 import sys
-import os
+from pathlib import Path
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 try:
     import gi
@@ -77,8 +77,14 @@ class HMApplication(Gtk.Application):
         file_menu.append("New", "win.new")
         file_menu.append("Open...", "win.open")
         file_menu.append("Save", "win.save")
+        file_menu.append("Save As...", "win.save_as")
         file_menu.append("Quit", "app.quit")
         self.menubar_model.append_submenu("File", file_menu)
+
+        edit_menu = Gio.Menu()
+        edit_menu.append("Undo", "win.undo")
+        edit_menu.append("Redo", "win.redo")
+        self.menubar_model.append_submenu("Edit", edit_menu)
 
         run_menu = Gio.Menu()
         run_menu.append("Run", "win.run")
@@ -98,6 +104,9 @@ class HMApplication(Gtk.Application):
         self.set_accels_for_action("win.new", ["<Control>n"])
         self.set_accels_for_action("win.open", ["<Control>o"])
         self.set_accels_for_action("win.save", ["<Control>s"])
+        self.set_accels_for_action("win.save_as", ["<Control><Shift>s"])
+        self.set_accels_for_action("win.undo", ["<Control>z"])
+        self.set_accels_for_action("win.redo", ["<Control><Shift>z", "<Control>y"])
         self.set_accels_for_action("win.run", ["F5"])
         self.set_accels_for_action("win.step", ["F10"])
         self.set_accels_for_action("win.reset", ["F12"])
@@ -137,18 +146,19 @@ def main(argv: list[str] | None = None) -> int:
     return app.run(remaining)
 
 
-def run_headless(state_file: str, max_cycles: int, json_output: bool = False) -> int:
+def run_headless(state_file: str | Path, max_cycles: int, json_output: bool = False) -> int:
     """Run the simulator in headless mode without GUI."""
+    state_file_path = Path(state_file)
     try:
         temp_engine = HMEngine("HMv1")
-        loaded_arch = temp_engine.load_state(state_file)
+        loaded_arch = temp_engine.load_state(state_file_path)
 
         architecture = loaded_arch
         if architecture not in HMEngine.VALID_ARCHITECTURES:
             architecture = "HMv2"
 
         engine = HMEngine(architecture)
-        engine.load_state(state_file)
+        engine.load_state(state_file_path)
 
         print(f"Loaded {architecture} program. Starting execution...")
 
@@ -174,7 +184,7 @@ def run_headless(state_file: str, max_cycles: int, json_output: bool = False) ->
         return 0
 
     except FileNotFoundError:
-        print(f"Error: State file not found: {state_file}", file=sys.stderr)
+        print(f"Error: State file not found: {state_file_path}", file=sys.stderr)
         return 1
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)

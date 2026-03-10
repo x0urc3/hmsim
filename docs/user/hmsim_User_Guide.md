@@ -8,10 +8,18 @@ This guide provides detailed information on using the HM Simulator interactive i
 
 When the simulator starts, you'll see:
 
-- **Header Bar** (top): Contains file operations (New, Open, Save) and execution controls.
-- **Main Area** (center): Editor for entering your program (assembly or machine code).
+- **Header Bar** (top): Contains file operations (New, Open, Save, Save As), edit operations (Undo, Redo), and execution controls.
+- **Main Area** (center): Assembly Editor for entering your program and comments.
 - **Right Panel** (right): Shows the active Processor Architecture, register values (PC, AC, IR, SR), and memory contents.
-- **Status Bar** (bottom): Displays simulator status and error messages.
+- **Status Bar** (bottom): Displays real-time simulator status (e.g., "Loading...", "Saved to...") and error messages.
+
+---
+
+## Window Title and State
+
+The window title provides immediate feedback on the state of your project:
+- **Filename**: Displays the name of the currently open `.hm` file.
+- **Modified Indicator**: An asterisk (`*`) appears next to the filename when there are unsaved changes. The simulator uses an intelligent snapshot system to detect changes—if you manually revert your changes to match the last saved state, the asterisk will automatically disappear.
 
 ---
 
@@ -32,22 +40,29 @@ Switching versions updates the available instructions while preserving your curr
 
 ## Execution Controls
 
-- **Run**: Execute instructions continuously at high speed (~60,000+ instructions/sec). Displays total cycles in real-time.
-- **Step**: Execute one instruction and advance the program counter.
-- **Reset**: Clear all registers (PC, AC, IR, SR, Cycles).
+- **Run** (`F5`): Execute instructions continuously at high speed (~60,000+ instructions/sec). Displays total cycles in real-time.
+- **Step** (`F10`): Execute one instruction and advance the program counter.
+- **Reset** (`F12`): Clear all registers (PC, AC, IR, SR, Cycles).
 
 ---
 
 ## Simulator Controls Reference
 
-### File Operations
-- **New**: Reset the simulator to initial state (clears registers and memory).
-- **Open**: Load a saved state from a JSON file.
-- **Save**: Save the current state to a JSON file.
+### File Operations (Menu: File)
+- **New** (`Ctrl+N`): Reset the simulator to initial state (clears registers and memory). Prompts to save if there are unsaved changes.
+- **Open** (`Ctrl+O`): Load a saved state from a JSON file. Prompts to save if the current state is modified.
+- **Save** (`Ctrl+S`): Save the current state to the active file.
+- **Save As...** (`Ctrl+Shift+S`): Save the current state to a new file and make it the active file.
+- **Quit** (`Ctrl+Q`): Exit the simulator. Prompts to save if there are unsaved changes.
 
-### Execution Controls
-- **Step**: Execute one instruction and update all displays.
-- **Reset**: Clear all registers (PC, AC, IR, SR = 0).
+### Editor Operations (Menu: Edit)
+- **Undo** (`Ctrl+Z`): Revert the last change to the assembly or memory.
+- **Redo** (`Ctrl+Shift+Z` or `Ctrl+Y`): Re-apply the last undone change.
+- The simulator tracks a complete history of your session, including assembly edits, memory modifications, and architecture changes.
+
+### Execution Controls (Menu: Run)
+- **Step** (`F10`): Execute one instruction and update all displays.
+- **Reset** (`F12`): Clear all registers (PC, AC, IR, SR = 0).
 
 ### Simulator Setup
 Accessible via the **Setup** menu. Allows you to configure:

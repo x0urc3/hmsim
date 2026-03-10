@@ -41,6 +41,8 @@ class TestButtonHandlers:
         main_window.engine.ac = 0x1234
         main_window.engine._memory[0] = 0x5678
         main_window.editor_view.set_text("LOAD 100")
+        # Ensure not modified to avoid async dialog in test
+        main_window._sync_base_snapshot()
         main_window._on_new(None)
         assert main_window.engine.pc == 0x0000
         assert main_window.engine.ac == 0x0000
@@ -49,6 +51,8 @@ class TestButtonHandlers:
 
     def test_on_new_resets_engine(self, main_window):
         main_window.engine.pc = 0x0100
+        # Ensure not modified to avoid async dialog in test
+        main_window._sync_base_snapshot()
         main_window._on_new(None)
         assert main_window.engine.pc == 0x0000
 

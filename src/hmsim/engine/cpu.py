@@ -4,6 +4,7 @@
 """HM CPU Engine - Core simulation for HM processor family."""
 
 import datetime
+from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from hmsim import __version__
@@ -87,7 +88,7 @@ class HMEngine:
         self._data_region = (ds, de)
         self._notify_observers()
 
-    def load_state(self, file_path: str) -> str:
+    def load_state(self, file_path: str | Path) -> str:
         """Load engine state from a JSON file.
 
         Args:
@@ -100,7 +101,7 @@ class HMEngine:
         self._notify_observers()
         return architecture
 
-    def save_state(self, file_path: str) -> None:
+    def save_state(self, file_path: str | Path) -> None:
         """Save engine state to a JSON file.
 
         Args:

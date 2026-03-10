@@ -5,9 +5,29 @@
 
 import json
 import sys
-import os
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional, Dict, Any, List
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+@dataclass(frozen=True)
+class Snapshot:
+    """Represents an atomic state of the simulator for comparison and history."""
+    editor_text: str
+    memory_hash: bytes
+    architecture: str
+    text_region: tuple[int, int]
+    data_region: tuple[int, int]
+
+    def __eq__(self, other):
+        if not isinstance(other, Snapshot):
+            return False
+        return (self.editor_text == other.editor_text and
+                self.memory_hash == other.memory_hash and
+                self.architecture == other.architecture and
+                self.text_region == other.text_region and
+                self.data_region == other.data_region)
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 try:
     import gi
@@ -50,17 +70,27 @@ class MainWindow(Gtk.ApplicationWindow):
         self._run_source_id = None
         self._is_updating_editor = False
         self._help_windows = {}
+        self._current_file: Optional[Path] = None
+        self._base_snapshot: Optional[Snapshot] = None
+        self._history_stack: List[Snapshot] = []
+        self._history_index: int = -1
         self._setup_ui(application)
         self._setup_actions()
         self._connect_engine()
 
-    def _setup_ui(self, app=None):
+        # Capture initial base snapshot (empty state)
+        self._sync_base_snapshot()
+        self._push_history(self._base_snapshot)
+        self._update_window_title()
+        self.connect("close-request", self._on_close_request)
+
+    def _setup_ui(self, application=None):
         self.set_titlebar(self._create_header_bar())
 
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
         self.set_child(main_box)
 
-        if app:
+        if application:
             menu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
             menu_box.add_css_class("menubar")
             main_box.append(menu_box)
@@ -69,9 +99,16 @@ class MainWindow(Gtk.ApplicationWindow):
             file_menu.append("New", "win.new")
             file_menu.append("Open...", "win.open")
             file_menu.append("Save", "win.save")
+            file_menu.append("Save As...", "win.save_as")
             file_menu.append("Quit", "app.quit")
             file_menu_model = Gio.Menu()
             file_menu_model.append_submenu("File", file_menu)
+
+            edit_menu = Gio.Menu()
+            edit_menu.append("Undo", "win.undo")
+            edit_menu.append("Redo", "win.redo")
+            edit_menu_model = Gio.Menu()
+            edit_menu_model.append_submenu("Edit", edit_menu)
 
             run_menu = Gio.Menu()
             run_menu.append("Run", "win.run")
@@ -87,6 +124,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
             main_file_run = Gio.Menu()
             main_file_run.append_section(None, file_menu_model)
+            main_file_run.append_section(None, edit_menu_model)
             main_file_run.append_section(None, run_menu_model)
             main_file_run.append_section(None, setup_menu_model)
             menubar_left = Gtk.PopoverMenuBar.new_from_model(main_file_run)
@@ -175,12 +213,114 @@ class MainWindow(Gtk.ApplicationWindow):
         self.status_bar.set_margin_end(10)
         self.right_pane.append(self.status_bar)
 
+    @property
+    def is_modified(self) -> bool:
+        """Dynamically check if current state differs from last save/load."""
+        if not self._base_snapshot:
+            return False
+        return self._capture_snapshot() != self._base_snapshot
+
+    def _capture_snapshot(self) -> Snapshot:
+        """Create a lightweight representation of the current application state."""
+        import hashlib
+        # Hash memory data region only for efficiency
+        start, end = self.engine.data_region
+        data_to_hash = bytes(self.engine._memory[start:end+1])
+        mem_hash = hashlib.md5(data_to_hash).digest()
+
+        return Snapshot(
+            editor_text=self.editor_view.get_text(),
+            memory_hash=mem_hash,
+            architecture=self.current_arch,
+            text_region=self.engine.text_region,
+            data_region=self.engine.data_region
+        )
+
+    def _push_history(self, snapshot: Snapshot):
+        """Add a snapshot to the undo stack, discarding any redo history."""
+        # If this snapshot is identical to the current one, skip
+        if self._history_index >= 0 and self._history_stack[self._history_index] == snapshot:
+            return
+
+        # Truncate redo history
+        self._history_stack = self._history_stack[:self._history_index + 1]
+        self._history_stack.append(snapshot)
+        self._history_index += 1
+
+        # Optional: Limit history size
+        if len(self._history_stack) > 100:
+            self._history_stack.pop(0)
+            self._history_index -= 1
+
+    def _on_undo(self):
+        if self._history_index > 0:
+            self._history_index -= 1
+            self._apply_snapshot(self._history_stack[self._history_index])
+            self._update_window_title()
+
+    def _on_redo(self):
+        if self._history_index < len(self._history_stack) - 1:
+            self._history_index += 1
+            self._apply_snapshot(self._history_stack[self._history_index])
+            self._update_window_title()
+
+    def _apply_snapshot(self, snapshot: Snapshot):
+        """Restore application state from a snapshot."""
+        # Block editor updates to prevent recursive signals
+        self._is_updating_editor = True
+        try:
+            self.editor_view.set_text(snapshot.editor_text)
+
+            # Update engine configuration if needed
+            if snapshot.architecture != self.current_arch:
+                self.current_arch = snapshot.architecture
+                self.engine = HMEngine(self.current_arch)
+                self.editor_view.set_architecture(self.current_arch)
+                self._connect_engine()
+
+            if (snapshot.text_region != self.engine.text_region or
+                snapshot.data_region != self.engine.data_region):
+                self.engine.set_regions(snapshot.text_region, snapshot.data_region)
+                self.memory_view.set_regions(snapshot.text_region, snapshot.data_region)
+                self.editor_view.set_text_region(snapshot.text_region)
+
+            # Re-assemble text to memory (synchronous)
+            self.editor_view.assemble_to_engine(self.engine)
+
+            # Memory is technically restored by the re-assembly, but we might
+            # need to handle data region specifically if memory_hash implies it.
+            # In Phase 2, we assume editor + assembly is enough for now.
+
+            self._update_ui()
+        finally:
+            self._is_updating_editor = False
+
+    def _sync_base_snapshot(self):
+        """Reset the 'modified' detection point to the current state."""
+        self._base_snapshot = self._capture_snapshot()
+
+    def _update_window_title(self):
+        title = "HM Simulator"
+        if self._current_file:
+            title += f" - {self._current_file.name}"
+        if self.is_modified:
+            title += "*"
+        self.set_title(title)
+        if hasattr(self, 'title_label'):
+            self.title_label.set_label(title)
+
+    def _on_close_request(self, window):
+        if self.is_modified:
+            self._check_unsaved_changes_on_close()
+            return True  # Stop the close signal
+        return False  # Proceed with close
+
     def _create_header_bar(self) -> Gtk.HeaderBar:
         header = Gtk.HeaderBar()
         header.set_show_title_buttons(True)
 
-        title_label = Gtk.Label(label="HM Simulator")
-        header.set_title_widget(title_label)
+        self.title_label = Gtk.Label(label="HM Simulator")
+        header.set_title_widget(self.title_label)
 
         return header
 
@@ -211,6 +351,9 @@ class MainWindow(Gtk.ApplicationWindow):
         self._add_action("new", self._on_new_action)
         self._add_action("open", self._on_open_action)
         self._add_action("save", self._on_save_action)
+        self._add_action("save_as", self._on_save_as_action)
+        self._add_action("undo", self._on_undo_action)
+        self._add_action("redo", self._on_redo_action)
         self._add_action("step", self._on_step_action)
         self._add_action("run", self._on_run_action)
         self._add_action("reset", self._on_reset_action)
@@ -218,18 +361,27 @@ class MainWindow(Gtk.ApplicationWindow):
         self._add_action("show_tutorial", self._on_show_tutorial)
         self._add_action("show_user_guide", self._on_show_user_guide)
 
-    def _get_docs_path(self) -> str:
+    def _on_undo_action(self, action, param):
+        self._on_undo()
+
+    def _on_redo_action(self, action, param):
+        self._on_redo()
+
+    def _on_save_as_action(self, action, param):
+        self._on_save_as(None)
+
+    def _get_docs_path(self) -> Path:
         import hmsim
         if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-            base_path = sys._MEIPASS
-            return os.path.join(base_path, 'docs')
+            base_path = Path(sys._MEIPASS)
+            return base_path / 'docs'
         else:
-            base_path = os.path.dirname(os.path.abspath(hmsim.__file__))
-            return os.path.join(base_path, '..', '..', 'docs')
+            base_path = Path(hmsim.__file__).resolve().parent
+            return base_path / '..' / '..' / 'docs'
 
-    def _resolve_help_file(self, filename: str) -> str:
+    def _resolve_help_file(self, filename: str) -> Path:
         docs_path = self._get_docs_path()
-        return os.path.join(docs_path, 'user', filename)
+        return docs_path / 'user' / filename
 
     def _on_show_tutorial(self, action, param):
         self._show_help_window('tutorial', 'Tutorial', 'Tutorial.md')
@@ -353,6 +505,8 @@ class MainWindow(Gtk.ApplicationWindow):
         if self._is_updating_editor:
             return
         self._clear_error()
+        self._push_history(self._capture_snapshot())
+        self._update_window_title()
         errors = self.editor_view.assemble_to_engine(self.engine)
         if errors:
             for addr, error in errors:
@@ -362,6 +516,8 @@ class MainWindow(Gtk.ApplicationWindow):
     def _on_memory_edited(self, address, value):
         self.engine._memory[address] = value
         self.engine.comments.pop(address, None)
+        self._push_history(self._capture_snapshot())
+        self._update_window_title()
         self._refresh_editor_from_memory()
 
     def _on_register_edited(self, name, value):
@@ -477,6 +633,12 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _on_new(self, button):
         self._clear_error()
+        if self.is_modified:
+            self._check_unsaved_changes(self._perform_new)
+        else:
+            self._perform_new()
+
+    def _perform_new(self):
         self.engine.reset()
         self.engine._memory = [0] * 65536
 
@@ -492,7 +654,30 @@ class MainWindow(Gtk.ApplicationWindow):
         }
 
         self.editor_view.set_text("")
+        self._current_file = None
+        self._sync_base_snapshot()
+        self._update_window_title()
         self._update_ui()
+
+    def _check_unsaved_changes(self, callback):
+        """Show a confirmation dialog if there are unsaved changes."""
+        dialog = Gtk.AlertDialog(
+            message="Unsaved Changes",
+            detail="You have unsaved changes. Do you want to save them before proceeding?",
+            buttons=["Save", "Discard", "Cancel"]
+        )
+
+        def on_response(dialog, result):
+            if result == 0:  # Save
+                self._on_save(None)
+                # After saving, proceed with the original action
+                # Note: This is a bit simplified as save might be cancelled
+                callback()
+            elif result == 1:  # Discard
+                callback()
+            # result == 2 is Cancel, do nothing
+
+        dialog.choose(self, None, on_response)
 
     def _show_error(self, message, address):
         self.status_bar.set_label(f"Error at 0x{address:04X}: {message}")
@@ -506,8 +691,18 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _on_save(self, button):
         self._clear_error()
-        dialog = Gtk.FileDialog(title="Save State")
-        dialog.set_initial_name("program.hm")
+        if self._current_file:
+            self._save_state(self._current_file)
+        else:
+            self._on_save_as(button)
+
+    def _on_save_as(self, button):
+        self._clear_error()
+        dialog = Gtk.FileDialog(title="Save State As")
+        if self._current_file:
+            dialog.set_initial_name(self._current_file.name)
+        else:
+            dialog.set_initial_name("program.hm")
 
         filter_hm = Gtk.FileFilter()
         filter_hm.set_name("HM State Files (*.hm)")
@@ -518,15 +713,21 @@ class MainWindow(Gtk.ApplicationWindow):
             try:
                 file = dialog.save_finish(result)
                 if file:
-                    file_path = file.get_path()
+                    file_path = Path(file.get_path())
                     self._save_state(file_path)
             except Exception as e:
-                print(f"Save error: {e}")
+                print(f"Save As error: {e}")
 
-        dialog.save(None, None, on_response)
+        dialog.save(self, None, on_response)
 
     def _on_open(self, button):
         self._clear_error()
+        if self.is_modified:
+            self._check_unsaved_changes(lambda: self._show_open_dialog())
+        else:
+            self._show_open_dialog()
+
+    def _show_open_dialog(self):
         dialog = Gtk.FileDialog(title="Open State")
         dialog.set_initial_name("program.hm")
 
@@ -539,29 +740,43 @@ class MainWindow(Gtk.ApplicationWindow):
             try:
                 file = dialog.open_finish(result)
                 if file:
-                    file_path = file.get_path()
+                    file_path = Path(file.get_path())
                     self._load_state(file_path)
             except Exception as e:
                 print(f"Open error: {e}")
 
-        dialog.open(None, None, on_response)
+        dialog.open(self, None, on_response)
 
-    def _save_state(self, file_path):
+    def _save_state(self, file_path: str | Path):
+        file_path = Path(file_path)
         try:
+            self.status_bar.set_label(f"Saving {file_path.name}...")
             self.engine.save_state(file_path)
-            self.status_bar.set_label(f"Saved to {os.path.basename(file_path)}")
+            self._current_file = file_path
+            self._sync_base_snapshot()
+            self._update_window_title()
+            self.status_bar.set_label(f"Saved to {file_path.name}")
         except Exception as e:
             self.status_bar.set_label(f"Error saving state: {e}")
             self.status_bar.add_css_class("error")
 
-    def _load_state(self, file_path):
+    def _load_state(self, file_path: str | Path):
+        file_path = Path(file_path)
         try:
-            import json
+            self.status_bar.set_label(f"Loading {file_path.name}...")
+            # Schedule the actual loading to allow status bar to update
+            GLib.idle_add(self._perform_load, file_path)
+        except Exception as e:
+            self.status_bar.set_label(f"Error loading state: {e}")
+            self.status_bar.add_css_class("error")
+            print(f"Error loading state: {e}")
+
+    def _perform_load(self, file_path: Path):
+        try:
             with open(file_path, 'r') as f:
                 state = json.load(f)
 
             self.memory_view.reset_modified_rows()
-
             arch = self.engine.load_state(file_path)
 
             if arch not in HMEngine.VALID_ARCHITECTURES:
@@ -571,6 +786,7 @@ class MainWindow(Gtk.ApplicationWindow):
                 self.status_bar.set_label(f"Loaded {arch} state")
 
             self.current_arch = arch
+            self._current_file = file_path
 
             text_region = self.engine.text_region
             data_region = self.engine.data_region
@@ -595,19 +811,28 @@ class MainWindow(Gtk.ApplicationWindow):
                 text_section = state.get("text", {})
                 if text_section:
                     lines = []
-                    max_addr = max(int(addr, 16) for addr in text_section.keys())
                     text_start = setup.get("text", [0, 256])[0]
-                    for addr in range(text_start, max_addr + 1):
-                        addr_str = f"0x{addr:04X}"
-                        if addr_str in text_section:
-                            lines.append(text_section[addr_str])
-                        else:
-                            lines.append("")
+                    if text_section:
+                        max_addr = max(int(addr, 16) for addr in text_section.keys())
+                        for addr in range(text_start, max_addr + 1):
+                            addr_str = f"0x{addr:04X}"
+                            if addr_str in text_section:
+                                lines.append(text_section[addr_str])
+                            else:
+                                lines.append("")
                     self.editor_view.set_text("\n".join(lines))
 
             self._update_ui()
-
+            # Capture the base snapshot AFTER all updates (including editor debounce) are settled
+            GLib.timeout_add(EditorView.DEBOUNCE_DELAY + 50, self._sync_and_title)
+            return False
         except Exception as e:
             self.status_bar.set_label(f"Error loading state: {e}")
             self.status_bar.add_css_class("error")
             print(f"Error loading state: {e}")
+            return False
+
+    def _sync_and_title(self):
+        self._sync_base_snapshot()
+        self._update_window_title()
+        return False

@@ -88,6 +88,26 @@ hmsim
 - **Persistence**: Load and save complete simulator states as `.hm` JSON files (including setup metadata).
 
 
+### State Management and History System
+
+The `MainWindow` uses a robust **Snapshot-based State Management** system to handle change detection and history tracking.
+
+#### 1. Snapshots
+The `Snapshot` dataclass captures an atomic state of the simulator, including:
+- **Editor Text**: The current string in the assembly editor.
+- **Memory Hash**: An MD5 hash of the memory's data region for efficient comparison.
+- **Configuration**: Active architecture, text region, and data region.
+
+#### 2. Change Detection
+Instead of a simple boolean flag, `is_modified` is a computed property that compares the current live state against a `_base_snapshot`.
+- **Loading**: When a file is loaded, a new base snapshot is captured after a short delay (to allow the initial assembly to settle). This prevents the "assembly-on-load" process from being incorrectly flagged as a user modification.
+- **Reverting**: If a user manually undoes their changes until the state matches the base snapshot, the modified indicator (`*`) automatically clears.
+
+#### 3. History (Undo/Redo)
+The `MainWindow` maintains an internal history stack of snapshots.
+- **Tracking**: A new snapshot is pushed onto the stack whenever the editor text changes (debounced) or a memory cell is edited.
+- **Restoration**: `_apply_snapshot` restores the editor text, re-assembles it to memory, and synchronizes the engine and UI.
+
 ---
 
 ## Development Workflow
