@@ -139,12 +139,12 @@ class EditorView(Gtk.ScrolledWindow):
         if num_lines < self._max_addr_touched + 1:
             for addr in range(text_start + num_lines, text_start + self._max_addr_touched + 1):
                 if 0 <= addr < 65536:
-                    engine._memory[addr] = 0
+                    engine.write_memory(addr, 0, notify=False)
                     engine.comments.pop(addr, None)
 
         for i in range(num_lines):
             addr = text_start + i
-            engine._memory[addr] = memory.get(i, 0)
+            engine.write_memory(addr, memory.get(i, 0), notify=False)
             if i in comments:
                 engine.comments[addr] = comments[i]
             else:
