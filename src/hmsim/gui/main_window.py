@@ -4,6 +4,7 @@
 """HM Simulator - Main Window."""
 
 import sys
+import array
 from pathlib import Path
 from typing import Optional, List
 
@@ -98,6 +99,16 @@ class MainWindow(Gtk.ApplicationWindow):
         self._setup_styles()
         main_box.append(self._create_main_content())
 
+        # Status Bar Footer
+        self.status_bar = Gtk.Label(label="Ready")
+        self.status_bar.set_halign(Gtk.Align.START)
+        self.status_bar.set_margin_top(4)
+        self.status_bar.set_margin_bottom(4)
+        self.status_bar.set_margin_start(10)
+        self.status_bar.set_margin_end(10)
+        self.status_bar.add_css_class("status-bar")
+        main_box.append(self.status_bar)
+
     def _create_menubar(self) -> Gtk.Box:
         menu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
         menu_box.add_css_class("menubar")
@@ -163,6 +174,11 @@ class MainWindow(Gtk.ApplicationWindow):
                 background-color: @theme_bg_color;
                 border-bottom: 1px solid @borders;
             }
+            .status-bar {
+                background-color: @theme_bg_color;
+                border-top: 1px solid @borders;
+                font-size: 0.9em;
+            }
             popovermenubar {
                 background-color: @theme_bg_color;
                 border-bottom: 1px solid @borders;
@@ -208,13 +224,6 @@ class MainWindow(Gtk.ApplicationWindow):
         self.memory_view.set_regions(self.engine.text_region, self.engine.data_region)
         self.memory_view.ensure_populated()
         self.right_pane.append(self.memory_view)
-
-        self.status_bar = Gtk.Label(label="Ready")
-        self.status_bar.set_margin_top(5)
-        self.status_bar.set_margin_bottom(5)
-        self.status_bar.set_margin_start(10)
-        self.status_bar.set_margin_end(10)
-        self.right_pane.append(self.status_bar)
 
         return paned
 
@@ -347,7 +356,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _capture_snapshot(self) -> Snapshot:
         start, end = self.engine.data_region
-        data_to_hash = bytes(self.engine._memory[start:end+1])
+        data_to_hash = array.array('H', self.engine._memory[start:end+1]).tobytes()
 
         return self.state_manager.capture_snapshot(
             editor_text=self.editor_view.get_text(),
@@ -498,7 +507,7 @@ class MainWindow(Gtk.ApplicationWindow):
             text_start, text_end = self.engine.text_region
             max_addr = text_start - 1
 
-            for addr in range(text_start, text_end + 1):
+            for addr in range(text_end, text_start - 1, -1):
                 if self.engine._memory[addr] != 0 or addr in self.engine.comments:
                     max_addr = addr
                     break
