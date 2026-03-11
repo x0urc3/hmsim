@@ -87,14 +87,15 @@ class TestLayoutIntegrity:
         )
 
     def test_right_pane_child_count(self, main_window):
-        """Verify right_pane still has 3 children (RegisterView, MemoryView, status_bar)."""
+        """Verify right_pane still has 2 children (RegisterView, MemoryView)."""
         assert hasattr(main_window, 'right_pane'), (
-            "main_window must store right_pane as self.right_pane"
+            "main_window must store right_pane as self.right_pane for layout tests"
         )
         children = list(main_window.right_pane)
-        assert len(children) == 3, (
-            f"right_pane should have exactly 3 children, got {len(children)}"
+        assert len(children) == 2, (
+            f"right_pane should have exactly 2 children, got {len(children)}"
         )
+
 
     def test_editor_replaces_placeholder(self, main_window):
         """Verify the placeholder label is removed from left_pane."""

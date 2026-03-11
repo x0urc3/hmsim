@@ -99,6 +99,16 @@ class MainWindow(Gtk.ApplicationWindow):
         self._setup_styles()
         main_box.append(self._create_main_content())
 
+        # Status Bar Footer
+        self.status_bar = Gtk.Label(label="Ready")
+        self.status_bar.set_halign(Gtk.Align.START)
+        self.status_bar.set_margin_top(4)
+        self.status_bar.set_margin_bottom(4)
+        self.status_bar.set_margin_start(10)
+        self.status_bar.set_margin_end(10)
+        self.status_bar.add_css_class("status-bar")
+        main_box.append(self.status_bar)
+
     def _create_menubar(self) -> Gtk.Box:
         menu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
         menu_box.add_css_class("menubar")
@@ -164,6 +174,11 @@ class MainWindow(Gtk.ApplicationWindow):
                 background-color: @theme_bg_color;
                 border-bottom: 1px solid @borders;
             }
+            .status-bar {
+                background-color: @theme_bg_color;
+                border-top: 1px solid @borders;
+                font-size: 0.9em;
+            }
             popovermenubar {
                 background-color: @theme_bg_color;
                 border-bottom: 1px solid @borders;
@@ -209,13 +224,6 @@ class MainWindow(Gtk.ApplicationWindow):
         self.memory_view.set_regions(self.engine.text_region, self.engine.data_region)
         self.memory_view.ensure_populated()
         self.right_pane.append(self.memory_view)
-
-        self.status_bar = Gtk.Label(label="Ready")
-        self.status_bar.set_margin_top(5)
-        self.status_bar.set_margin_bottom(5)
-        self.status_bar.set_margin_start(10)
-        self.status_bar.set_margin_end(10)
-        self.right_pane.append(self.status_bar)
 
         return paned
 
