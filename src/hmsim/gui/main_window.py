@@ -79,6 +79,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self._setup_actions()
         self._connect_engine()
 
+        self._apply_saved_theme()
+
         # Capture initial base snapshot (empty state)
         initial_snapshot = self._capture_snapshot()
         self.state_manager.reset(initial_snapshot)
@@ -140,11 +142,21 @@ class MainWindow(Gtk.ApplicationWindow):
         setup_menu_model = Gio.Menu()
         setup_menu_model.append_submenu("Setup", setup_menu)
 
+        view_menu = Gio.Menu()
+        theme_menu = Gio.Menu()
+        theme_menu.append("Light", "app.set_theme_light")
+        theme_menu.append("Dark", "app.set_theme_dark")
+        theme_menu.append("System", "app.set_theme_system")
+        view_menu.append_submenu("Theme", theme_menu)
+        view_menu_model = Gio.Menu()
+        view_menu_model.append_submenu("View", view_menu)
+
         main_file_run = Gio.Menu()
         main_file_run.append_section(None, file_menu_model)
         main_file_run.append_section(None, edit_menu_model)
         main_file_run.append_section(None, run_menu_model)
         main_file_run.append_section(None, setup_menu_model)
+        main_file_run.append_section(None, view_menu_model)
         menubar_left = Gtk.PopoverMenuBar.new_from_model(main_file_run)
         menu_box.append(menubar_left)
 
@@ -163,33 +175,94 @@ class MainWindow(Gtk.ApplicationWindow):
         return menu_box
 
     def _setup_styles(self):
-        css_provider = Gtk.CssProvider()
-        css_provider.load_from_data(b"""
-            .toolbar {
-                padding: 4px;
-                border-bottom: 1px solid @borders;
-                background-color: @theme_bg_color;
-            }
-            .menubar {
-                background-color: @theme_bg_color;
-                border-bottom: 1px solid @borders;
-            }
-            .status-bar {
-                background-color: @theme_bg_color;
-                border-top: 1px solid @borders;
-                font-size: 0.9em;
-            }
-            popovermenubar {
-                background-color: @theme_bg_color;
-                border-bottom: 1px solid @borders;
-                min-height: 30px;
-            }
-        """)
+        self._css_provider = Gtk.CssProvider()
+        self._update_css_theme("system")
         Gtk.StyleContext.add_provider_for_display(
             self.get_display(),
-            css_provider,
+            self._css_provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
+
+    def _update_css_theme(self, theme: str):
+        if theme == "dark":
+            bg = "#2d2d2d"
+            fg = "#e0e0e0"
+            text_region = "#27ae60"
+            data_region = "#2980b9"
+            error_fg = "#e74c3c"
+        else:
+            bg = "#fafafa"
+            fg = "#2c3e50"
+            text_region = "#2ECC71"
+            data_region = "#3498DB"
+            error_fg = "#c0392b"
+
+        css_data = f"""
+            .toolbar {{
+                padding: 4px;
+                border-bottom: 1px solid @borders;
+                background-color: {bg};
+            }}
+            .menubar {{
+                background-color: {bg};
+                border-bottom: 1px solid @borders;
+            }}
+            .status-bar {{
+                background-color: {bg};
+                border-top: 1px solid @borders;
+                font-size: 0.9em;
+            }}
+            popovermenubar {{
+                background-color: {bg};
+                border-bottom: 1px solid @borders;
+                min-height: 30px;
+            }}
+            .region-text {{
+                background-color: {text_region};
+            }}
+            .region-data {{
+                background-color: {data_region};
+            }}
+            .status-error {{
+                color: {error_fg};
+            }}
+        """.encode()
+        self._css_provider.load_from_data(css_data)
+
+    def _apply_saved_theme(self):
+        from hmsim.gui.settings_manager import SettingsManager
+        settings = SettingsManager.get_instance()
+        theme = settings.get_theme()
+        self.apply_theme(theme)
+
+    def apply_theme(self, theme: str):
+        if theme not in ("light", "dark", "system"):
+            theme = "system"
+
+        try:
+            settings = Gtk.Settings.get_default()
+            if theme == "dark":
+                settings.set_property("gtk-application-prefer-dark-theme", True)
+                self._dark_mode = True
+            elif theme == "light":
+                settings.set_property("gtk-application-prefer-dark-theme", False)
+                self._dark_mode = False
+            else:
+                settings.set_property("gtk-application-prefer-dark-theme", False)
+                self._dark_mode = False
+
+            self._update_css_theme(theme)
+            self._notify_theme_change(theme)
+        except Exception:
+            pass
+
+    def _notify_theme_change(self, theme: str):
+        is_dark = theme == "dark"
+        if hasattr(self, 'memory_view'):
+            self.memory_view.set_theme(is_dark)
+        for window in self._help_windows.values():
+            if hasattr(window, 'set_theme'):
+                window.set_theme(is_dark)
 
     def _create_main_content(self) -> Gtk.Paned:
         paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)

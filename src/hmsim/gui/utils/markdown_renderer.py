@@ -20,45 +20,63 @@ try:
 except ImportError:
     MarkdownIt = None
 
+_is_dark_mode = False
+
+
+def set_dark_mode(enabled: bool):
+    global _is_dark_mode
+    _is_dark_mode = enabled
+
 
 def create_text_tags(buffer: Gtk.TextBuffer) -> dict:
     """Create and return a dictionary of Gtk.TextTags for markdown styling."""
     tags = {}
 
-    # Headings with more balanced sizes
+    if _is_dark_mode:
+        fg_h1 = "#ecf0f1"
+        fg_h2 = "#bdc3c7"
+        fg_h3 = "#95a5a6"
+        fg_link = "#5dade2"
+    else:
+        fg_h1 = "#2c3e50"
+        fg_h2 = "#34495e"
+        fg_h3 = "#465b6e"
+        fg_link = "#0066cc"
+
     tags["h1"] = buffer.create_tag("h1",
                                   weight=Pango.Weight.BOLD,
                                   size=20 * Pango.SCALE,
-                                  foreground="#2c3e50",
+                                  foreground=fg_h1,
                                   pixels_above_lines=12,
                                   pixels_below_lines=6)
 
     tags["h2"] = buffer.create_tag("h2",
                                   weight=Pango.Weight.BOLD,
                                   size=16 * Pango.SCALE,
-                                  foreground="#34495e",
+                                  foreground=fg_h2,
                                   pixels_above_lines=10,
                                   pixels_below_lines=5)
 
     tags["h3"] = buffer.create_tag("h3",
                                   weight=Pango.Weight.BOLD,
                                   size=14 * Pango.SCALE,
-                                  foreground="#465b6e",
+                                  foreground=fg_h3,
                                   pixels_above_lines=8,
                                   pixels_below_lines=4)
 
-    # Basic formatting
     tags["bold"] = buffer.create_tag("bold", weight=Pango.Weight.BOLD)
     tags["italic"] = buffer.create_tag("italic", style=Pango.Style.ITALIC)
 
-    # Links
     tags["link"] = buffer.create_tag("link",
-                                    foreground="#0066cc",
+                                    foreground=fg_link,
                                     underline=Pango.Underline.SINGLE)
 
-    # Monospaced blocks with theme-adaptive background (semi-transparent grey)
-    bg_rgba = Gdk.RGBA()
-    bg_rgba.parse("rgba(128, 128, 128, 0.1)")
+    if _is_dark_mode:
+        bg_rgba = Gdk.RGBA()
+        bg_rgba.parse("rgba(255, 255, 255, 0.08)")
+    else:
+        bg_rgba = Gdk.RGBA()
+        bg_rgba.parse("rgba(128, 128, 128, 0.1)")
 
     tags["code"] = buffer.create_tag("code",
                                     family="monospace",
@@ -72,16 +90,13 @@ def create_text_tags(buffer: Gtk.TextBuffer) -> dict:
                                          pixels_above_lines=5,
                                          pixels_below_lines=5)
 
-    # Table formatting
     tags["table"] = buffer.create_tag("table", family="monospace")
     tags["table_header"] = buffer.create_tag("table_header",
                                             weight=Pango.Weight.BOLD,
                                             family="monospace")
 
-    # List formatting
     tags["list"] = buffer.create_tag("list", left_margin=20)
 
-    # Paragraph spacing
     tags["p"] = buffer.create_tag("p", pixels_below_lines=8)
 
     return tags

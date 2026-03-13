@@ -33,8 +33,16 @@ class SetupDialog(Gtk.Dialog):
         self._data_start = current_data_region[0]
         self._data_end = current_data_region[1]
         self._arch = current_arch
+        self._is_dark_mode = self._detect_dark_mode()
 
         self._setup_ui()
+
+    def _detect_dark_mode(self) -> bool:
+        try:
+            settings = Gtk.Settings.get_default()
+            return settings.get_property("gtk-application-prefer-dark-theme")
+        except Exception:
+            return False
 
     def _setup_ui(self):
         main_box = self.get_content_area()
@@ -72,7 +80,8 @@ class SetupDialog(Gtk.Dialog):
 
         text_frame = Gtk.Frame()
         text_label = Gtk.Label()
-        text_label.set_markup("<span foreground='#2ECC71'>█</span> Text Section (Executable Code)")
+        text_color = "#27ae60" if self._is_dark_mode else "#2ECC71"
+        text_label.set_markup(f"<span foreground='{text_color}'>█</span> Text Section (Executable Code)")
         text_frame.set_label_widget(text_label)
         text_frame.set_margin_bottom(10)
         main_box.append(text_frame)
@@ -103,7 +112,8 @@ class SetupDialog(Gtk.Dialog):
 
         data_frame = Gtk.Frame()
         data_label = Gtk.Label()
-        data_label.set_markup("<span foreground='#3498DB'>█</span> Data Section")
+        data_color = "#2980b9" if self._is_dark_mode else "#3498DB"
+        data_label.set_markup(f"<span foreground='{data_color}'>█</span> Data Section")
         data_frame.set_label_widget(data_label)
         data_frame.set_margin_bottom(10)
         main_box.append(data_frame)

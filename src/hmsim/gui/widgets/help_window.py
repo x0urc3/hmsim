@@ -16,7 +16,7 @@ try:
 except ImportError:
     GTK_AVAILABLE = False
 
-from hmsim.gui.utils.markdown_renderer import apply_markdown_to_buffer
+from hmsim.gui.utils.markdown_renderer import apply_markdown_to_buffer, set_dark_mode
 
 
 class HelpWindow(Gtk.Window):
@@ -27,7 +27,18 @@ class HelpWindow(Gtk.Window):
             default_height=800
         )
         self.set_resizable(True)
+        self._is_dark_mode = False
         self._setup_ui()
+
+    def set_theme(self, is_dark: bool):
+        self._is_dark_mode = is_dark
+        set_dark_mode(is_dark)
+        if self.text_view.get_buffer().get_char_count() > 0:
+            self._reload_content()
+
+    def _reload_content(self):
+        if hasattr(self, '_last_file_path'):
+            self.load_markdown(self._last_file_path)
 
     def _setup_ui(self):
         scrolled_window = Gtk.ScrolledWindow()
@@ -53,6 +64,7 @@ class HelpWindow(Gtk.Window):
         scrolled_window.set_child(self.text_view)
 
     def load_markdown(self, file_path: str) -> bool:
+        self._last_file_path = file_path
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()

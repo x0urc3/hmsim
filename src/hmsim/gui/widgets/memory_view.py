@@ -31,6 +31,7 @@ class MemoryView(Gtk.Box):
         self._data_region = (0x0101, 0xFFFF)
         self._modified_addresses = set()
         self._is_populated = False
+        self._is_dark_mode = False
         self._setup_ui()
 
     def _setup_ui(self):
@@ -94,12 +95,26 @@ class MemoryView(Gtk.Box):
 
         self._populate_model()
 
+    def set_theme(self, is_dark: bool):
+        self._is_dark_mode = is_dark
+        if self._is_populated:
+            for addr in range(65536):
+                if addr < len(self._model):
+                    region_color = self._get_region_color(addr)
+                    icon = self._model[addr][0]
+                    value = self._model[addr][3]
+                    self._model[addr] = [icon, region_color, f"0x{addr:04X}", value]
+
     def _get_region_color(self, addr: int) -> str:
         if self._text_region[0] <= addr <= self._text_region[1]:
+            if self._is_dark_mode:
+                return "#27ae60"
             return "#2ECC71"
         if self._data_region[0] <= addr <= self._data_region[1]:
+            if self._is_dark_mode:
+                return "#2980b9"
             return "#3498DB"
-        return None
+        return ""
 
     def _populate_model(self):
         if self._is_populated:

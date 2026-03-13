@@ -40,6 +40,25 @@ class HMApplication(Gtk.Application):
     def on_startup(self, app):
         self._setup_actions()
         self._setup_menus()
+        self._apply_initial_theme()
+
+    def _apply_initial_theme(self):
+        from hmsim.gui.settings_manager import SettingsManager
+        settings = SettingsManager.get_instance()
+        theme = settings.get_theme()
+        self._apply_gtk_theme(theme)
+
+    def _apply_gtk_theme(self, theme: str):
+        try:
+            settings = Gtk.Settings.get_default()
+            if theme == "dark":
+                settings.set_property("gtk-application-prefer-dark-theme", True)
+            elif theme == "light":
+                settings.set_property("gtk-application-prefer-dark-theme", False)
+            else:
+                settings.set_property("gtk-application-prefer-dark-theme", False)
+        except Exception:
+            pass
 
     def _setup_actions(self):
         quit_action = Gio.SimpleAction.new("quit", None)
@@ -49,6 +68,18 @@ class HMApplication(Gtk.Application):
         about_action = Gio.SimpleAction.new("about", None)
         about_action.connect("activate", self._on_about)
         self.add_action(about_action)
+
+        theme_light = Gio.SimpleAction.new("set_theme_light", None)
+        theme_light.connect("activate", self._on_theme_change("light"))
+        self.add_action(theme_light)
+
+        theme_dark = Gio.SimpleAction.new("set_theme_dark", None)
+        theme_dark.connect("activate", self._on_theme_change("dark"))
+        self.add_action(theme_dark)
+
+        theme_system = Gio.SimpleAction.new("set_theme_system", None)
+        theme_system.connect("activate", self._on_theme_change("system"))
+        self.add_action(theme_system)
 
     def _on_quit(self, action, param):
         print("Action: quit triggered")
@@ -69,6 +100,15 @@ class HMApplication(Gtk.Application):
                 license_type=Gtk.License.APACHE_2_0,
             )
             dialog.present()
+
+    def _on_theme_change(self, theme):
+        def handler(action, param):
+            from hmsim.gui.settings_manager import SettingsManager
+            settings = SettingsManager.get_instance()
+            settings.set_theme(theme)
+            if hasattr(self, 'win'):
+                self.win.apply_theme(theme)
+        return handler
 
     def _setup_menus(self):
         self.menubar_model = Gio.Menu()
@@ -91,6 +131,14 @@ class HMApplication(Gtk.Application):
         run_menu.append("Step", "win.step")
         run_menu.append("Reset", "win.reset")
         self.menubar_model.append_submenu("Run", run_menu)
+
+        view_menu = Gio.Menu()
+        theme_section = Gio.Menu()
+        theme_section.append("Light", "app.set_theme_light")
+        theme_section.append("Dark", "app.set_theme_dark")
+        theme_section.append("System", "app.set_theme_system")
+        view_menu.append_section(None, theme_section)
+        self.menubar_model.append_submenu("View", view_menu)
 
         help_menu = Gio.Menu()
         help_menu.append("Tutorial", "win.show_tutorial")
