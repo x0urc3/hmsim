@@ -174,6 +174,8 @@ class MemoryView(Gtk.Box):
             else:
                 addr = int(text, 0)
             if 0 <= addr < 65536:
+                if self._is_populated is not True or addr >= len(self._model):
+                    return
                 path = Gtk.TreePath.new_from_string(str(addr))
                 self.tree_view.scroll_to_cell(path, None, True, 0.5)
                 self.tree_view.get_selection().select_path(path)
@@ -194,44 +196,48 @@ class MemoryView(Gtk.Box):
                 self._modified_addresses.add(addr)
 
     def set_pc(self, address):
-        if not 0 <= address < 65536:
-            return
-        if self._last_pc >= 0 and self._last_pc < len(self._model):
-            self._model[self._last_pc][0] = ""
-        self._model[address][0] = "go-next-symbolic"
+        old_pc = self._last_pc
         self._last_pc = address
+
+        if self._is_populated is not True:
+            return
+
+        if 0 <= old_pc < len(self._model):
+            self._model[old_pc][0] = ""
+
+        if 0 <= address < len(self._model):
+            self._model[address][0] = "go-next-symbolic"
 
     def set_regions(self, text_range: tuple[int, int], data_range: tuple[int, int]) -> None:
         self._text_region = text_range
         self._data_region = data_range
-        if self._is_populated:
-            for addr in range(65536):
-                if addr < len(self._model):
-                    region_color = self._get_region_color(addr)
-                    current_value = self._model[addr][3]
-                    self._model[addr][1] = region_color
+        if self._is_populated is True:
+            self.tree_view.queue_draw()
 
     def highlight_address(self, address):
         if 0 <= address < 65536:
-            path = Gtk.TreePath.new_from_string(str(address))
-            self.tree_view.scroll_to_cell(path, None, True, 0.5)
-            self.tree_view.get_selection().select_path(path)
-            self._highlighted_path = path
+            if self._is_populated is True and address < len(self._model):
+                path = Gtk.TreePath.new_from_string(str(address))
+                self.tree_view.scroll_to_cell(path, None, True, 0.5)
+                self.tree_view.get_selection().select_path(path)
+                self._highlighted_path = path
 
     def clear_highlight(self):
         self._highlighted_path = None
-        self.tree_view.get_selection().unselect_all()
+        if self._is_populated is True:
+            self.tree_view.get_selection().unselect_all()
 
     def update(self, address=None):
         if address is not None and 0 <= address < 65536:
-            value = self._memory[address]
-            icon = self._model[address][0]
-            # Column 1 is no longer used for color hex, data_func handles it
-            self._model[address] = [icon, "", f"0x{address:04X}", f"0x{value:04X}"]
+            if self._is_populated is True and address < len(self._model):
+                value = self._memory[address]
+                icon = self._model[address][0]
+                # Column 1 is no longer used for color hex, data_func handles it
+                self._model[address] = [icon, "", f"0x{address:04X}", f"0x{value:04X}"]
 
     def refresh_addresses(self, addresses):
         """Refresh specific memory addresses in the display."""
-        if not self._is_populated:
+        if self._is_populated is not True:
             return
         for addr in addresses:
             if 0 <= addr < 65536 and addr < len(self._model):
@@ -239,6 +245,7 @@ class MemoryView(Gtk.Box):
                 icon = self._model[addr][0]
                 self._model[addr] = [icon, "", f"0x{addr:04X}", f"0x{value:04X}"]
                 self._modified_addresses.add(addr)
+
 
     def refresh_all(self):
         """Refresh all memory values in the display in batches."""
@@ -277,6 +284,8 @@ class MemoryView(Gtk.Box):
             if not 0 <= value <= 0xFFFF:
                 value = value & 0xFFFF
             address = int(path)
+            if self._is_populated is not True or address >= len(self._model):
+                return
             self._memory[address] = value
             icon = self._model[address][0]
             self._model[address] = [icon, "", f"0x{address:04X}", f"0x{value:04X}"]
