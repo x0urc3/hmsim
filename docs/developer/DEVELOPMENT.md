@@ -82,7 +82,8 @@ hmsim
 ### Key Features:
 - **Assembly Editor**: Real-time assembly of mnemonics into machine code. Supports inline comments and basic syntax highlighting.
 - **Register View**: Live display of active Processor Architecture, PC, AC, IR, SR, and execution cycles. Supports **direct editing** of PC, AC, IR, and SR registers (hex/decimal).
-- **Memory Grid**: Scrollable 64KB memory view with "Go to Address" functionality. Supports direct cell editing (hex/decimal) which triggers real-time re-disassembly in the Assembly Editor.
+- **Memory Grid**: Scrollable 64KB memory view with "Go to Address" functionality. Supports direct cell editing (hex/decimal). Optimized with asynchronous background population and on-demand cell coloring to ensure instant application startup.
+- **Theme Support**: Integrated Light and Dark modes accessible via the View menu, with persistent storage of user preferences.
 - **Execution Controls**: Single-step execution (F10), continuous run (F5), and reset (F12).
 - **Simulator Setup**: Hot-swapping between HMv1 through HMv4 architectures and defining memory regions.
 - **Persistence**: Load and save complete simulator states as `.hm` JSON files (including setup metadata).
@@ -217,6 +218,11 @@ The `MainWindow` acts as a lean coordinator. It initializes the UI components an
 #### State and History (`state_manager.py`)
 A standalone manager for capturing simulator snapshots and maintaining the undo/redo history stack.
 
+#### Settings and Persistence (`settings_manager.py`)
+A singleton manager that handles persistent application settings (e.g., theme preference).
+- **Storage**: Settings are stored in a JSON file at `~/.config/hmsim/settings.json` (Linux) or `%APPDATA%\hmsim\settings.json` (Windows).
+- **Theme Persistence**: Coordinates with `MainWindow` to apply the saved theme on startup.
+
 #### Version Management and Setup
 - **`SetupDialog`**: Spawns from the "Setup" menu to configure memory regions and engine architectures.
 - **Hot-Swapping**: When the architecture changes, the controllers orchestrate the preservation of memory and registers while the `HMEngine` is re-initialized with the new strategy.
@@ -225,5 +231,5 @@ A standalone manager for capturing simulator snapshots and maintaining the undo/
 A custom Markdown-to-GTK-TextBuffer renderer built on `markdown-it-py`. It supports:
 - **Rich Styling:** Headings (h1-h3), bold, italic, and inline code.
 - **Tables:** Aligned text-based tables with monospaced font and cell formatting.
-- **Theme Support:** Uses semi-transparent backgrounds for code blocks to remain visible on both light and dark system themes.
+- **Dynamic Theme Support:** Explicitly switches color palettes via `set_dark_mode(bool)` to maintain readability in both light and dark modes. Uses semi-transparent backgrounds for code blocks.
 - **Nested Formatting:** Employs a tag stack and recursive token processing for accurate rendering of nested styles.

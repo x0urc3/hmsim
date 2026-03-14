@@ -8,7 +8,7 @@ This guide provides detailed information on using the HM Simulator interactive i
 
 When the simulator starts, you'll see:
 
-- **Header Bar** (top): Contains file operations (New, Open, Save, Save As), edit operations (Undo, Redo), and execution controls.
+- **Header Bar** (top): Contains file operations (New, Open, Save, Save As), edit operations (Undo, Redo), view operations (Theme switching), and execution controls.
 - **Main Area** (center): Assembly Editor for entering your program and comments.
 - **Right Panel** (right): Shows the active Processor Architecture, register values (PC, AC, IR, SR), and memory contents.
 - **Status Bar** (bottom): Displays real-time simulator status (e.g., "Loading...", "Saved to...") and error messages.
@@ -59,6 +59,13 @@ Switching versions updates the available instructions while preserving your curr
 - **Undo** (`Ctrl+Z`): Revert the last change to the assembly or memory.
 - **Redo** (`Ctrl+Shift+Z` or `Ctrl+Y`): Re-apply the last undone change.
 - The simulator tracks a complete history of your session, including assembly edits, memory modifications, and architecture changes.
+
+### View Operations (Menu: View)
+- **Theme**: Toggle between **Light**, **Dark**, and **System** themes.
+    - **Light**: A crisp, high-contrast light interface.
+    - **Dark**: A modern dark interface designed for reduced eye strain.
+    - **System**: Automatically follows your operating system's dark/light preference.
+- Theme settings are automatically saved and will persist the next time you open the application.
 
 ### Execution Controls (Menu: Run)
 - **Step** (`F10`): Execute one instruction and update all displays.
