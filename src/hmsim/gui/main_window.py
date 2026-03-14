@@ -292,7 +292,7 @@ class MainWindow(Gtk.ApplicationWindow):
             .region-data {{
                 background-color: {data_region};
             }}
-            .status-error {{
+            .error {{
                 color: {error_fg};
             }}
         """.encode()
