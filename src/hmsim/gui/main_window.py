@@ -198,6 +198,7 @@ class MainWindow(Gtk.ApplicationWindow):
             data_region = "#2980b9"
             error_fg = "#e74c3c"
             popover_border = "#444444"
+            strong_border = "#ffffff"
         else:
             bg = "#fafafa"
             fg = "#2c3e50"
@@ -207,6 +208,7 @@ class MainWindow(Gtk.ApplicationWindow):
             data_region = "#3498DB"
             error_fg = "#c0392b"
             popover_border = "#dddddd"
+            strong_border = "#000000"
 
         css_data = f"""
             window, .main-container, .register-box, .editor-box, scrolledwindow {{
@@ -245,6 +247,13 @@ class MainWindow(Gtk.ApplicationWindow):
                 color: {fg};
                 border-right: 1px solid {popover_border};
                 border-bottom: 1px solid {popover_border};
+                border-left: none;
+            }}
+            /* Address and PC Arrow header highlights */
+            treeview header button:nth-child(1),
+            treeview header button:nth-child(3) {{
+                border-left: 1px solid {strong_border};
+                border-right: 1px solid {strong_border};
             }}
             treeview.view cell {{
                 border-right: 1px solid {popover_border};
