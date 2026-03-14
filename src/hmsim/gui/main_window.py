@@ -79,6 +79,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self._setup_actions()
         self._connect_engine()
 
+        self._apply_saved_theme()
+
         # Capture initial base snapshot (empty state)
         initial_snapshot = self._capture_snapshot()
         self.state_manager.reset(initial_snapshot)
@@ -89,6 +91,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.set_titlebar(self._create_header_bar())
 
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
+        main_box.add_css_class("main-container")
         self.set_child(main_box)
 
         if application:
@@ -100,14 +103,18 @@ class MainWindow(Gtk.ApplicationWindow):
         main_box.append(self._create_main_content())
 
         # Status Bar Footer
+        status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
+        status_box.add_css_class("status-bar")
+
         self.status_bar = Gtk.Label(label="Ready")
         self.status_bar.set_halign(Gtk.Align.START)
         self.status_bar.set_margin_top(4)
         self.status_bar.set_margin_bottom(4)
         self.status_bar.set_margin_start(10)
         self.status_bar.set_margin_end(10)
-        self.status_bar.add_css_class("status-bar")
-        main_box.append(self.status_bar)
+
+        status_box.append(self.status_bar)
+        main_box.append(status_box)
 
     def _create_menubar(self) -> Gtk.Box:
         menu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
@@ -140,11 +147,21 @@ class MainWindow(Gtk.ApplicationWindow):
         setup_menu_model = Gio.Menu()
         setup_menu_model.append_submenu("Setup", setup_menu)
 
+        view_menu = Gio.Menu()
+        theme_menu = Gio.Menu()
+        theme_menu.append("Light", "app.set_theme_light")
+        theme_menu.append("Dark", "app.set_theme_dark")
+        theme_menu.append("System", "app.set_theme_system")
+        view_menu.append_submenu("Theme", theme_menu)
+        view_menu_model = Gio.Menu()
+        view_menu_model.append_submenu("View", view_menu)
+
         main_file_run = Gio.Menu()
         main_file_run.append_section(None, file_menu_model)
         main_file_run.append_section(None, edit_menu_model)
         main_file_run.append_section(None, run_menu_model)
         main_file_run.append_section(None, setup_menu_model)
+        main_file_run.append_section(None, view_menu_model)
         menubar_left = Gtk.PopoverMenuBar.new_from_model(main_file_run)
         menu_box.append(menubar_left)
 
@@ -163,33 +180,209 @@ class MainWindow(Gtk.ApplicationWindow):
         return menu_box
 
     def _setup_styles(self):
-        css_provider = Gtk.CssProvider()
-        css_provider.load_from_data(b"""
-            .toolbar {
-                padding: 4px;
-                border-bottom: 1px solid @borders;
-                background-color: @theme_bg_color;
-            }
-            .menubar {
-                background-color: @theme_bg_color;
-                border-bottom: 1px solid @borders;
-            }
-            .status-bar {
-                background-color: @theme_bg_color;
-                border-top: 1px solid @borders;
-                font-size: 0.9em;
-            }
-            popovermenubar {
-                background-color: @theme_bg_color;
-                border-bottom: 1px solid @borders;
-                min-height: 30px;
-            }
-        """)
+        self._css_provider = Gtk.CssProvider()
+        self._update_css_theme("system")
         Gtk.StyleContext.add_provider_for_display(
             self.get_display(),
-            css_provider,
+            self._css_provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
+
+    def _update_css_theme(self, theme: str):
+        if theme == "dark":
+            bg = "#2d2d2d"
+            fg = "#e0e0e0"
+            hover_bg = "#404040"
+            hover_fg = "#ffffff"
+            text_region = "#27ae60"
+            data_region = "#2980b9"
+            error_fg = "#e74c3c"
+            popover_border = "#444444"
+        else:
+            bg = "#fafafa"
+            fg = "#2c3e50"
+            hover_bg = "#e0e0e0"
+            hover_fg = "#000000"
+            text_region = "#2ECC71"
+            data_region = "#3498DB"
+            error_fg = "#c0392b"
+            popover_border = "#dddddd"
+
+        css_data = f"""
+            window, .main-container, .register-box, .editor-box, scrolledwindow {{
+                background-color: {bg};
+                color: {fg};
+            }}
+            .custom-header {{
+                background-color: {bg};
+                color: {fg};
+                border-bottom: 1px solid @borders;
+            }}
+            label {{
+                color: {fg};
+            }}
+            box, paned {{
+                background-color: {bg};
+            }}
+            textview, textview text {{
+                background-color: {bg};
+                color: {fg};
+            }}
+            treeview {{
+                background-color: {bg};
+                color: {fg};
+                border: 1px solid {popover_border};
+            }}
+            treeview.view {{
+                background-color: {bg};
+                color: {fg};
+            }}
+            treeview.view:hover {{
+                background-color: {hover_bg};
+            }}
+            treeview header button {{
+                background-color: {bg};
+                color: {fg};
+                border: none;
+                border-right: 1px solid {popover_border};
+                border-bottom: 1px solid {popover_border};
+                border-radius: 0;
+                padding: 4px 8px;
+            }}
+            treeview header button:last-child {{
+                border-right: none;
+            }}
+            treeview header {{
+                border-bottom: 1px solid {popover_border};
+                background-color: {bg};
+            }}
+            treeview.view cell {{
+                border-right: 1px solid {popover_border};
+                border-bottom: 1px solid {popover_border};
+            }}
+            entry {{
+                background-color: {bg};
+                color: {fg};
+                border: 1px solid @borders;
+            }}
+            button {{
+                color: {fg};
+            }}
+            popover content, popover list, popover.menu, popover.menu box {{
+                background-color: {bg};
+                color: {fg};
+                border: 1px solid {popover_border};
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                padding: 4px;
+                border-radius: 8px;
+            }}
+            popover arrow {{
+                background-color: {bg};
+                border: 1px solid {popover_border};
+            }}
+            popover label {{
+                background-color: transparent;
+                padding: 4px 8px;
+            }}
+            popover contents {{
+                background-color: {bg};
+                color: {fg};
+                padding: 0;
+                margin: 0;
+            }}
+            modelbutton {{
+                border-radius: 4px;
+                margin: 1px 2px;
+                min-height: 28px;
+            }}
+            modelbutton:hover, modelbutton:active,
+            popover list row:hover, popover list row:active,
+            .menubar popover button:hover {{
+                background-color: {hover_bg};
+                color: {hover_fg};
+                border: none;
+            }}
+            modelbutton:hover label,
+            popover list row:hover label,
+            .menubar popover button:hover label {{
+                color: {hover_fg};
+            }}
+            .toolbar {{
+                padding: 4px;
+                border-bottom: 1px solid @borders;
+                background-color: {bg};
+            }}
+            .toolbar button {{
+                color: {fg};
+            }}
+            .menubar {{
+                background-color: {bg};
+                border-bottom: 1px solid @borders;
+            }}
+            .status-bar {{
+                background-color: {bg};
+                border-top: 1px solid @borders;
+                font-size: 0.9em;
+            }}
+            popovermenubar {{
+                background-color: {bg};
+                border-bottom: 1px solid @borders;
+                min-height: 30px;
+            }}
+            popovermenubar > contents {{
+                background-color: {bg};
+                color: {fg};
+            }}
+            .region-text {{
+                background-color: {text_region};
+            }}
+            .region-data {{
+                background-color: {data_region};
+            }}
+            .error {{
+                color: {error_fg};
+            }}
+        """.encode()
+        self._css_provider.load_from_data(css_data)
+
+    def _apply_saved_theme(self):
+        from hmsim.gui.settings_manager import SettingsManager
+        settings = SettingsManager.get_instance()
+        theme = settings.get_theme()
+        self.apply_theme(theme)
+
+    def apply_theme(self, theme: str):
+        if theme not in ("light", "dark", "system"):
+            theme = "system"
+
+        try:
+            settings = Gtk.Settings.get_default()
+            if theme == "dark":
+                settings.set_property("gtk-application-prefer-dark-theme", True)
+                self._dark_mode = True
+            elif theme == "light":
+                settings.set_property("gtk-application-prefer-dark-theme", False)
+                self._dark_mode = False
+            else:
+                settings.set_property("gtk-application-prefer-dark-theme", False)
+                self._dark_mode = False
+
+            self._update_css_theme(theme)
+            self._notify_theme_change(theme)
+        except Exception:
+            pass
+
+    def _notify_theme_change(self, theme: str):
+        is_dark = theme == "dark"
+        if hasattr(self, 'memory_view'):
+            self.memory_view.set_theme(is_dark)
+        if hasattr(self, 'editor_view') and hasattr(self.editor_view, 'set_theme'):
+            self.editor_view.set_theme(is_dark)
+        if hasattr(self, 'register_view') and hasattr(self.register_view, 'set_theme'):
+            self.register_view.set_theme(is_dark)
+        for window in self._help_windows.values():
+            if hasattr(window, 'set_theme'):
+                window.set_theme(is_dark)
 
     def _create_main_content(self) -> Gtk.Paned:
         paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
@@ -197,6 +390,7 @@ class MainWindow(Gtk.ApplicationWindow):
         paned.set_vexpand(True)
 
         self.left_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
+        self.left_pane.add_css_class("editor-box")
         paned.set_start_child(self.left_pane)
         paned.set_resize_start_child(True)
         paned.set_shrink_start_child(False)
@@ -207,6 +401,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.left_pane.append(self.editor_view)
 
         self.right_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=False, vexpand=True)
+        self.right_pane.add_css_class("register-box")
         self.right_pane.set_size_request(300, -1)
         paned.set_end_child(self.right_pane)
         paned.set_resize_end_child(False)
@@ -229,6 +424,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _create_header_bar(self) -> Gtk.HeaderBar:
         header = Gtk.HeaderBar()
+        header.add_css_class("custom-header")
         header.set_show_title_buttons(True)
 
         self.title_label = Gtk.Label(label="HM Simulator")
@@ -244,16 +440,19 @@ class MainWindow(Gtk.ApplicationWindow):
         toolbar.set_margin_end(10)
         toolbar.add_css_class("toolbar")
 
-        self.btn_reset = Gtk.Button(label="Reset")
+        self.btn_reset = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
+        self.btn_reset.set_tooltip_text("Reset Simulator")
         self.btn_reset.set_action_name("win.reset")
         toolbar.append(self.btn_reset)
 
-        self.btn_run = Gtk.Button(label="Run")
+        self.btn_run = Gtk.Button.new_from_icon_name("media-playback-start-symbolic")
+        self.btn_run.set_tooltip_text("Run Simulation")
         self.btn_run.set_size_request(60, -1)
         self.btn_run.set_action_name("win.run")
         toolbar.append(self.btn_run)
 
-        self.btn_step = Gtk.Button(label="Step")
+        self.btn_step = Gtk.Button.new_from_icon_name("media-skip-forward-symbolic")
+        self.btn_step.set_tooltip_text("Step Instruction")
         self.btn_step.set_action_name("win.step")
         toolbar.append(self.btn_step)
 
@@ -560,7 +759,12 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _set_controls_sensitivity(self, sensitive: bool):
         """Enable or disable UI controls based on simulation state."""
-        self.btn_run.set_label("Run" if sensitive else "Stop")
+        if sensitive:
+            self.btn_run.set_icon_name("media-playback-start-symbolic")
+            self.btn_run.set_tooltip_text("Run Simulation")
+        else:
+            self.btn_run.set_icon_name("media-playback-stop-symbolic")
+            self.btn_run.set_tooltip_text("Stop Simulation")
         self.btn_step.set_sensitive(sensitive)
         self.btn_reset.set_sensitive(sensitive)
 

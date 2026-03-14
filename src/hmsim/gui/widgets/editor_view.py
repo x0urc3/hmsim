@@ -54,6 +54,10 @@ class EditorView(Gtk.ScrolledWindow):
     def set_architecture(self, arch: str):
         self._arch = arch
 
+    def set_theme(self, is_dark: bool):
+        """Update internal theme state if needed."""
+        self._is_dark_mode = is_dark
+
     def set_text_region(self, text_region: tuple[int, int]):
         self._text_region = text_region
 

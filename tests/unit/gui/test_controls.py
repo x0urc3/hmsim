@@ -64,7 +64,8 @@ class TestRunStopToggle:
         main_window.engine._memory[0] = 0x1100
         main_window.simulation_controller.start()
         assert main_window.simulation_controller.is_running is True
-        assert main_window.btn_run.get_label() == "Stop"
+        assert main_window.btn_run.get_icon_name() == "media-playback-stop-symbolic"
+        assert main_window.btn_run.get_tooltip_text() == "Stop Simulation"
 
     def test_step_disabled_while_running(self, main_window):
         main_window.simulation_controller.start()
@@ -78,7 +79,8 @@ class TestRunStopToggle:
         main_window.simulation_controller.start()
         main_window.simulation_controller.stop()
         assert main_window.simulation_controller.is_running is False
-        assert main_window.btn_run.get_label() == "Run"
+        assert main_window.btn_run.get_icon_name() == "media-playback-start-symbolic"
+        assert main_window.btn_run.get_tooltip_text() == "Run Simulation"
 
     def test_buttons_enabled_after_stop(self, main_window):
         main_window.simulation_controller.start()

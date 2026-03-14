@@ -41,8 +41,8 @@ class TestMenuBar:
         menubar = getattr(app, 'menubar_model', app.get_menubar())
         assert menubar is not None
 
-        # Check menus exist (File, Edit, Run, Help)
-        assert menubar.get_n_items() == 4
+        # Check menus exist (File, Edit, Run, View, Help)
+        assert menubar.get_n_items() == 5
 
         # Check items in first menu (File)
         file_menu_item = menubar.get_item_link(0, Gio.MENU_LINK_SUBMENU)
