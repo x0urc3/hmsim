@@ -28,11 +28,22 @@ class HelpWindow(Gtk.Window):
         )
         self.set_resizable(True)
         self._is_dark_mode = False
+        self._css_provider = Gtk.CssProvider()
         self._setup_ui()
 
     def set_theme(self, is_dark: bool):
         self._is_dark_mode = is_dark
         set_dark_mode(is_dark)
+
+        bg = "#2d2d2d" if is_dark else "#fafafa"
+        fg = "#e0e0e0" if is_dark else "#2c3e50"
+
+        css_data = f"""
+            textview {{ font-size: 14px; background-color: {bg}; color: {fg}; }}
+            textview text {{ background-color: {bg}; color: {fg}; }}
+        """.encode()
+        self._css_provider.load_from_data(css_data)
+
         if self.text_view.get_buffer().get_char_count() > 0:
             self._reload_content()
 
@@ -55,11 +66,10 @@ class HelpWindow(Gtk.Window):
         self.text_view.set_left_margin(20)
         self.text_view.set_right_margin(20)
 
-        css_provider = Gtk.CssProvider()
-        css_provider.load_from_data(b"textview { font-size: 14px; }")
         self.text_view.get_style_context().add_provider(
-            css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            self._css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
+        self.set_theme(self._is_dark_mode)
 
         scrolled_window.set_child(self.text_view)
 

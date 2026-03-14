@@ -91,6 +91,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.set_titlebar(self._create_header_bar())
 
         main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
+        main_box.add_css_class("main-container")
         self.set_child(main_box)
 
         if application:
@@ -187,21 +188,85 @@ class MainWindow(Gtk.ApplicationWindow):
         if theme == "dark":
             bg = "#2d2d2d"
             fg = "#e0e0e0"
+            hover_bg = "#404040"
+            hover_fg = "#ffffff"
             text_region = "#27ae60"
             data_region = "#2980b9"
             error_fg = "#e74c3c"
         else:
             bg = "#fafafa"
             fg = "#2c3e50"
+            hover_bg = "#e0e0e0"
+            hover_fg = "#000000"
             text_region = "#2ECC71"
             data_region = "#3498DB"
             error_fg = "#c0392b"
 
         css_data = f"""
+            window, .main-container, .register-box {{
+                background-color: {bg};
+                color: {fg};
+            }}
+            .custom-header {{
+                background-color: {bg};
+                color: {fg};
+                border-bottom: 1px solid @borders;
+            }}
+            label {{
+                color: {fg};
+            }}
+            box, paned {{
+                background-color: {bg};
+            }}
+            textview text {{
+                background-color: {bg};
+                color: {fg};
+            }}
+            treeview {{
+                background-color: {bg};
+                color: {fg};
+            }}
+            treeview.view {{
+                background-color: {bg};
+                color: {fg};
+            }}
+            treeview header button {{
+                background-color: {bg};
+                color: {fg};
+            }}
+            entry {{
+                background-color: {bg};
+                color: {fg};
+                border: 1px solid @borders;
+            }}
+            button {{
+                color: {fg};
+            }}
+            popover content, popover list {{
+                background-color: {bg};
+                color: {fg};
+            }}
+            popover label {{
+                background-color: transparent;
+            }}
+            modelbutton:hover, modelbutton:active,
+            popover list row:hover, popover list row:active,
+            .menubar popover button:hover {{
+                background-color: {hover_bg};
+                color: {hover_fg};
+            }}
+            modelbutton:hover label,
+            popover list row:hover label,
+            .menubar popover button:hover label {{
+                color: {hover_fg};
+            }}
             .toolbar {{
                 padding: 4px;
                 border-bottom: 1px solid @borders;
                 background-color: {bg};
+            }}
+            .toolbar button {{
+                color: {fg};
             }}
             .menubar {{
                 background-color: {bg};
@@ -216,6 +281,10 @@ class MainWindow(Gtk.ApplicationWindow):
                 background-color: {bg};
                 border-bottom: 1px solid @borders;
                 min-height: 30px;
+            }}
+            popovermenubar > contents {{
+                background-color: {bg};
+                color: {fg};
             }}
             .region-text {{
                 background-color: {text_region};
@@ -260,6 +329,10 @@ class MainWindow(Gtk.ApplicationWindow):
         is_dark = theme == "dark"
         if hasattr(self, 'memory_view'):
             self.memory_view.set_theme(is_dark)
+        if hasattr(self, 'editor_view') and hasattr(self.editor_view, 'set_theme'):
+            self.editor_view.set_theme(is_dark)
+        if hasattr(self, 'register_view') and hasattr(self.register_view, 'set_theme'):
+            self.register_view.set_theme(is_dark)
         for window in self._help_windows.values():
             if hasattr(window, 'set_theme'):
                 window.set_theme(is_dark)
@@ -280,6 +353,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.left_pane.append(self.editor_view)
 
         self.right_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=False, vexpand=True)
+        self.right_pane.add_css_class("register-box")
         self.right_pane.set_size_request(300, -1)
         paned.set_end_child(self.right_pane)
         paned.set_resize_end_child(False)
@@ -302,6 +376,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _create_header_bar(self) -> Gtk.HeaderBar:
         header = Gtk.HeaderBar()
+        header.add_css_class("custom-header")
         header.set_show_title_buttons(True)
 
         self.title_label = Gtk.Label(label="HM Simulator")

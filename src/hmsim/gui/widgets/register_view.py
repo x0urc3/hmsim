@@ -107,6 +107,10 @@ class RegisterView(Gtk.Box):
     def set_architecture(self, arch: str):
         self.arch_label.set_label(f"Arch: {arch}")
 
+    def set_theme(self, is_dark: bool):
+        """Update internal theme state if needed."""
+        self._is_dark_mode = is_dark
+
     def update(self, pc: int, ac: int, ir: int, sr: int, cycles: int = 0, instructions: int = 0):
         self._current_values = {"PC": pc, "AC": ac, "IR": ir, "SR": sr}
         self._updating = True
