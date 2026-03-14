@@ -167,24 +167,6 @@ from hmsim.gui.hm_gui import main
 if __name__ == "__main__":
     main()
 ''',
-        "hmsim_cli": '''#!/usr/bin/env python3
-from hmsim.tools.hmsim_cli import main
-if __name__ == "__main__":
-    import sys
-    sys.exit(main())
-''',
-        "hmasm": '''#!/usr/bin/env python3
-from hmsim.tools.hmasm import main
-if __name__ == "__main__":
-    import sys
-    sys.exit(main())
-''',
-        "hmdas": '''#!/usr/bin/env python3
-from hmsim.tools.hmdas import main
-if __name__ == "__main__":
-    import sys
-    sys.exit(main())
-''',
     }
 
     scripts_dir = os.path.join(root_dir, "scripts")
@@ -197,9 +179,6 @@ if __name__ == "__main__":
 
     entry_points = [
         ("hmsim", os.path.join(scripts_dir, "hmsim_wrapper.py"), True),
-        ("hmsim_cli", os.path.join(scripts_dir, "hmsim_cli_wrapper.py"), False),
-        ("hmasm", os.path.join(scripts_dir, "hmasm_wrapper.py"), False),
-        ("hmdas", os.path.join(scripts_dir, "hmdas_wrapper.py"), False),
     ]
 
     hidden_imports = [
@@ -216,10 +195,6 @@ if __name__ == "__main__":
         "hmsim.gui.hm_gui",
         "hmsim.gui.main_window",
         "hmsim.gui.widgets",
-        "hmsim.tools",
-        "hmsim.tools.hmsim_cli",
-        "hmsim.tools.hmasm",
-        "hmsim.tools.hmdas",
     ]
 
     pyinstaller_cmd = get_pyinstaller_path()
@@ -339,13 +314,21 @@ if __name__ == "__main__":
         print(f"  Copied examples to {examples_dst}")
 
     docs_user_src = os.path.join(root_dir, "docs", "user")
-    docs_user_dst = os.path.join(dist_dir, "_internal", "docs")
+    docs_user_dst = os.path.join(dist_dir, "_internal", "docs", "user")
     os.makedirs(docs_user_dst, exist_ok=True)
     if os.path.exists(docs_user_src):
         for f in os.listdir(docs_user_src):
             if f.endswith(".md"):
                 shutil.copy2(os.path.join(docs_user_src, f), docs_user_dst)
         print(f"  Copied docs/user to {docs_user_dst}")
+
+    schema_src = os.path.join(root_dir, "src", "hmsim", "engine", "schema.json")
+    schema_dst = os.path.join(dist_dir, "_internal", "hmsim", "engine", "schema.json")
+    # Ensure hmsim/engine directory exists
+    os.makedirs(os.path.dirname(schema_dst), exist_ok=True)
+    if os.path.exists(schema_src):
+        shutil.copy2(schema_src, schema_dst)
+        print(f"  Copied schema.json to {schema_dst}")
 
     license_file = os.path.join(root_dir, "LICENSE")
     notice_file = os.path.join(root_dir, "NOTICE")
@@ -360,7 +343,7 @@ if __name__ == "__main__":
     shutil.rmtree(temp_build_dir)
     print("  Removed temp build directory")
 
-    for name in ["hmsim", "hmsim_cli", "hmasm", "hmdas"]:
+    for name in ["hmsim"]:
         wrapper_path = os.path.join(scripts_dir, f"{name}_wrapper.py")
         if os.path.exists(wrapper_path):
             os.remove(wrapper_path)
