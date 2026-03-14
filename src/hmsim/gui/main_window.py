@@ -103,14 +103,18 @@ class MainWindow(Gtk.ApplicationWindow):
         main_box.append(self._create_main_content())
 
         # Status Bar Footer
+        status_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
+        status_box.add_css_class("status-bar")
+
         self.status_bar = Gtk.Label(label="Ready")
         self.status_bar.set_halign(Gtk.Align.START)
         self.status_bar.set_margin_top(4)
         self.status_bar.set_margin_bottom(4)
         self.status_bar.set_margin_start(10)
         self.status_bar.set_margin_end(10)
-        self.status_bar.add_css_class("status-bar")
-        main_box.append(self.status_bar)
+
+        status_box.append(self.status_bar)
+        main_box.append(status_box)
 
     def _create_menubar(self) -> Gtk.Box:
         menu_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, hexpand=True)
@@ -193,6 +197,7 @@ class MainWindow(Gtk.ApplicationWindow):
             text_region = "#27ae60"
             data_region = "#2980b9"
             error_fg = "#e74c3c"
+            popover_border = "#444444"
         else:
             bg = "#fafafa"
             fg = "#2c3e50"
@@ -201,9 +206,10 @@ class MainWindow(Gtk.ApplicationWindow):
             text_region = "#2ECC71"
             data_region = "#3498DB"
             error_fg = "#c0392b"
+            popover_border = "#dddddd"
 
         css_data = f"""
-            window, .main-container, .register-box {{
+            window, .main-container, .register-box, .editor-box, scrolledwindow {{
                 background-color: {bg};
                 color: {fg};
             }}
@@ -218,21 +224,31 @@ class MainWindow(Gtk.ApplicationWindow):
             box, paned {{
                 background-color: {bg};
             }}
-            textview text {{
+            textview, textview text {{
                 background-color: {bg};
                 color: {fg};
             }}
             treeview {{
                 background-color: {bg};
                 color: {fg};
+                border: 1px solid {popover_border};
             }}
             treeview.view {{
                 background-color: {bg};
                 color: {fg};
             }}
+            treeview.view:hover {{
+                background-color: {hover_bg};
+            }}
             treeview header button {{
                 background-color: {bg};
                 color: {fg};
+                border-right: 1px solid {popover_border};
+                border-bottom: 1px solid {popover_border};
+            }}
+            treeview.view cell {{
+                border-right: 1px solid {popover_border};
+                border-bottom: 1px solid {popover_border};
             }}
             entry {{
                 background-color: {bg};
@@ -242,18 +258,39 @@ class MainWindow(Gtk.ApplicationWindow):
             button {{
                 color: {fg};
             }}
-            popover content, popover list {{
+            popover content, popover list, popover.menu, popover.menu box {{
                 background-color: {bg};
                 color: {fg};
+                border: 1px solid {popover_border};
+                box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+                padding: 4px;
+                border-radius: 8px;
+            }}
+            popover arrow {{
+                background-color: {bg};
+                border: 1px solid {popover_border};
             }}
             popover label {{
                 background-color: transparent;
+                padding: 4px 8px;
+            }}
+            popover contents {{
+                background-color: {bg};
+                color: {fg};
+                padding: 0;
+                margin: 0;
+            }}
+            modelbutton {{
+                border-radius: 4px;
+                margin: 1px 2px;
+                min-height: 28px;
             }}
             modelbutton:hover, modelbutton:active,
             popover list row:hover, popover list row:active,
             .menubar popover button:hover {{
                 background-color: {hover_bg};
                 color: {hover_fg};
+                border: none;
             }}
             modelbutton:hover label,
             popover list row:hover label,
@@ -343,6 +380,7 @@ class MainWindow(Gtk.ApplicationWindow):
         paned.set_vexpand(True)
 
         self.left_pane = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True, vexpand=True)
+        self.left_pane.add_css_class("editor-box")
         paned.set_start_child(self.left_pane)
         paned.set_resize_start_child(True)
         paned.set_shrink_start_child(False)

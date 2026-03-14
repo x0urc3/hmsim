@@ -58,6 +58,7 @@ class MemoryView(Gtk.Box):
 
         self.tree_view = Gtk.TreeView()
         self.tree_view.set_show_expanders(False)
+        self.tree_view.set_grid_lines(Gtk.TreeViewGridLines.BOTH)
         scroll.set_child(self.tree_view)
 
         self._model = Gtk.ListStore.new([str, str, str, str])
