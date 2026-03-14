@@ -440,16 +440,19 @@ class MainWindow(Gtk.ApplicationWindow):
         toolbar.set_margin_end(10)
         toolbar.add_css_class("toolbar")
 
-        self.btn_reset = Gtk.Button(label="Reset")
+        self.btn_reset = Gtk.Button.new_from_icon_name("view-refresh-symbolic")
+        self.btn_reset.set_tooltip_text("Reset Simulator")
         self.btn_reset.set_action_name("win.reset")
         toolbar.append(self.btn_reset)
 
-        self.btn_run = Gtk.Button(label="Run")
+        self.btn_run = Gtk.Button.new_from_icon_name("media-playback-start-symbolic")
+        self.btn_run.set_tooltip_text("Run Simulation")
         self.btn_run.set_size_request(60, -1)
         self.btn_run.set_action_name("win.run")
         toolbar.append(self.btn_run)
 
-        self.btn_step = Gtk.Button(label="Step")
+        self.btn_step = Gtk.Button.new_from_icon_name("media-skip-forward-symbolic")
+        self.btn_step.set_tooltip_text("Step Instruction")
         self.btn_step.set_action_name("win.step")
         toolbar.append(self.btn_step)
 
@@ -756,7 +759,12 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def _set_controls_sensitivity(self, sensitive: bool):
         """Enable or disable UI controls based on simulation state."""
-        self.btn_run.set_label("Run" if sensitive else "Stop")
+        if sensitive:
+            self.btn_run.set_icon_name("media-playback-start-symbolic")
+            self.btn_run.set_tooltip_text("Run Simulation")
+        else:
+            self.btn_run.set_icon_name("media-playback-stop-symbolic")
+            self.btn_run.set_tooltip_text("Stop Simulation")
         self.btn_step.set_sensitive(sensitive)
         self.btn_reset.set_sensitive(sensitive)
 

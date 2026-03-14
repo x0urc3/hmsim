@@ -45,14 +45,17 @@ class TestInitialState:
     def test_window_title(self, main_window):
         assert main_window.get_title() == "HM Simulator"
 
-    def test_reset_button_label(self, main_window):
-        assert main_window.btn_reset.get_label() == "Reset"
+    def test_reset_button_icon(self, main_window):
+        assert main_window.btn_reset.get_icon_name() == "view-refresh-symbolic"
+        assert main_window.btn_reset.get_tooltip_text() == "Reset Simulator"
 
-    def test_step_button_label(self, main_window):
-        assert main_window.btn_step.get_label() == "Step"
+    def test_step_button_icon(self, main_window):
+        assert main_window.btn_step.get_icon_name() == "media-skip-forward-symbolic"
+        assert main_window.btn_step.get_tooltip_text() == "Step Instruction"
 
-    def test_run_button_label(self, main_window):
-        assert main_window.btn_run.get_label() == "Run"
+    def test_run_button_icon(self, main_window):
+        assert main_window.btn_run.get_icon_name() == "media-playback-start-symbolic"
+        assert main_window.btn_run.get_tooltip_text() == "Run Simulation"
 
     def test_buttons_sensitive_on_start(self, main_window):
         assert main_window.btn_reset.get_sensitive() is True
