@@ -86,12 +86,27 @@ def get_msys_prefix():
 
 def get_msys_gtk4_path():
     """Get the path to GTK4 in MSYS2 environment."""
+    # Try using MINGW_PREFIX environment variable
+    mingw_prefix = os.environ.get('MINGW_PREFIX')
+    if mingw_prefix and os.path.exists(mingw_prefix):
+        return mingw_prefix
+
+    # Try relative to sys.executable (e.g., .../mingw64/bin/python.exe)
+    prefix = os.path.dirname(os.path.dirname(sys.executable))
+    if os.path.exists(os.path.join(prefix, "lib", "girepository-1.0")):
+        return prefix
+
     msys_prefix = get_msys_prefix()
     if msys_prefix:
-        if msys_prefix.startswith('mingw-w64-ucrt'):
-            return "/ucrt64"
-        else:
-            return "/mingw64"
+        path = "/ucrt64" if msys_prefix.startswith('mingw-w64-ucrt') else "/mingw64"
+        # If we're in an MSYS2 shell, /mingw64 should work, but Python might need the real path
+        try:
+            real_path = subprocess.check_output(["cygpath", "-w", path]).decode().strip()
+            if os.path.exists(real_path):
+                return real_path
+        except:
+            pass
+        return path
     return None
 
 
