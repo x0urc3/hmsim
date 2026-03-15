@@ -137,12 +137,15 @@ def build():
             f"{msys_prefix}python",
             f"{msys_prefix}python-gobject",
             f"{msys_prefix}gtk4",
-            f"{msys_prefix}pyinstaller"
         ]
         print(f"Ensuring system dependencies: {', '.join(system_pkgs)}")
         run_command(["pacman", "-S", "--needed", "--noconfirm"] + system_pkgs)
 
-    check_pyinstaller()
+    try:
+        import PyInstaller
+        print(f"PyInstaller {PyInstaller.__version__} is already installed.")
+    except ImportError:
+        check_pyinstaller()
 
     dist_dir = os.path.join(root_dir, "dist")
     temp_build_dir = os.path.join(root_dir, "build_temp")
