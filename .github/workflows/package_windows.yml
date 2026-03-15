@@ -36,7 +36,7 @@ jobs:
 
       - name: Install hmsim package
         run: |
-          pip install -e .
+          pip install -e ".[gui]"
 
       - name: Run build script
         shell: msys2 {0}
