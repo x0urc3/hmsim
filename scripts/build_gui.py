@@ -192,20 +192,52 @@ def build():
         "hmsim": '''#!/usr/bin/env python3
 import sys
 import os
+import traceback
 
 # For onedir mode, the dependencies are in _internal
 if getattr(sys, 'frozen', False):
-    internal_dir = os.path.join(os.path.dirname(sys.executable), "_internal")
-    if internal_dir not in sys.path:
-        sys.path.insert(0, internal_dir)
+    exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+    internal_dir = os.path.join(exe_dir, "_internal")
+
+    # Force _internal to be at the beginning of sys.path
+    if os.path.exists(internal_dir):
+        if internal_dir not in sys.path:
+            sys.path.insert(0, internal_dir)
+
+        # Also add the root dir itself just in case
+        if exe_dir not in sys.path:
+            sys.path.insert(1, exe_dir)
+
+        # Set PATH for DLLs on Windows
+        os.environ["PATH"] = internal_dir + os.pathsep + os.environ.get("PATH", "")
+
+# Debug function to log to file
+def log_debug(msg):
+    with open("hmsim_debug.log", "a") as f:
+        f.write(msg + "\\n")
 
 try:
+    if getattr(sys, 'frozen', False):
+        log_debug(f"Executable: {sys.executable}")
+        log_debug(f"sys.path: {sys.path}")
+
+        # Check if hmsim is reachable
+        hmsim_pkg_path = os.path.join(os.path.dirname(os.path.abspath(sys.executable)), "_internal", "hmsim")
+        log_debug(f"Expected hmsim pkg path: {hmsim_pkg_path}")
+        if os.path.exists(hmsim_pkg_path):
+            log_debug(f"hmsim pkg directory exists")
+            if os.path.exists(os.path.join(hmsim_pkg_path, "gui", "hm_gui.py")):
+                log_debug(f"hmsim.gui.hm_gui exists")
+            else:
+                log_debug(f"hmsim.gui.hm_gui MISSING")
+        else:
+            log_debug(f"hmsim pkg directory MISSING")
+
     from hmsim.gui.hm_gui import main
     if __name__ == "__main__":
         main()
 except Exception as e:
     import traceback
-    # On Windows, we might not have a console, so log to file
     with open("hmsim_error.log", "w") as f:
         f.write(f"Error: {str(e)}\\n")
         f.write("sys.path:\\n")
@@ -213,13 +245,19 @@ except Exception as e:
             f.write(f"  {p}\\n")
         f.write("\\nFull Traceback:\\n")
         traceback.print_exc(file=f)
-    # Also try to show a message box if possible
+
+    # Try to show error in console if available
+    print(f"CRITICAL ERROR: {e}")
+    traceback.print_exc()
+
+    # On Windows, try a message box
     try:
         import ctypes
-        ctypes.windll.user32.MessageBoxW(0, f"Failed to start HM Simulator.\\n\\nError: {str(e)}\\n\\nSee hmsim_error.log for details.", "Error", 0x10)
+        msg = f"Failed to start HM Simulator.\\n\\nError: {str(e)}\\n\\nCheck hmsim_error.log and hmsim_debug.log for details."
+        ctypes.windll.user32.MessageBoxW(0, msg, "Fatal Error", 0x10)
     except:
         pass
-    raise
+    sys.exit(1)
 ''',
     }
 
@@ -270,6 +308,7 @@ except Exception as e:
             "--workpath", os.path.join(temp_build_dir, f"work_{name}"),
             "--collect-all", "gi",
             "--collect-all", "hmsim",
+            "--collect-all", "markdown_it",
             "--paths", src_abs_path,
         ]
 
