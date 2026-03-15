@@ -5,6 +5,7 @@
 
 import argparse
 import sys
+import os
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
@@ -12,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 try:
     import gi
     gi.require_version('Gtk', '4.0')
-    from gi.repository import Gtk, Gio, GLib
+    from gi.repository import Gtk, Gio, GLib, Gdk
     GTK_AVAILABLE = True
 except ImportError:
     GTK_AVAILABLE = False
@@ -41,6 +42,28 @@ class HMApplication(Gtk.Application):
         self._setup_actions()
         self._setup_menus()
         self._apply_initial_theme()
+        self._setup_fonts()
+
+    def _setup_fonts(self):
+        """Setup custom fonts if provided."""
+        font_family = os.environ.get("HMSIM_FONT_FAMILY")
+        if font_family:
+            try:
+                # Load the font family globally into GTK
+                provider = Gtk.CssProvider()
+                css = f"""
+                * {{ font-family: '{font_family}', sans-serif; }}
+                .monospace, textview, .fixed {{ font-family: '{font_family}', monospace; }}
+                """
+
+                provider.load_from_data(css.encode())
+                Gtk.StyleContext.add_provider_for_display(
+                    Gdk.Display.get_default(),
+                    provider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                )
+            except Exception as e:
+                print(f"Error setting up fonts: {e}")
 
     def _apply_initial_theme(self):
         from hmsim.gui.settings_manager import SettingsManager

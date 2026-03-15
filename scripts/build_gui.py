@@ -161,6 +161,8 @@ def build():
             f"{msys_prefix}python",
             f"{msys_prefix}python-gobject",
             f"{msys_prefix}gtk4",
+            f"{msys_prefix}fontconfig",
+            f"{msys_prefix}dejavu-fonts",
             f"{msys_prefix}pyinstaller",
             f"{msys_prefix}pyinstaller-hooks-contrib",
         ]
@@ -232,6 +234,15 @@ if getattr(sys, 'frozen', False):
                 if "loaders.cache" in files:
                     os.environ["GDK_PIXBUF_MODULE_FILE"] = os.path.join(root, "loaders.cache")
                     break
+
+        # Fontconfig configuration
+        fontconfig_dir = os.path.join(internal_dir, "etc", "fonts")
+        if os.path.exists(fontconfig_dir):
+            os.environ["FONTCONFIG_FILE"] = os.path.join(fontconfig_dir, "fonts.conf")
+            os.environ["FONTCONFIG_PATH"] = fontconfig_dir
+
+        # Optional: Set a flag for the GUI to use a specific font family
+        os.environ["HMSIM_FONT_FAMILY"] = "DejaVu Sans"
 
 # Debug logging
 _log_file = "hmsim_startup.log"
@@ -477,6 +488,81 @@ except Exception as e:
             if os.path.exists(gio_src):
                 print(f"  Copying GIO modules from {gio_src}...")
                 shutil.copytree(gio_src, gio_dst, dirs_exist_ok=True)
+
+            # Fontconfig and fonts
+            fontconfig_src = f"{msys_path}/etc/fonts"
+            fontconfig_dst = os.path.join(dist_dir, "_internal", "etc", "fonts")
+            if os.path.exists(fontconfig_src):
+                print(f"  Copying fontconfig from {fontconfig_src}...")
+                shutil.copytree(fontconfig_src, fontconfig_dst, dirs_exist_ok=True)
+
+            # Find and copy a minimal font
+            font_dir_src = f"{msys_path}/share/fonts"
+            font_dir_dst = os.path.join(dist_dir, "_internal", "share", "fonts")
+            os.makedirs(font_dir_dst, exist_ok=True)
+
+            # Look for DejaVu Sans
+            font_found = False
+            for root, dirs, files in os.walk(font_dir_src):
+                for f in files:
+                    if f == "DejaVuSans.ttf":
+                        target = os.path.join(font_dir_dst, f)
+                        shutil.copy2(os.path.join(root, f), target)
+                        print(f"  Bundled font: {f}")
+                        font_found = True
+                        break
+                if font_found:
+                    break
+
+            # Create a minimal fonts.conf that points to our local font
+            fonts_conf_content = f"""<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+    <dir>.</dir>
+    <dir>../../share/fonts</dir>
+
+    <!-- Use local font directory -->
+    <cachedir>~/.fontconfig</cachedir>
+
+    <!-- Disable system fonts for consistency -->
+    <!-- (Optional, but ensures only our bundled font is used) -->
+
+    <match target="pattern">
+        <test qual="any" name="family">
+            <string>sans-serif</string>
+        </test>
+        <edit name="family" mode="assign" binding="same">
+            <string>DejaVu Sans</string>
+        </edit>
+    </match>
+
+    <match target="pattern">
+        <test qual="any" name="family">
+            <string>monospace</string>
+        </test>
+        <edit name="family" mode="assign" binding="same">
+            <string>DejaVu Sans</string>
+        </edit>
+    </match>
+
+    <match target="pattern">
+        <edit name="family" mode="prepend" binding="strong">
+            <string>DejaVu Sans</string>
+        </edit>
+    </match>
+
+    <config>
+        <rescan>
+            <int>30</int>
+        </rescan>
+    </config>
+</fontconfig>
+"""
+            # Create a custom fonts.conf in etc/fonts
+            os.makedirs(fontconfig_dst, exist_ok=True)
+            with open(os.path.join(fontconfig_dst, "fonts.conf"), "w") as f:
+                f.write(fonts_conf_content)
+            print("  Created custom fonts.conf")
 
     examples_src = os.path.join(root_dir, "examples")
     examples_dst = os.path.join(dist_dir, "examples")
