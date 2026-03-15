@@ -29,30 +29,31 @@ jobs:
             mingw-w64-x86_64-gtk4
             mingw-w64-x86_64-python-pip
             mingw-w64-x86_64-gobject-introspection
+            mingw-w64-x86_64-pyinstaller
+
+      - name: Install dependencies
+        shell: msys2 {0}
+        run: |
+          pip install --upgrade pip --break-system-packages
+          pip install "jsonschema>=4.0.0,<4.18.0" markdown-it-py --break-system-packages
+          # Install hmsim normally to ensure it is in site-packages
+          pip install . --break-system-packages --no-deps
 
       - name: Run build script
         shell: msys2 {0}
         run: |
-          echo "DEBUG: Searching for Gtk-4.0.typelib..."
+          echo "DEBUG: Locating Gtk-4.0.typelib..."
           find /mingw64 -name "Gtk-4.0.typelib"
-          echo "DEBUG: Listing /mingw64/lib/girepository-1.0:"
-          ls /mingw64/lib/girepository-1.0
           python scripts/build_gui.py
-
 
       - name: Stage artifacts
         shell: bash
         run: |
-          # The dist folder already contains hmsim.exe, _internal, examples, etc.
-          # We want to wrap it in a folder named 'hmsim' for the zip.
+          # Create a clean directory structure for the zip
           mkdir -p final_zip/hmsim
-
-          # Copy all contents from dist/ to final_zip/hmsim/
+          # Copy dist contents to hmsim/
           cp -rp dist/* final_zip/hmsim/
-
-          # Ensure examples/ is directly under hmsim/ (already true if dist/ had it)
-
-          echo "Zip structure verification (final_zip/):"
+          echo "Final Zip structure verification (final_zip/):"
           ls -R final_zip/
 
       - name: Upload artifacts
@@ -61,7 +62,6 @@ jobs:
           name: hmsim-windows
           path: final_zip/
           retention-days: 7
-
 
       - name: Upload to Release
         if: github.event_name == 'release'

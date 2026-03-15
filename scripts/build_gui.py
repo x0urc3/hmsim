@@ -316,44 +316,16 @@ except Exception as e:
         if is_windows_msys:
             msys_path = get_msys_gtk4_path()
             if msys_path:
-                # Main typelib directory
-                # Check multiple possible locations in MSYS2
-                possible_dirs = [
-                    f"{msys_path}/lib/girepository-1.0",
-                    "/mingw64/lib/girepository-1.0",
-                    "/ucrt64/lib/girepository-1.0",
-                ]
+                typelib_dir = f"{msys_path}/lib/girepository-1.0"
+                if os.path.exists(typelib_dir):
+                    # Add ALL typelibs from this directory to gi_typelibs
+                    cmd.extend(["--add-data", f"{typelib_dir}{os.pathsep}gi_typelibs"])
+                    print(f"  Added typelibs from {typelib_dir}")
 
-                added = False
-                for t_dir in possible_dirs:
-                    if os.path.exists(t_dir):
-                        print(f"  Checking typelib dir: {t_dir}")
-                        # List ALL files in that dir
-                        all_typelibs = os.listdir(t_dir)
-                        print(f"  Found {len(all_typelibs)} typelibs in {t_dir}")
-
-                        # Add ALL typelibs from this directory to gi_typelibs
-                        # PyInstaller's --add-data copies contents
-                        cmd.extend(["--add-data", f"{t_dir}{os.pathsep}gi_typelibs"])
-
-                        if "Gtk-4.0.typelib" in all_typelibs:
-                            print("  SUCCESS: Gtk-4.0.typelib found and added to collection")
-                            added = True
-                            # We keep searching/adding other dirs just in case, but one match is good
-
-                if not added:
-                    print("  CRITICAL WARNING: Gtk-4.0.typelib was not found in common locations!")
-                    # Try to find it manually
-                    try:
-                        find_out = subprocess.check_output(["find", "/mingw64", "/ucrt64", "-name", "Gtk-4.0.typelib"], stderr=subprocess.DEVNULL).decode().strip().split('\n')[0]
-                        if find_out and os.path.exists(find_out):
-                            t_dir = os.path.dirname(find_out)
-                            cmd.extend(["--add-data", f"{t_dir}{os.pathsep}gi_typelibs"])
-                            print(f"  Found via manual find: {t_dir}")
-                            added = True
-                    except Exception as find_err:
-                        print(f"  Manual find failed: {find_err}")
-
+                    if os.path.exists(os.path.join(typelib_dir, "Gtk-4.0.typelib")):
+                        print("  Verified Gtk-4.0.typelib exists in source")
+                else:
+                    print(f"  CRITICAL WARNING: Typelib dir NOT found: {typelib_dir}")
 
         if is_gui:
             cmd.append("--windowed")
@@ -367,12 +339,14 @@ except Exception as e:
         cmd.append(entry)
 
         try:
-            subprocess.run(cmd, check=True, cwd=root_dir)
+            # Use shell=True on Windows to ensure pyinstaller is found in PATH
+            subprocess.run(cmd, check=True, cwd=root_dir, shell=is_windows())
             print(f"{name} built successfully!")
             build_outputs.append((name, temp_dir, is_gui))
         except subprocess.CalledProcessError as e:
             print(f"Build failed for {name} with exit code {e.returncode}")
             sys.exit(e.returncode)
+
 
     print("\n=== Creating shared _internal ===")
 
