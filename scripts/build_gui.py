@@ -177,7 +177,7 @@ def build():
             f"{msys_prefix}python-gobject",
             f"{msys_prefix}gtk4",
             f"{msys_prefix}pyinstaller",
-            f"{msys_prefix}python-pyinstaller-hooks-contrib",
+            f"{msys_prefix}pyinstaller-hooks-contrib",
         ]
         print(f"Ensuring system dependencies: {', '.join(system_pkgs)}")
         run_command(["pacman", "-S", "--needed", "--noconfirm"] + system_pkgs)
