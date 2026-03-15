@@ -208,6 +208,7 @@ if __name__ == "__main__":
 
         temp_dir = os.path.join(temp_build_dir, name)
 
+        src_abs_path = os.path.abspath(os.path.join(root_dir, "src"))
         cmd = [
             pyinstaller_cmd,
             "--onedir",
@@ -216,7 +217,7 @@ if __name__ == "__main__":
             "--workpath", os.path.join(temp_build_dir, f"work_{name}"),
             "--collect-all", "gi",
             "--collect-all", "hmsim",
-            "--paths", "src",
+            "--paths", src_abs_path,
         ]
 
         if is_gui:
