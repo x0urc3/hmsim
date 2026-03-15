@@ -419,6 +419,24 @@ except Exception as e:
 
     print("\n=== Copying resources to dist ===")
 
+    # Manually copy typelibs for MSYS2
+    if is_windows_msys:
+        msys_path = get_msys_gtk4_path()
+        if msys_path:
+            typelib_src = f"{msys_path}/lib/girepository-1.0"
+            typelib_dst = os.path.join(dist_dir, "_internal", "gi_typelibs")
+            os.makedirs(typelib_dst, exist_ok=True)
+            if os.path.exists(typelib_src):
+                print(f"  Manually copying typelibs from {typelib_src} to {typelib_dst}...")
+                count = 0
+                for f in os.listdir(typelib_src):
+                    if f.endswith(".typelib"):
+                        shutil.copy2(os.path.join(typelib_src, f), typelib_dst)
+                        count += 1
+                print(f"  Copied {count} typelibs")
+            else:
+                print(f"  Warning: Typelib source NOT found: {typelib_src}")
+
     examples_src = os.path.join(root_dir, "examples")
     examples_dst = os.path.join(dist_dir, "examples")
     os.makedirs(examples_dst, exist_ok=True)
