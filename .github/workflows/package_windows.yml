@@ -46,12 +46,17 @@ jobs:
           python scripts/build_gui.py
 
       - name: Stage artifacts
+        shell: bash
         run: |
           # The dist folder contains the app files (hmsim.exe, _internal, etc.)
           mkdir -p staging/hmsim
-          cp -r dist/* staging/hmsim/
+          cp -rv dist/* staging/hmsim/
           # Ensure we don't have nested hmsim/hmsim directory
-          if [ -d staging/hmsim/hmsim ]; then rm -rf staging/hmsim/hmsim; fi
+          if [ -d staging/hmsim/hmsim ]; then
+            mv staging/hmsim/hmsim/* staging/hmsim/
+            rm -rf staging/hmsim/hmsim
+          fi
+          ls -R staging/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

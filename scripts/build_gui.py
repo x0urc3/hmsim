@@ -12,6 +12,19 @@ import subprocess
 import sys
 import shutil
 
+# Add src to sys.path immediately so hmsim can be imported during build
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_root_dir = os.path.dirname(_script_dir)
+_src_dir = os.path.join(_root_dir, "src")
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
+try:
+    import hmsim
+    print(f"DEBUG: Found hmsim at {hmsim.__file__}")
+except ImportError:
+    print("DEBUG: hmsim not found initially")
+
 
 def get_venv_bin():
     """Get the virtual environment bin directory."""
