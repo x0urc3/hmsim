@@ -312,14 +312,35 @@ except Exception as e:
             "--paths", src_abs_path,
         ]
 
-        # Explicitly add Gtk-4.0 typelib if in MSYS2
+        # Explicitly add Gtk-4.0 and related typelibs if in MSYS2
         if is_windows_msys:
             msys_path = get_msys_gtk4_path()
             if msys_path:
-                typelib_dir = f"{msys_path}/lib/girepository-1.0"
-                if os.path.exists(typelib_dir):
-                    cmd.extend(["--add-data", f"{typelib_dir}{os.pathsep}gi_typelibs"])
-                    print(f"  Added typelibs from {typelib_dir}")
+                # Main typelib directory
+                # Check multiple possible locations in MSYS2
+                possible_dirs = [
+                    f"{msys_path}/lib/girepository-1.0",
+                    "/mingw64/lib/girepository-1.0",
+                    "/ucrt64/lib/girepository-1.0",
+                ]
+
+                added = False
+                for t_dir in possible_dirs:
+                    if os.path.exists(t_dir):
+                        # Add all typelibs
+                        cmd.extend(["--add-data", f"{t_dir}{os.pathsep}gi_typelibs"])
+                        print(f"  Added typelibs from {t_dir}")
+
+                        # Verify Gtk-4.0.typelib
+                        if os.path.exists(os.path.join(t_dir, "Gtk-4.0.typelib")):
+                            print("  Verified Gtk-4.0.typelib exists in source")
+                            added = True
+                            break
+                        else:
+                            print(f"  Warning: Gtk-4.0.typelib NOT found in {t_dir}")
+
+                if not added:
+                    print("  CRITICAL WARNING: Gtk-4.0.typelib was not found anywhere!")
 
 
         if is_gui:
