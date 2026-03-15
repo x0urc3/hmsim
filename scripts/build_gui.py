@@ -193,10 +193,10 @@ def build():
 import sys
 import os
 
-# PyInstaller onedir mode: dependencies are in the _internal directory
+# For onedir mode, the dependencies are in _internal
 if getattr(sys, 'frozen', False):
     internal_dir = os.path.join(os.path.dirname(sys.executable), "_internal")
-    if os.path.exists(internal_dir) and internal_dir not in sys.path:
+    if internal_dir not in sys.path:
         sys.path.insert(0, internal_dir)
 
 try:
@@ -205,12 +205,20 @@ try:
         main()
 except Exception as e:
     import traceback
-    with open("error_log.txt", "w") as f:
-        f.write(f"Exception: {str(e)}\\n")
+    # On Windows, we might not have a console, so log to file
+    with open("hmsim_error.log", "w") as f:
+        f.write(f"Error: {str(e)}\\n")
         f.write("sys.path:\\n")
-        f.write("\\n".join(sys.path))
-        f.write("\\n\\nFull Traceback:\\n")
+        for p in sys.path:
+            f.write(f"  {p}\\n")
+        f.write("\\nFull Traceback:\\n")
         traceback.print_exc(file=f)
+    # Also try to show a message box if possible
+    try:
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(0, f"Failed to start HM Simulator.\\n\\nError: {str(e)}\\n\\nSee hmsim_error.log for details.", "Error", 0x10)
+    except:
+        pass
     raise
 ''',
     }
@@ -262,9 +270,7 @@ except Exception as e:
             "--workpath", os.path.join(temp_build_dir, f"work_{name}"),
             "--collect-all", "gi",
             "--collect-all", "hmsim",
-            "--collect-submodules", "hmsim",
             "--paths", src_abs_path,
-            "--add-data", f"{os.path.join(src_abs_path, 'hmsim')}{os.pathsep}hmsim",
         ]
 
         if is_gui:

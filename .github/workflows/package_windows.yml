@@ -39,8 +39,8 @@ jobs:
         shell: msys2 {0}
         run: |
           pip install "jsonschema>=4.0.0,<4.18.0" markdown-it-py --break-system-packages --prefer-binary
-          # Install hmsim in editable mode without deps to make it visible to PyInstaller
-          pip install --no-deps -e . --break-system-packages
+          # Install hmsim normally to ensure it is in site-packages
+          pip install . --break-system-packages --no-deps
 
       - name: Run build script
         shell: msys2 {0}
@@ -62,7 +62,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: hmsim-windows
+          name: hmsim
           path: staging
           retention-days: 14
 
