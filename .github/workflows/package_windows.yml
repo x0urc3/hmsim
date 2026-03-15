@@ -50,30 +50,24 @@ jobs:
       - name: Stage artifacts
         shell: bash
         run: |
-          # Create a clean directory structure for the zip
-          mkdir final_zip
-          mkdir final_zip/hmsim
-          # Copy dist contents to hmsim/
-          cp -rp dist/* final_zip/hmsim/
-          # Ensure examples/ is directly under hmsim/
-          if [ -d final_zip/hmsim/dist ]; then
-            mv final_zip/hmsim/dist/* final_zip/hmsim/
-            rm -rf final_zip/hmsim/dist
-          fi
-          echo "Final staging structure:"
-          ls -R final_zip/
+          # The dist folder already contains hmsim.exe, _internal, examples, etc.
+          # We want to wrap it in a folder named 'hmsim' for the zip.
+          mkdir -p package_root/hmsim
+          cp -rp dist/* package_root/hmsim/
+          echo "Verifying package structure:"
+          ls -F package_root/hmsim/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: hmsim-windows
-          path: final_zip/
+          path: package_root/
           retention-days: 7
 
       - name: Upload to Release
         if: github.event_name == 'release'
         run: |
-          cd staging
+          cd package_root
           Compress-Archive -Path hmsim -DestinationPath ../hmsim-windows-${{ github.event.release.tag_name }}.zip -Force
           cd ..
 

@@ -199,49 +199,46 @@ if getattr(sys, 'frozen', False):
     exe_dir = os.path.dirname(os.path.abspath(sys.executable))
     internal_dir = os.path.join(exe_dir, "_internal")
 
-    # Ensure _internal is in sys.path and at the front
+    # Ensure _internal is in sys.path
     if os.path.exists(internal_dir):
         if internal_dir not in sys.path:
-            sys.path.insert(0, internal_dir)
-        else:
-            # Move it to the front
-            sys.path.remove(internal_dir)
             sys.path.insert(0, internal_dir)
 
         # Set PATH for DLLs on Windows
         os.environ["PATH"] = internal_dir + os.pathsep + os.environ.get("PATH", "")
 
+        # Set GI_TYPELIB_PATH for GObject Introspection
+        typelib_path = os.path.join(internal_dir, "gi_typelibs")
+        if os.path.exists(typelib_path):
+            os.environ["GI_TYPELIB_PATH"] = typelib_path
+
 # Debug logging
+_log_file = "hmsim_startup.log"
 def log(msg):
     try:
-        with open("hmsim_debug.log", "a") as f:
+        with open(_log_file, "a") as f:
             f.write(str(msg) + "\\n")
     except:
         pass
     print(msg)
 
 try:
-    log(f"Starting HM Simulator...")
-    log(f"Executable: {sys.executable}")
-    log(f"sys.path: {sys.path}")
+    if os.path.exists(_log_file):
+        os.remove(_log_file)
 
-    # Verify _internal contents
-    if getattr(sys, 'frozen', False):
-        exe_dir = os.path.dirname(os.path.abspath(sys.executable))
-        int_dir = os.path.join(exe_dir, "_internal")
-        if os.path.exists(int_dir):
-            log(f"_internal exists. Contents: {os.listdir(int_dir)[:10]}...")
-            hmsim_path = os.path.join(int_dir, "hmsim")
-            if os.path.exists(hmsim_path):
-                log(f"hmsim pkg exists at {hmsim_path}")
-                log(f"hmsim pkg contents: {os.listdir(hmsim_path)}")
-            else:
-                log("hmsim pkg NOT found in _internal")
-        else:
-            log("_internal NOT found")
+    log(f"Starting HM Simulator... frozen={getattr(sys, 'frozen', False)}")
+    log(f"sys.path: {sys.path}")
+    log(f"GI_TYPELIB_PATH: {os.environ.get('GI_TYPELIB_PATH', 'Not set')}")
+
+    # Try to import hmsim
+    try:
+        import hmsim
+        log(f"hmsim imported from: {hmsim.__file__}")
+    except ImportError:
+        log("hmsim import failed")
 
     from hmsim.gui.hm_gui import main
-    log("Successfully imported hmsim.gui.hm_gui")
+    log("Imported main, running...")
     if __name__ == "__main__":
         main()
 except Exception as e:
@@ -256,7 +253,7 @@ except Exception as e:
 
     try:
         import ctypes
-        msg = f"Failed to start HM Simulator.\\n\\nError: {str(e)}\\n\\nCheck hmsim_error.log and hmsim_debug.log."
+        msg = f"Failed to start HM Simulator.\\n\\nError: {str(e)}\\n\\nCheck hmsim_error.log and hmsim_startup.log."
         ctypes.windll.user32.MessageBoxW(0, msg, "Fatal Error", 0x10)
     except:
         pass
@@ -314,6 +311,16 @@ except Exception as e:
             "--collect-all", "markdown_it",
             "--paths", src_abs_path,
         ]
+
+        # Explicitly add Gtk-4.0 typelib if in MSYS2
+        if is_windows_msys:
+            msys_path = get_msys_gtk4_path()
+            if msys_path:
+                typelib_dir = f"{msys_path}/lib/girepository-1.0"
+                if os.path.exists(typelib_dir):
+                    cmd.extend(["--add-data", f"{typelib_dir}{os.pathsep}gi_typelibs"])
+                    print(f"  Added typelibs from {typelib_dir}")
+
 
         if is_gui:
             cmd.append("--windowed")
