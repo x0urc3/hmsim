@@ -15,13 +15,14 @@ import shutil
 # Add src to sys.path immediately so hmsim can be imported during build
 _script_dir = os.path.dirname(os.path.abspath(__file__))
 _root_dir = os.path.dirname(_script_dir)
-_src_dir = os.path.join(_root_dir, "src")
+_src_dir = os.path.abspath(os.path.join(_root_dir, "src"))
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)
 
 try:
     import hmsim
     print(f"DEBUG: Found hmsim at {hmsim.__file__}")
+    print(f"DEBUG: hmsim path: {getattr(hmsim, '__path__', 'No __path__')}")
 except ImportError:
     print("DEBUG: hmsim not found initially")
 
@@ -191,39 +192,25 @@ def build():
         "hmsim": '''#!/usr/bin/env python3
 import sys
 import os
-import traceback
-
-print(f"DEBUG: sys.executable = {sys.executable}")
-if getattr(sys, 'frozen', False):
-    print(f"DEBUG: sys._MEIPASS = {sys._MEIPASS}")
 
 # PyInstaller onedir mode: dependencies are in the _internal directory
 if getattr(sys, 'frozen', False):
-    base_dir = sys._MEIPASS
     internal_dir = os.path.join(os.path.dirname(sys.executable), "_internal")
-    print(f"DEBUG: base_dir = {base_dir}")
-    print(f"DEBUG: internal_dir = {internal_dir}")
-
-    # Ensure both are in sys.path
-    for d in [base_dir, internal_dir]:
-        if os.path.exists(d) and d not in sys.path:
-            sys.path.insert(0, d)
-            print(f"DEBUG: Added to sys.path: {d}")
+    if os.path.exists(internal_dir) and internal_dir not in sys.path:
+        sys.path.insert(0, internal_dir)
 
 try:
-    print("DEBUG: Attempting to import hmsim.gui.hm_gui...")
     from hmsim.gui.hm_gui import main
-    print("DEBUG: Import successful!")
     if __name__ == "__main__":
         main()
 except Exception as e:
+    import traceback
     with open("error_log.txt", "w") as f:
         f.write(f"Exception: {str(e)}\\n")
         f.write("sys.path:\\n")
         f.write("\\n".join(sys.path))
         f.write("\\n\\nFull Traceback:\\n")
         traceback.print_exc(file=f)
-    print(f"DEBUG: Error log written to error_log.txt: {str(e)}")
     raise
 ''',
     }
@@ -277,6 +264,7 @@ except Exception as e:
             "--collect-all", "hmsim",
             "--collect-submodules", "hmsim",
             "--paths", src_abs_path,
+            "--add-data", f"{os.path.join(src_abs_path, 'hmsim')}{os.pathsep}hmsim",
         ]
 
         if is_gui:

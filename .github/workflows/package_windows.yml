@@ -39,6 +39,8 @@ jobs:
         shell: msys2 {0}
         run: |
           pip install "jsonschema>=4.0.0,<4.18.0" markdown-it-py --break-system-packages --prefer-binary
+          # Install hmsim in editable mode without deps to make it visible to PyInstaller
+          pip install --no-deps -e . --break-system-packages
 
       - name: Run build script
         shell: msys2 {0}
@@ -48,14 +50,13 @@ jobs:
       - name: Stage artifacts
         shell: bash
         run: |
-          # The dist folder contains the app files (hmsim.exe, _internal, etc.)
+          # Create a clean staging directory
+          rm -rf staging
           mkdir -p staging/hmsim
+          # Copy all build results to staging/hmsim
           cp -rv dist/* staging/hmsim/
-          # Ensure we don't have nested hmsim/hmsim directory
-          if [ -d staging/hmsim/hmsim ]; then
-            mv staging/hmsim/hmsim/* staging/hmsim/
-            rm -rf staging/hmsim/hmsim
-          fi
+          # Verify structure
+          echo "Staging structure:"
           ls -R staging/
 
       - name: Upload artifacts
