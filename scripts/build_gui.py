@@ -332,22 +332,27 @@ except Exception as e:
                         all_typelibs = os.listdir(t_dir)
                         print(f"  Found {len(all_typelibs)} typelibs in {t_dir}")
 
-                        # Add all typelibs
+                        # Add ALL typelibs from this directory to gi_typelibs
+                        # PyInstaller's --add-data copies contents
                         cmd.extend(["--add-data", f"{t_dir}{os.pathsep}gi_typelibs"])
 
                         if "Gtk-4.0.typelib" in all_typelibs:
                             print("  SUCCESS: Gtk-4.0.typelib found and added to collection")
                             added = True
-                            # Continue adding other dirs if needed, but we found the primary one
-                        else:
-                            print("  Warning: Gtk-4.0.typelib NOT in this directory")
+                            # We keep searching/adding other dirs just in case, but one match is good
 
                 if not added:
-                    print("  CRITICAL WARNING: Gtk-4.0.typelib was not found anywhere!")
-                    # List some files from common locations to help debug
-                    for d in ["/mingw64/lib", "/mingw64/bin", "/mingw64/share"]:
-                        if os.path.exists(d):
-                            print(f"  Contents of {d} (first 5): {os.listdir(d)[:5]}")
+                    print("  CRITICAL WARNING: Gtk-4.0.typelib was not found in common locations!")
+                    # Try to find it manually
+                    try:
+                        find_out = subprocess.check_output(["find", "/mingw64", "/ucrt64", "-name", "Gtk-4.0.typelib"], stderr=subprocess.DEVNULL).decode().strip().split('\n')[0]
+                        if find_out and os.path.exists(find_out):
+                            t_dir = os.path.dirname(find_out)
+                            cmd.extend(["--add-data", f"{t_dir}{os.pathsep}gi_typelibs"])
+                            print(f"  Found via manual find: {t_dir}")
+                            added = True
+                    except Exception as find_err:
+                        print(f"  Manual find failed: {find_err}")
 
 
         if is_gui:
