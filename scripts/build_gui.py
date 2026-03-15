@@ -162,7 +162,7 @@ def build():
             f"{msys_prefix}python-gobject",
             f"{msys_prefix}gtk4",
             f"{msys_prefix}fontconfig",
-            f"{msys_prefix}dejavu-fonts",
+            f"{msys_prefix}ttf-dejavu",
             f"{msys_prefix}pyinstaller",
             f"{msys_prefix}pyinstaller-hooks-contrib",
         ]

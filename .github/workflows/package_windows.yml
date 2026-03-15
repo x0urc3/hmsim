@@ -27,6 +27,8 @@ jobs:
             mingw-w64-x86_64-python
             mingw-w64-x86_64-python-gobject
             mingw-w64-x86_64-gtk4
+            mingw-w64-x86_64-fontconfig
+            mingw-w64-x86_64-ttf-dejavu
             mingw-w64-x86_64-python-pip
             mingw-w64-x86_64-gobject-introspection
             mingw-w64-x86_64-pyinstaller
