@@ -36,7 +36,8 @@ jobs:
 
       - name: Install hmsim package
         run: |
-          pip install . ".[gui]"
+          pip install .
+          pip install markdown-it-py
 
       - name: Run build script
         shell: msys2 {0}
