@@ -212,6 +212,8 @@ if __name__ == "__main__":
             "--distpath", temp_dir,
             "--workpath", os.path.join(temp_build_dir, f"work_{name}"),
             "--collect-all", "gi",
+            "--collect-all", "hmsim",
+            "--paths", "src",
         ]
 
         if is_gui:
