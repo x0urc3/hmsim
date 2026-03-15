@@ -199,45 +199,41 @@ if getattr(sys, 'frozen', False):
     exe_dir = os.path.dirname(os.path.abspath(sys.executable))
     internal_dir = os.path.join(exe_dir, "_internal")
 
-    # Force _internal to be at the beginning of sys.path
+    # Ensure _internal is in sys.path
     if os.path.exists(internal_dir):
         if internal_dir not in sys.path:
             sys.path.insert(0, internal_dir)
 
-        # Also add the root dir itself just in case
-        if exe_dir not in sys.path:
-            sys.path.insert(1, exe_dir)
-
         # Set PATH for DLLs on Windows
         os.environ["PATH"] = internal_dir + os.pathsep + os.environ.get("PATH", "")
 
-# Debug function to log to file
-def log_debug(msg):
-    with open("hmsim_debug.log", "a") as f:
-        f.write(msg + "\\n")
+# Debug logging
+def log(msg):
+    try:
+        with open("hmsim_startup.log", "a") as f:
+            f.write(str(msg) + "\\n")
+    except:
+        pass
+    print(msg)
 
 try:
-    if getattr(sys, 'frozen', False):
-        log_debug(f"Executable: {sys.executable}")
-        log_debug(f"sys.path: {sys.path}")
+    log(f"Starting HM Simulator... frozen={getattr(sys, 'frozen', False)}")
+    log(f"sys.path: {sys.path}")
 
-        # Check if hmsim is reachable
-        hmsim_pkg_path = os.path.join(os.path.dirname(os.path.abspath(sys.executable)), "_internal", "hmsim")
-        log_debug(f"Expected hmsim pkg path: {hmsim_pkg_path}")
-        if os.path.exists(hmsim_pkg_path):
-            log_debug(f"hmsim pkg directory exists")
-            if os.path.exists(os.path.join(hmsim_pkg_path, "gui", "hm_gui.py")):
-                log_debug(f"hmsim.gui.hm_gui exists")
-            else:
-                log_debug(f"hmsim.gui.hm_gui MISSING")
-        else:
-            log_debug(f"hmsim pkg directory MISSING")
+    # Try to import hmsim and print its location
+    try:
+        import hmsim
+        log(f"hmsim imported from: {hmsim.__file__}")
+        log(f"hmsim path: {getattr(hmsim, '__path__', 'None')}")
+    except ImportError:
+        log("hmsim import failed")
 
     from hmsim.gui.hm_gui import main
+    log("Imported main, running...")
     if __name__ == "__main__":
         main()
 except Exception as e:
-    import traceback
+    log(f"CRITICAL ERROR: {e}")
     with open("hmsim_error.log", "w") as f:
         f.write(f"Error: {str(e)}\\n")
         f.write("sys.path:\\n")
@@ -246,14 +242,9 @@ except Exception as e:
         f.write("\\nFull Traceback:\\n")
         traceback.print_exc(file=f)
 
-    # Try to show error in console if available
-    print(f"CRITICAL ERROR: {e}")
-    traceback.print_exc()
-
-    # On Windows, try a message box
     try:
         import ctypes
-        msg = f"Failed to start HM Simulator.\\n\\nError: {str(e)}\\n\\nCheck hmsim_error.log and hmsim_debug.log for details."
+        msg = f"Failed to start HM Simulator.\\n\\nError: {str(e)}\\n\\nCheck hmsim_error.log and hmsim_startup.log."
         ctypes.windll.user32.MessageBoxW(0, msg, "Fatal Error", 0x10)
     except:
         pass

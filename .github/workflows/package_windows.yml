@@ -53,18 +53,22 @@ jobs:
           # Create a clean staging directory
           rm -rf staging
           mkdir -p staging/hmsim
-          # Copy all build results to staging/hmsim
-          cp -rv dist/* staging/hmsim/
-          # Verify structure
-          echo "Staging structure:"
+          # Copy all build results to staging/hmsim/
+          # dist/ contains hmsim.exe, _internal, examples, etc.
+          cp -rp dist/* staging/hmsim/
+          # Ensure no nested hmsim/hmsim
+          if [ -d staging/hmsim/hmsim/gui ]; then
+            echo "Error: Detected nested hmsim package in staging/hmsim/hmsim"
+          fi
+          echo "Final staging structure:"
           ls -R staging/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: hmsim
-          path: staging
-          retention-days: 14
+          path: staging/
+          retention-days: 7
 
       - name: Upload to Release
         if: github.event_name == 'release'
