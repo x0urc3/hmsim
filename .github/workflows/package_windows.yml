@@ -39,7 +39,7 @@ jobs:
         shell: msys2 {0}
         run: |
           pip install "jsonschema>=4.0.0,<4.18.0" markdown-it-py --break-system-packages
-          pip install --no-deps . --break-system-packages
+          pip install . --break-system-packages --no-deps
 
       - name: Run build script
         shell: msys2 {0}

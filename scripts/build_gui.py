@@ -166,9 +166,31 @@ def build():
 
     wrapper_scripts = {
         "hmsim": '''#!/usr/bin/env python3
-from hmsim.gui.hm_gui import main
-if __name__ == "__main__":
-    main()
+import sys
+import os
+
+# Add the directory containing the executable to the path
+if getattr(sys, 'frozen', False):
+    # PyInstaller creates a temp folder and stores path in _MEIPASS
+    base_dir = sys._MEIPASS
+    # For onedir mode, the dependencies are in _internal
+    internal_dir = os.path.join(os.path.dirname(sys.executable), "_internal")
+    if os.path.exists(internal_dir) and internal_dir not in sys.path:
+        sys.path.insert(0, internal_dir)
+
+try:
+    from hmsim.gui.hm_gui import main
+    if __name__ == "__main__":
+        main()
+except ImportError as e:
+    import traceback
+    with open("error_log.txt", "w") as f:
+        f.write(f"ImportError: {str(e)}\\n")
+        f.write("sys.path:\\n")
+        f.write("\\n".join(sys.path))
+        f.write("\\n\\nFull Traceback:\\n")
+        traceback.print_exc(file=f)
+    raise
 ''',
     }
 
@@ -217,6 +239,7 @@ if __name__ == "__main__":
             "--workpath", os.path.join(temp_build_dir, f"work_{name}"),
             "--collect-all", "gi",
             "--collect-all", "hmsim",
+            "--collect-submodules", "hmsim",
             "--paths", src_abs_path,
         ]
 
