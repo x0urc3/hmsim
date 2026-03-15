@@ -50,18 +50,18 @@ jobs:
           path: hmsim_windows.zip
           retention-days: 30
 
-      - name: Create Release
+      - name: Rename artifact with version
         if: github.event_name == 'release'
         run: |
           $tag = ${{ github.event.release.tag_name }}
-          $version = $tag -replace '^v', ''
-          Write-Output "Creating release for version $version"
+          Rename-Item -Path hmsim_windows.zip -NewName "hmsim-windows-$tag.zip"
+          Write-Output "Renamed to hmsim-windows-$tag.zip"
 
       - name: Upload to Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
-          files: hmsim_windows.zip
+          files: hmsim-windows-v*.zip
           draft: false
           prerelease: ${{ contains(github.event.release.tag_name, 'alpha') || contains(github.event.release.tag_name, 'beta') }}
         env:
