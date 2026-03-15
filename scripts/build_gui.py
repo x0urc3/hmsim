@@ -12,21 +12,6 @@ import subprocess
 import sys
 import shutil
 
-# Add src to sys.path immediately so hmsim can be imported during build
-_script_dir = os.path.dirname(os.path.abspath(__file__))
-_root_dir = os.path.dirname(_script_dir)
-_src_dir = os.path.abspath(os.path.join(_root_dir, "src"))
-if _src_dir not in sys.path:
-    sys.path.insert(0, _src_dir)
-
-try:
-    import hmsim
-    print(f"DEBUG: Found hmsim at {hmsim.__file__}")
-    print(f"DEBUG: hmsim path: {getattr(hmsim, '__path__', 'No __path__')}")
-except ImportError:
-    print("DEBUG: hmsim not found initially")
-
-
 def get_venv_bin():
     """Get the virtual environment bin directory."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -224,10 +209,29 @@ if getattr(sys, 'frozen', False):
         # Set PATH for DLLs on Windows
         os.environ["PATH"] = internal_dir + os.pathsep + os.environ.get("PATH", "")
 
+        # On Python 3.8+, we need to use os.add_dll_directory
+        if hasattr(os, "add_dll_directory"):
+            try:
+                os.add_dll_directory(internal_dir)
+            except Exception:
+                pass
+
         # Set GI_TYPELIB_PATH for GObject Introspection
+
         typelib_path = os.path.join(internal_dir, "gi_typelibs")
         if os.path.exists(typelib_path):
             os.environ["GI_TYPELIB_PATH"] = typelib_path
+
+        # Set GTK/GIO related variables for compatibility
+        os.environ["GIO_MODULE_DIR"] = os.path.join(internal_dir, "lib", "gio", "modules")
+
+        # GdkPixbuf loaders
+        pixbuf_dir = os.path.join(internal_dir, "lib", "gdk-pixbuf-2.0")
+        if os.path.exists(pixbuf_dir):
+            for root, dirs, files in os.walk(pixbuf_dir):
+                if "loaders.cache" in files:
+                    os.environ["GDK_PIXBUF_MODULE_FILE"] = os.path.join(root, "loaders.cache")
+                    break
 
 # Debug logging
 _log_file = "hmsim_startup.log"
@@ -411,15 +415,22 @@ except Exception as e:
     elif is_windows_msys:
         msys_gtk_path = get_msys_gtk4_path()
         if msys_gtk_path:
-            mingw_bin = f"/usr{msys_gtk_path}/bin"
+            # Fix path construction: msys_gtk_path is already absolute or relative to root
+            # If it's a Windows path from cygpath -w, don't prepend /usr
+            if ":" in msys_gtk_path or msys_gtk_path.startswith("\\\\"):
+                mingw_bin = os.path.join(msys_gtk_path, "bin")
+            else:
+                mingw_bin = f"/usr{msys_gtk_path}/bin"
+
             if os.path.exists(mingw_bin):
+                print(f"  Collecting DLLs from {mingw_bin}...")
                 for f in os.listdir(mingw_bin):
-                    if f.endswith(".dll") and "lib" in f.lower() or f.startswith("lib"):
+                    if f.lower().endswith(".dll"):
                         src = os.path.join(mingw_bin, f)
                         dst = os.path.join(shared_internal, f)
                         if not os.path.exists(dst):
                             shutil.copy2(src, dst)
-                print(f"  Copied GTK4 DLLs from {mingw_bin}")
+                print(f"  Finished collecting DLLs from {mingw_bin}")
 
     print("\n=== Copying executables to dist root ===")
 
@@ -436,10 +447,11 @@ except Exception as e:
 
     print("\n=== Copying resources to dist ===")
 
-    # Manually copy typelibs for MSYS2
+    # Manually copy typelibs and other resources for MSYS2
     if is_windows_msys:
         msys_path = get_msys_gtk4_path()
         if msys_path:
+            # Typelibs
             typelib_src = f"{msys_path}/lib/girepository-1.0"
             typelib_dst = os.path.join(dist_dir, "_internal", "gi_typelibs")
             os.makedirs(typelib_dst, exist_ok=True)
@@ -451,8 +463,20 @@ except Exception as e:
                         shutil.copy2(os.path.join(typelib_src, f), typelib_dst)
                         count += 1
                 print(f"  Copied {count} typelibs")
-            else:
-                print(f"  Warning: Typelib source NOT found: {typelib_src}")
+
+            # GdkPixbuf loaders
+            pixbuf_src = f"{msys_path}/lib/gdk-pixbuf-2.0"
+            pixbuf_dst = os.path.join(dist_dir, "_internal", "lib", "gdk-pixbuf-2.0")
+            if os.path.exists(pixbuf_src):
+                print(f"  Copying gdk-pixbuf modules from {pixbuf_src}...")
+                shutil.copytree(pixbuf_src, pixbuf_dst, dirs_exist_ok=True)
+
+            # GIO modules
+            gio_src = f"{msys_path}/lib/gio/modules"
+            gio_dst = os.path.join(dist_dir, "_internal", "lib", "gio", "modules")
+            if os.path.exists(gio_src):
+                print(f"  Copying GIO modules from {gio_src}...")
+                shutil.copytree(gio_src, gio_dst, dirs_exist_ok=True)
 
     examples_src = os.path.join(root_dir, "examples")
     examples_dst = os.path.join(dist_dir, "examples")
