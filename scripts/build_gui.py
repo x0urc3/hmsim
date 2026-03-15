@@ -117,6 +117,16 @@ def merge_internal_dirs(src_dirs, dest_dir):
 def build():
     """Main build function."""
     root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    src_dir = os.path.join(root_dir, "src")
+    if src_dir not in sys.path:
+        sys.path.insert(0, src_dir)
+
+    # Try to import hmsim to ensure it is found
+    try:
+        import hmsim
+        print(f"  Found hmsim package at: {hmsim.__file__}")
+    except ImportError:
+        print("  Warning: hmsim package not found in sys.path")
     os.chdir(root_dir)
     print(f"Building from: {root_dir}")
 
@@ -168,28 +178,39 @@ def build():
         "hmsim": '''#!/usr/bin/env python3
 import sys
 import os
+import traceback
 
-# Add the directory containing the executable to the path
+print(f"DEBUG: sys.executable = {sys.executable}")
 if getattr(sys, 'frozen', False):
-    # PyInstaller creates a temp folder and stores path in _MEIPASS
+    print(f"DEBUG: sys._MEIPASS = {sys._MEIPASS}")
+
+# PyInstaller onedir mode: dependencies are in the _internal directory
+if getattr(sys, 'frozen', False):
     base_dir = sys._MEIPASS
-    # For onedir mode, the dependencies are in _internal
     internal_dir = os.path.join(os.path.dirname(sys.executable), "_internal")
-    if os.path.exists(internal_dir) and internal_dir not in sys.path:
-        sys.path.insert(0, internal_dir)
+    print(f"DEBUG: base_dir = {base_dir}")
+    print(f"DEBUG: internal_dir = {internal_dir}")
+
+    # Ensure both are in sys.path
+    for d in [base_dir, internal_dir]:
+        if os.path.exists(d) and d not in sys.path:
+            sys.path.insert(0, d)
+            print(f"DEBUG: Added to sys.path: {d}")
 
 try:
+    print("DEBUG: Attempting to import hmsim.gui.hm_gui...")
     from hmsim.gui.hm_gui import main
+    print("DEBUG: Import successful!")
     if __name__ == "__main__":
         main()
-except ImportError as e:
-    import traceback
+except Exception as e:
     with open("error_log.txt", "w") as f:
-        f.write(f"ImportError: {str(e)}\\n")
+        f.write(f"Exception: {str(e)}\\n")
         f.write("sys.path:\\n")
         f.write("\\n".join(sys.path))
         f.write("\\n\\nFull Traceback:\\n")
         traceback.print_exc(file=f)
+    print(f"DEBUG: Error log written to error_log.txt: {str(e)}")
     raise
 ''',
     }
@@ -198,9 +219,11 @@ except ImportError as e:
     os.makedirs(scripts_dir, exist_ok=True)
 
     for name, content in wrapper_scripts.items():
-        script_path = os.path.join(scripts_dir, f"{name}_wrapper.py")
+        script_path = os.path.abspath(os.path.join(scripts_dir, f"{name}_wrapper.py"))
+        print(f"  Creating wrapper script: {script_path}")
         with open(script_path, "w") as f:
             f.write(content)
+        print(f"  Wrapper content first 100 chars: {content[:100]}...")
 
     entry_points = [
         ("hmsim", os.path.join(scripts_dir, "hmsim_wrapper.py"), True),

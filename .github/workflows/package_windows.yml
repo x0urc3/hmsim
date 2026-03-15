@@ -38,8 +38,7 @@ jobs:
       - name: Install dependencies
         shell: msys2 {0}
         run: |
-          pip install "jsonschema>=4.0.0,<4.18.0" markdown-it-py --break-system-packages
-          pip install . --break-system-packages --no-deps
+          pip install "jsonschema>=4.0.0,<4.18.0" markdown-it-py --break-system-packages --prefer-binary
 
       - name: Run build script
         shell: msys2 {0}
@@ -48,8 +47,11 @@ jobs:
 
       - name: Stage artifacts
         run: |
-          mkdir staging
-          mv dist staging/hmsim
+          # The dist folder contains the app files (hmsim.exe, _internal, etc.)
+          mkdir -p staging/hmsim
+          cp -r dist/* staging/hmsim/
+          # Ensure we don't have nested hmsim/hmsim directory
+          if [ -d staging/hmsim/hmsim ]; then rm -rf staging/hmsim/hmsim; fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
