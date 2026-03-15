@@ -38,25 +38,28 @@ jobs:
       - name: Install hmsim package
         shell: msys2 {0}
         run: |
-          pip install .
-          pip install markdown-it-py
+          pip install . --break-system-packages
+          pip install markdown-it-py --break-system-packages
 
       - name: Run build script
         shell: msys2 {0}
         run: |
           python scripts/build_gui.py
 
+      - name: Rename dist to hmsim
+        run: mv dist hmsim
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: hmsim-windows
-          path: dist
+          path: hmsim
           retention-days: 30
 
       - name: Upload to Release
         if: github.event_name == 'release'
         run: |
-          Compress-Archive -Path dist/* -DestinationPath hmsim-windows-${{ github.event.release.tag_name }}.zip -Force
+          Compress-Archive -Path hmsim/* -DestinationPath hmsim-windows-${{ github.event.release.tag_name }}.zip -Force
 
       - name: Attach to Release
         if: github.event_name == 'release'
