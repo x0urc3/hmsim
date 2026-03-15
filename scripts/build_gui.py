@@ -327,20 +327,27 @@ except Exception as e:
                 added = False
                 for t_dir in possible_dirs:
                     if os.path.exists(t_dir):
+                        print(f"  Checking typelib dir: {t_dir}")
+                        # List ALL files in that dir
+                        all_typelibs = os.listdir(t_dir)
+                        print(f"  Found {len(all_typelibs)} typelibs in {t_dir}")
+
                         # Add all typelibs
                         cmd.extend(["--add-data", f"{t_dir}{os.pathsep}gi_typelibs"])
-                        print(f"  Added typelibs from {t_dir}")
 
-                        # Verify Gtk-4.0.typelib
-                        if os.path.exists(os.path.join(t_dir, "Gtk-4.0.typelib")):
-                            print("  Verified Gtk-4.0.typelib exists in source")
+                        if "Gtk-4.0.typelib" in all_typelibs:
+                            print("  SUCCESS: Gtk-4.0.typelib found and added to collection")
                             added = True
-                            break
+                            # Continue adding other dirs if needed, but we found the primary one
                         else:
-                            print(f"  Warning: Gtk-4.0.typelib NOT found in {t_dir}")
+                            print("  Warning: Gtk-4.0.typelib NOT in this directory")
 
                 if not added:
                     print("  CRITICAL WARNING: Gtk-4.0.typelib was not found anywhere!")
+                    # List some files from common locations to help debug
+                    for d in ["/mingw64/lib", "/mingw64/bin", "/mingw64/share"]:
+                        if os.path.exists(d):
+                            print(f"  Contents of {d} (first 5): {os.listdir(d)[:5]}")
 
 
         if is_gui:

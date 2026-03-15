@@ -45,17 +45,23 @@ jobs:
       - name: Run build script
         shell: msys2 {0}
         run: |
+          echo "DEBUG: Locating Gtk-4.0.typelib..."
+          find /mingw64 /ucrt64 -name "Gtk-4.0.typelib" 2>/dev/null || echo "Not found"
+          echo "DEBUG: Checking /mingw64/lib/girepository-1.0 contents:"
+          ls /mingw64/lib/girepository-1.0 | grep Gtk || echo "No Gtk typelibs found in /mingw64"
           python scripts/build_gui.py
 
       - name: Stage artifacts
         shell: bash
         run: |
-          # Create a directory that will become the zip root
+          # The dist folder already contains hmsim.exe, _internal, examples, etc.
+          # We want to wrap it in a folder named 'hmsim' for the zip.
           mkdir -p final_zip/hmsim
 
           # Copy all contents from dist/ to final_zip/hmsim/
-          # dist/ contains hmsim.exe, _internal/, examples/, LICENSE, NOTICE
           cp -rp dist/* final_zip/hmsim/
+
+          # Ensure examples/ is directly under hmsim/ (already true if dist/ had it)
 
           echo "Zip structure verification (final_zip/):"
           ls -R final_zip/
@@ -66,6 +72,7 @@ jobs:
           name: hmsim-windows
           path: final_zip/
           retention-days: 7
+
 
       - name: Upload to Release
         if: github.event_name == 'release'
