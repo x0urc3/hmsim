@@ -199,9 +199,13 @@ if getattr(sys, 'frozen', False):
     exe_dir = os.path.dirname(os.path.abspath(sys.executable))
     internal_dir = os.path.join(exe_dir, "_internal")
 
-    # Ensure _internal is in sys.path
+    # Ensure _internal is in sys.path and at the front
     if os.path.exists(internal_dir):
         if internal_dir not in sys.path:
+            sys.path.insert(0, internal_dir)
+        else:
+            # Move it to the front
+            sys.path.remove(internal_dir)
             sys.path.insert(0, internal_dir)
 
         # Set PATH for DLLs on Windows
@@ -210,26 +214,34 @@ if getattr(sys, 'frozen', False):
 # Debug logging
 def log(msg):
     try:
-        with open("hmsim_startup.log", "a") as f:
+        with open("hmsim_debug.log", "a") as f:
             f.write(str(msg) + "\\n")
     except:
         pass
     print(msg)
 
 try:
-    log(f"Starting HM Simulator... frozen={getattr(sys, 'frozen', False)}")
+    log(f"Starting HM Simulator...")
+    log(f"Executable: {sys.executable}")
     log(f"sys.path: {sys.path}")
 
-    # Try to import hmsim and print its location
-    try:
-        import hmsim
-        log(f"hmsim imported from: {hmsim.__file__}")
-        log(f"hmsim path: {getattr(hmsim, '__path__', 'None')}")
-    except ImportError:
-        log("hmsim import failed")
+    # Verify _internal contents
+    if getattr(sys, 'frozen', False):
+        exe_dir = os.path.dirname(os.path.abspath(sys.executable))
+        int_dir = os.path.join(exe_dir, "_internal")
+        if os.path.exists(int_dir):
+            log(f"_internal exists. Contents: {os.listdir(int_dir)[:10]}...")
+            hmsim_path = os.path.join(int_dir, "hmsim")
+            if os.path.exists(hmsim_path):
+                log(f"hmsim pkg exists at {hmsim_path}")
+                log(f"hmsim pkg contents: {os.listdir(hmsim_path)}")
+            else:
+                log("hmsim pkg NOT found in _internal")
+        else:
+            log("_internal NOT found")
 
     from hmsim.gui.hm_gui import main
-    log("Imported main, running...")
+    log("Successfully imported hmsim.gui.hm_gui")
     if __name__ == "__main__":
         main()
 except Exception as e:
@@ -244,7 +256,7 @@ except Exception as e:
 
     try:
         import ctypes
-        msg = f"Failed to start HM Simulator.\\n\\nError: {str(e)}\\n\\nCheck hmsim_error.log and hmsim_startup.log."
+        msg = f"Failed to start HM Simulator.\\n\\nError: {str(e)}\\n\\nCheck hmsim_error.log and hmsim_debug.log."
         ctypes.windll.user32.MessageBoxW(0, msg, "Fatal Error", 0x10)
     except:
         pass

@@ -50,24 +50,24 @@ jobs:
       - name: Stage artifacts
         shell: bash
         run: |
-          # Create a clean staging directory
-          rm -rf staging
-          mkdir -p staging/hmsim
-          # Copy all build results to staging/hmsim/
-          # dist/ contains hmsim.exe, _internal, examples, etc.
-          cp -rp dist/* staging/hmsim/
-          # Ensure no nested hmsim/hmsim
-          if [ -d staging/hmsim/hmsim/gui ]; then
-            echo "Error: Detected nested hmsim package in staging/hmsim/hmsim"
+          # Create a clean directory structure for the zip
+          mkdir final_zip
+          mkdir final_zip/hmsim
+          # Copy dist contents to hmsim/
+          cp -rp dist/* final_zip/hmsim/
+          # Ensure examples/ is directly under hmsim/
+          if [ -d final_zip/hmsim/dist ]; then
+            mv final_zip/hmsim/dist/* final_zip/hmsim/
+            rm -rf final_zip/hmsim/dist
           fi
           echo "Final staging structure:"
-          ls -R staging/
+          ls -R final_zip/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: hmsim
-          path: staging/
+          name: hmsim-windows
+          path: final_zip/
           retention-days: 7
 
       - name: Upload to Release
