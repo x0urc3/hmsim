@@ -237,13 +237,37 @@ if getattr(sys, 'frozen', False):
 
         # Fontconfig configuration
         fontconfig_dir = os.path.join(internal_dir, "etc", "fonts")
-        if os.path.exists(fontconfig_dir):
-            os.environ["FONTCONFIG_FILE"] = os.path.join(fontconfig_dir, "fonts.conf")
-            os.environ["FONTCONFIG_PATH"] = fontconfig_dir
+        fonts_conf_template = os.path.join(fontconfig_dir, "fonts.conf.template")
+        fonts_conf_real = os.path.join(fontconfig_dir, "fonts.conf")
+
+        if os.path.exists(fonts_conf_template):
+            try:
+                with open(fonts_conf_template, "r") as f:
+                    content = f.read()
+
+                # Replace placeholders with absolute paths
+                # Use forward slashes for Fontconfig even on Windows
+                font_dir = os.path.join(internal_dir, "share", "fonts").replace("\\\\", "/")
+                cache_dir = os.path.join(internal_dir, "cache", "fontconfig").replace("\\\\", "/")
+
+                content = content.replace("@FONT_DIR@", font_dir)
+                content = content.replace("@CACHE_DIR@", cache_dir)
+
+                with open(fonts_conf_real, "w") as f:
+                    f.write(content)
+
+                os.environ["FONTCONFIG_FILE"] = fonts_conf_real
+                os.environ["FONTCONFIG_PATH"] = fontconfig_dir
+            except Exception as e:
+                print(f"Error generating fonts.conf: {e}")
 
         # Set a portable cache directory
         fontconfig_cache = os.path.join(internal_dir, "cache", "fontconfig")
-        os.makedirs(fontconfig_cache, exist_ok=True)
+        if not os.path.exists(fontconfig_cache):
+            try:
+                os.makedirs(fontconfig_cache, exist_ok=True)
+            except Exception:
+                pass
         os.environ["FONTCONFIG_CACHE"] = fontconfig_cache
 
         # Set Pango backend to fontconfig for consistent rendering
@@ -253,6 +277,7 @@ if getattr(sys, 'frozen', False):
         # Font families used by the GUI
         os.environ["HMSIM_FONT_UI"] = "DejaVu Sans"
         os.environ["HMSIM_FONT_MONO"] = "DejaVu Sans Mono"
+
 
 # Debug logging
 
@@ -513,7 +538,11 @@ except Exception as e:
             os.makedirs(font_dir_dst, exist_ok=True)
 
             # Fonts we want to bundle
-            bundled_fonts = ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSansMono.ttf", "DejaVuSansMono-Bold.ttf"]
+            bundled_fonts = [
+                "DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSans-Oblique.ttf", "DejaVuSans-BoldOblique.ttf",
+                "DejaVuSansMono.ttf", "DejaVuSansMono-Bold.ttf", "DejaVuSansMono-Oblique.ttf", "DejaVuSansMono-BoldOblique.ttf",
+                "DejaVuSerif.ttf", "DejaVuSerif-Bold.ttf"
+            ]
             found_count = 0
             for root, dirs, files in os.walk(font_dir_src):
                 for f in files:
@@ -523,16 +552,18 @@ except Exception as e:
                         print(f"  Bundled font: {f}")
                         found_count += 1
 
-            # Create a robust fonts.conf with aliasing and rendering settings
+            # Create a robust fonts.conf template with placeholders for absolute paths
             fonts_conf_content = f"""<?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
 <fontconfig>
-    <!-- Use our local font directories -->
-    <dir>.</dir>
-    <dir>../../share/fonts</dir>
+    <!-- Use our local font directories (absolute paths inserted at runtime) -->
+    <dir>@FONT_DIR@</dir>
 
     <!-- Use local font cache directory -->
-    <cachedir>../../cache/fontconfig</cachedir>
+    <cachedir>@CACHE_DIR@</cachedir>
+
+    <!-- Fallback to system fonts if needed (safe on Windows) -->
+    <dir>WINDOWSFONTDIR</dir>
 
     <!-- Global rendering settings -->
     <match target="font">
@@ -544,20 +575,18 @@ except Exception as e:
     </match>
 
     <!-- Map standard aliases to DejaVu -->
-    <match target="pattern">
-        <test name="family" qual="any"><string>sans-serif</string></test>
-        <edit name="family" mode="assign" binding="same"><string>DejaVu Sans</string></edit>
-    </match>
-
-    <match target="pattern">
-        <test name="family" qual="any"><string>serif</string></test>
-        <edit name="family" mode="assign" binding="same"><string>DejaVu Serif</string></edit>
-    </match>
-
-    <match target="pattern">
-        <test name="family" qual="any"><string>monospace</string></test>
-        <edit name="family" mode="assign" binding="same"><string>DejaVu Sans Mono</string></edit>
-    </match>
+    <alias>
+        <family>sans-serif</family>
+        <prefer><family>DejaVu Sans</family></prefer>
+    </alias>
+    <alias>
+        <family>serif</family>
+        <prefer><family>DejaVu Serif</family></prefer>
+    </alias>
+    <alias>
+        <family>monospace</family>
+        <prefer><family>DejaVu Sans Mono</family></prefer>
+    </alias>
 
     <!-- Fallback font -->
     <match target="pattern">
@@ -569,16 +598,17 @@ except Exception as e:
     </config>
 </fontconfig>
 """
-            # Create a custom fonts.conf in etc/fonts
+            # Create a custom fonts.conf template in etc/fonts
             os.makedirs(fontconfig_dst, exist_ok=True)
-            with open(os.path.join(fontconfig_dst, "fonts.conf"), "w") as f:
+            with open(os.path.join(fontconfig_dst, "fonts.conf.template"), "w") as f:
                 f.write(fonts_conf_content)
-            print("  Created robust fonts.conf")
+            print("  Created robust fonts.conf template")
 
             # Create the cache directory manually to ensure it exists
             cache_dst = os.path.join(dist_dir, "_internal", "cache", "fontconfig")
             os.makedirs(cache_dst, exist_ok=True)
             print(f"  Created fontconfig cache directory at {cache_dst}")
+
 
     examples_src = os.path.join(root_dir, "examples")
     examples_dst = os.path.join(dist_dir, "examples")

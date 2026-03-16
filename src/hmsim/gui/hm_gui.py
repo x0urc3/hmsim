@@ -69,17 +69,28 @@ class HMApplication(Gtk.Application):
                 mono_family = font_mono or "monospace"
 
                 css = f"""
-                /* Global UI Font */
-                * {{ font-family: '{ui_family}', sans-serif; }}
-
-                /* Monospace widgets */
-                .monospace, textview, .fixed, .editor-view, .memory-view, .register-value {{
-                    font-family: '{mono_family}', monospace;
+                /* Global UI Font and Size */
+                * {{
+                    font-family: '{ui_family}', 'Segoe UI', 'Arial', sans-serif;
+                    font-size: 10pt;
                 }}
 
-                /* Ensure standard labels stay readable */
-                label, button, headerbar {{ font-family: '{ui_family}', sans-serif; }}
+                /* Monospace widgets - use explicit classes and tags */
+                .monospace, textview, .fixed, .editor-view, .memory-view, .register-value, .hex-view {{
+                    font-family: '{mono_family}', 'Consolas', 'Courier New', monospace;
+                }}
+
+                /* Specific overrides for clarity */
+                label, button, headerbar {{
+                    font-family: '{ui_family}', 'Segoe UI', 'Arial', sans-serif;
+                }}
+
+                /* Editor specific */
+                textview {{
+                    font-size: 11pt;
+                }}
                 """
+
 
                 provider.load_from_data(css.encode())
                 Gtk.StyleContext.add_provider_for_display(
