@@ -165,6 +165,9 @@ def build():
             f"{msys_prefix}ttf-dejavu",
             f"{msys_prefix}pyinstaller",
             f"{msys_prefix}pyinstaller-hooks-contrib",
+            f"{msys_prefix}python-jsonschema",
+            f"{msys_prefix}python-jsonschema-specifications",
+            f"{msys_prefix}python-markdown-it-py",
         ]
         print(f"Ensuring system dependencies: {', '.join(system_pkgs)}")
         run_command(["pacman", "-S", "--needed", "--noconfirm"] + system_pkgs)
@@ -377,6 +380,8 @@ except Exception as e:
             "--collect-all", "gi",
             "--collect-all", "hmsim",
             "--collect-all", "markdown_it",
+            "--collect-all", "jsonschema",
+            "--collect-all", "jsonschema_specifications",
             "--paths", src_abs_path,
         ]
 
