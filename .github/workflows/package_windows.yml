@@ -27,41 +27,57 @@ jobs:
             mingw-w64-x86_64-python
             mingw-w64-x86_64-python-gobject
             mingw-w64-x86_64-gtk4
+            mingw-w64-x86_64-fontconfig
+            mingw-w64-x86_64-ttf-dejavu
             mingw-w64-x86_64-python-pip
+            mingw-w64-x86_64-gobject-introspection
+            mingw-w64-x86_64-pyinstaller
+            mingw-w64-x86_64-pyinstaller-hooks-contrib
 
-      - name: Install Python dependencies
+      - name: Install dependencies
+        shell: msys2 {0}
         run: |
-          python -m pip install --upgrade pip
-          pip install pyinstaller
-
-      - name: Install hmsim package
-        run: |
-          pip install -e .
+          pip install --upgrade pip --break-system-packages
+          pip install "jsonschema>=4.0.0,<4.18.0" markdown-it-py --break-system-packages
+          # Install hmsim normally to ensure it is in site-packages
+          pip install . --break-system-packages --no-deps
 
       - name: Run build script
         shell: msys2 {0}
         run: |
+          echo "DEBUG: Locating Gtk-4.0.typelib..."
+          find /mingw64 -name "Gtk-4.0.typelib"
           python scripts/build_gui.py
+
+      - name: Stage artifacts
+        shell: bash
+        run: |
+          # Create a clean directory structure for the zip
+          mkdir -p final_zip/hmsim
+          # Copy dist contents to hmsim/
+          cp -rp dist/* final_zip/hmsim/
+          echo "Final Zip structure verification (final_zip/):"
+          ls -R final_zip/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: hmsim-windows
-          path: hmsim_windows.zip
-          retention-days: 30
-
-      - name: Create Release
-        if: github.event_name == 'release'
-        run: |
-          $tag = ${{ github.event.release.tag_name }}
-          $version = $tag -replace '^v', ''
-          Write-Output "Creating release for version $version"
+          path: final_zip/
+          retention-days: 7
 
       - name: Upload to Release
         if: github.event_name == 'release'
+        run: |
+          cd final_zip
+          Compress-Archive -Path hmsim -DestinationPath ../hmsim-windows-${{ github.event.release.tag_name }}.zip -Force
+          cd ..
+
+      - name: Attach to Release
+        if: github.event_name == 'release'
         uses: softprops/action-gh-release@v1
         with:
-          files: hmsim_windows.zip
+          files: hmsim-windows-${{ github.event.release.tag_name }}.zip
           draft: false
           prerelease: ${{ contains(github.event.release.tag_name, 'alpha') || contains(github.event.release.tag_name, 'beta') }}
         env:

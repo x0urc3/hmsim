@@ -5,6 +5,7 @@
 
 import argparse
 import sys
+import os
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
@@ -12,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 try:
     import gi
     gi.require_version('Gtk', '4.0')
-    from gi.repository import Gtk, Gio, GLib
+    from gi.repository import Gtk, Gio, GLib, Gdk
     GTK_AVAILABLE = True
 except ImportError:
     GTK_AVAILABLE = False
@@ -41,6 +42,65 @@ class HMApplication(Gtk.Application):
         self._setup_actions()
         self._setup_menus()
         self._apply_initial_theme()
+        self._setup_fonts()
+
+    def _setup_fonts(self):
+        """Setup custom fonts if provided for consistent UI/Mono rendering."""
+        font_ui = os.environ.get("HMSIM_FONT_UI")
+        font_mono = os.environ.get("HMSIM_FONT_MONO")
+
+        # Apply standard rendering settings for font quality
+        try:
+            gtk_settings = Gtk.Settings.get_default()
+            gtk_settings.set_property("gtk-xft-antialias", 1)
+            gtk_settings.set_property("gtk-xft-hinting", 1)
+            gtk_settings.set_property("gtk-xft-hintstyle", "hintslight")
+            gtk_settings.set_property("gtk-xft-rgba", "rgb")
+        except Exception:
+            pass
+
+        if font_ui or font_mono:
+            try:
+                # Load font families into GTK via CSS
+                provider = Gtk.CssProvider()
+
+                # Default to system if not set
+                ui_family = font_ui or "sans-serif"
+                mono_family = font_mono or "monospace"
+
+                css = f"""
+                /* Global UI Font and Size */
+                * {{
+                    font-family: '{ui_family}', 'Segoe UI', 'Arial', sans-serif;
+                    font-size: 10pt;
+                }}
+
+                /* Monospace widgets - use explicit classes and tags */
+                .monospace, textview, .fixed, .editor-view, .memory-view, .register-value, .hex-view {{
+                    font-family: '{mono_family}', 'Consolas', 'Courier New', monospace;
+                }}
+
+                /* Specific overrides for clarity */
+                label, button, headerbar {{
+                    font-family: '{ui_family}', 'Segoe UI', 'Arial', sans-serif;
+                }}
+
+                /* Editor specific */
+                textview {{
+                    font-size: 11pt;
+                }}
+                """
+
+
+                provider.load_from_data(css.encode())
+                Gtk.StyleContext.add_provider_for_display(
+                    Gdk.Display.get_default(),
+                    provider,
+                    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+                )
+            except Exception as e:
+                print(f"Error setting up fonts: {e}")
+
 
     def _apply_initial_theme(self):
         from hmsim.gui.settings_manager import SettingsManager

@@ -91,6 +91,7 @@ The CLI tools must be cross-platform compatible:
   * **Machine Code Input:** A direct-editing mode in the memory grid for manipulation of 16-bit binary memory values.
   * **Real-time Sync:** Automated translation between the assembly editor and the memory grid. Editing assembly updates machine code, and editing memory directly triggers re-disassembly in the editor.
 * **Execution Controls:** Step, Run (continuous), and Reset functionality.
+* **Theme Customization:** Integrated support for **Light** and **Dark** themes, with an option to follow the **System** preference. Theme selection must be persistent across application restarts.
 * **Visual State Monitoring:** Real-time display of **PC**, **AC**, **IR**, and a scrollable memory grid.
 * **Persistence:** Load/Save state as HM files (.hm) with structured text, data, and setup sections.
 * **Advanced File Operations:**
@@ -116,7 +117,7 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
     *   **Left:** File Operations (New, Open, Save, Save As).
     *   **Center:** Dynamic Window Title (Program Name - Filename*).
 * **Main Content (Gtk.Box - Vertical):**
-    *   **MenuBar (Gtk.PopoverMenuBar):** File, Edit (Undo/Redo), Run, Setup, Help menus.
+    *   **MenuBar (Gtk.PopoverMenuBar):** File, Edit (Undo/Redo), Run, Setup, View (Theme), Help menus.
     *   **Toolbar (Gtk.Box):** Reset, Run, Step buttons.
     *   **Paned Content (Gtk.Paned - Horizontal):**
         *   **Left Pane (Editor):** `Gtk.TextView` for assembly input with real-time assembly.
@@ -138,6 +139,7 @@ The GUI is designed as a professional IDE for architectural exploration, priorit
 *   **`src/hmsim/gui/hm_gui.py`**: Application entry point (`Gtk.Application`). Initializes the event loop and main window. Defines global keyboard shortcuts.
 *   **`src/hmsim/gui/main_window.py`**: Lean orchestrator managing the HeaderBar, Paned layout, and coordination between controllers and specialized widgets.
 *   **`src/hmsim/gui/state_manager.py`**: Manages application state snapshots and undo/redo history. Implements `is_modified` detection by comparing current state to a base baseline.
+*   **`src/hmsim/gui/settings_manager.py`**: Manages application-wide settings persistence, such as theme preferences and environment-specific configuration.
 *   **`src/hmsim/gui/controllers/simulation_controller.py`**: Manages the simulator's execution flow, including the idle-loop run cycle, single-stepping, and error handling.
 *   **`src/hmsim/gui/controllers/file_controller.py`**: Handles file I/O operations (New, Open, Save, Save As), safety interceptors for unsaved changes, and metadata synchronization.
 *   **`src/hmsim/gui/widgets/`**: Specialized visual components:
@@ -196,6 +198,7 @@ hmsim/
 │       │   ├── hm_gui.py   # Entry point
 │       │   ├── main_window.py # Lean Orchestrator
 │       │   ├── state_manager.py # Snapshot and History Logic
+│       │   ├── settings_manager.py # Persistent Settings Management
 │       │   ├── controllers/ # Controller Layer
 │       │   │   ├── simulation_controller.py
 │       │   │   └── file_controller.py
