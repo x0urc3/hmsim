@@ -629,9 +629,8 @@ except Exception as e:
         print(f"  Copied docs/user to {docs_user_dst}")
 
     schema_src = os.path.join(root_dir, "src", "hmsim", "engine", "schema.json")
-    schema_dst = os.path.join(dist_dir, "_internal", "hmsim", "engine", "schema.json")
-    # Ensure hmsim/engine directory exists
-    os.makedirs(os.path.dirname(schema_dst), exist_ok=True)
+    schema_dst = os.path.join(dist_dir, "_internal", "hmsim", "engine")
+    os.makedirs(schema_dst, exist_ok=True)
     if os.path.exists(schema_src):
         shutil.copy2(schema_src, schema_dst)
         print(f"  Copied schema.json to {schema_dst}")
