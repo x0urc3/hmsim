@@ -53,28 +53,19 @@ jobs:
           find /mingw64 -name "Gtk-4.0.typelib"
           python scripts/build_gui.py
 
-      - name: Stage artifacts
-        shell: bash
-        run: |
-          # Create a clean directory structure for the zip
-          mkdir -p final_zip/hmsim
-          # Copy dist contents to hmsim/
-          cp -rp dist/* final_zip/hmsim/
-          echo "Final Zip structure verification (final_zip/):"
-          ls -R final_zip/
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: hmsim-windows
-          path: final_zip/
+          path: dist/
           retention-days: 7
 
       - name: Upload to Release
         if: github.event_name == 'release'
+        shell: pwsh
         run: |
-          cd final_zip
-          Compress-Archive -Path hmsim -DestinationPath ../hmsim-windows-${{ github.event.release.tag_name }}.zip -Force
+          cd dist
+          Compress-Archive -Path * -DestinationPath ../hmsim-windows-${{ github.event.release.tag_name }}.zip -Force
           cd ..
 
       - name: Attach to Release
