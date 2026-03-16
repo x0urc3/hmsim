@@ -36,6 +36,8 @@ jobs:
             mingw-w64-x86_64-python-jsonschema
             mingw-w64-x86_64-python-jsonschema-specifications
             mingw-w64-x86_64-python-markdown-it-py
+            mingw-w64-x86_64-adwaita-icon-theme
+            mingw-w64-x86_64-hicolor-icon-theme
 
       - name: Install dependencies
         shell: msys2 {0}

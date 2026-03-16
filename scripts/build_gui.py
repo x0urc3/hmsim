@@ -168,6 +168,8 @@ def build():
             f"{msys_prefix}python-jsonschema",
             f"{msys_prefix}python-jsonschema-specifications",
             f"{msys_prefix}python-markdown-it-py",
+            f"{msys_prefix}adwaita-icon-theme",
+            f"{msys_prefix}hicolor-icon-theme",
         ]
         print(f"Ensuring system dependencies: {', '.join(system_pkgs)}")
         run_command(["pacman", "-S", "--needed", "--noconfirm"] + system_pkgs)
@@ -556,6 +558,32 @@ except Exception as e:
                         shutil.copy2(os.path.join(root, f), target)
                         print(f"  Bundled font: {f}")
                         found_count += 1
+
+            # Icon Theme
+            icon_theme_src_base = f"{msys_path}/share/icons"
+            icon_theme_dst_base = os.path.join(dist_dir, "_internal", "share", "icons")
+            os.makedirs(icon_theme_dst_base, exist_ok=True)
+
+            # Themes we want to bundle
+            bundled_themes = ["Adwaita", "hicolor"]
+            for theme in bundled_themes:
+                theme_src = os.path.join(icon_theme_src_base, theme)
+                theme_dst = os.path.join(icon_theme_dst_base, theme)
+                if os.path.exists(theme_src):
+                    print(f"  Copying {theme} icon theme...")
+                    # We only need the index.theme and symbolic icons to keep size down
+                    os.makedirs(theme_dst, exist_ok=True)
+                    if os.path.exists(os.path.join(theme_src, "index.theme")):
+                        shutil.copy2(os.path.join(theme_src, "index.theme"), theme_dst)
+
+                    # For Adwaita, we specifically need the symbolic icons
+                    for sub in ["scalable", "symbolic"]:
+                        sub_src = os.path.join(theme_src, sub)
+                        sub_dst = os.path.join(theme_dst, sub)
+                        if os.path.exists(sub_src):
+                            shutil.copytree(sub_src, sub_dst, dirs_exist_ok=True)
+                else:
+                    print(f"  WARNING: Icon theme {theme} NOT found in {theme_src}")
 
             # Create a robust fonts.conf template with placeholders for absolute paths
             fonts_conf_content = f"""<?xml version="1.0"?>
