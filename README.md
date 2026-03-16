@@ -99,27 +99,16 @@ pip install -e .
 
 ### Usage
 
-The HM Simulator provides an interactive interface for learning and experimentation:
+#### Windows Users
+Download the latest Windows release from the [GitHub Releases](https://github.com/x0urc3/hmsim/releases) page. Each release contains a pre-built Windows package (`.zip`) with:
 
-- **Tutorial**: Follow the [Step-by-Step Tutorial](docs/user/Tutorial.md) to write and run your first program.
-- **Manual**: Use the [hmsim User Guide](docs/user/hmsim_User_Guide.md) for detailed interface reference.
-- **Launch**: Start the interactive simulator by simply running `hmsim`.
-
-### Building Standalone Packages
-
-To create portable executables (no Python/GTK4 installation required):
-
-```bash
-python scripts/build_gui.py
-```
-
-This creates a `dist/` directory with:
-- `hmsim` - GUI application
-- `hmsim_cli`, `hmasm`, `hmdas` - CLI tools
-- Shared libraries in `_internal/`
+- `hmsim.exe` - The GUI application
 - Examples and documentation
 
-For Windows packages, see the [Development Guide](docs/developer/DEVELOPMENT.md#distribution--packaging) for MSYS2 or CI build instructions.
+Extract the zip and run `hmsim.exe` to start the simulator.
+
+#### Other Operating Systems
+For macOS, Linux, or development from source, see the [Development Guide](docs/developer/DEVELOPMENT.md) for build instructions.
 
 ## Example Programs
 
