@@ -45,15 +45,40 @@ class HMApplication(Gtk.Application):
         self._setup_fonts()
 
     def _setup_fonts(self):
-        """Setup custom fonts if provided."""
-        font_family = os.environ.get("HMSIM_FONT_FAMILY")
-        if font_family:
+        """Setup custom fonts if provided for consistent UI/Mono rendering."""
+        font_ui = os.environ.get("HMSIM_FONT_UI")
+        font_mono = os.environ.get("HMSIM_FONT_MONO")
+
+        # Apply standard rendering settings for font quality
+        try:
+            gtk_settings = Gtk.Settings.get_default()
+            gtk_settings.set_property("gtk-xft-antialias", 1)
+            gtk_settings.set_property("gtk-xft-hinting", 1)
+            gtk_settings.set_property("gtk-xft-hintstyle", "hintslight")
+            gtk_settings.set_property("gtk-xft-rgba", "rgb")
+        except Exception:
+            pass
+
+        if font_ui or font_mono:
             try:
-                # Load the font family globally into GTK
+                # Load font families into GTK via CSS
                 provider = Gtk.CssProvider()
+
+                # Default to system if not set
+                ui_family = font_ui or "sans-serif"
+                mono_family = font_mono or "monospace"
+
                 css = f"""
-                * {{ font-family: '{font_family}', sans-serif; }}
-                .monospace, textview, .fixed {{ font-family: '{font_family}', monospace; }}
+                /* Global UI Font */
+                * {{ font-family: '{ui_family}', sans-serif; }}
+
+                /* Monospace widgets */
+                .monospace, textview, .fixed, .editor-view, .memory-view, .register-value {{
+                    font-family: '{mono_family}', monospace;
+                }}
+
+                /* Ensure standard labels stay readable */
+                label, button, headerbar {{ font-family: '{ui_family}', sans-serif; }}
                 """
 
                 provider.load_from_data(css.encode())
@@ -64,6 +89,7 @@ class HMApplication(Gtk.Application):
                 )
             except Exception as e:
                 print(f"Error setting up fonts: {e}")
+
 
     def _apply_initial_theme(self):
         from hmsim.gui.settings_manager import SettingsManager

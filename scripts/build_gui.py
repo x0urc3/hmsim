@@ -241,10 +241,21 @@ if getattr(sys, 'frozen', False):
             os.environ["FONTCONFIG_FILE"] = os.path.join(fontconfig_dir, "fonts.conf")
             os.environ["FONTCONFIG_PATH"] = fontconfig_dir
 
-        # Optional: Set a flag for the GUI to use a specific font family
-        os.environ["HMSIM_FONT_FAMILY"] = "DejaVu Sans"
+        # Set a portable cache directory
+        fontconfig_cache = os.path.join(internal_dir, "cache", "fontconfig")
+        os.makedirs(fontconfig_cache, exist_ok=True)
+        os.environ["FONTCONFIG_CACHE"] = fontconfig_cache
+
+        # Set Pango backend to fontconfig for consistent rendering
+        os.environ["PANGOCAIRO_BACKEND"] = "fontconfig"
+        os.environ["GDK_PANGOCAIRO_BACKEND"] = "fontconfig"
+
+        # Font families used by the GUI
+        os.environ["HMSIM_FONT_UI"] = "DejaVu Sans"
+        os.environ["HMSIM_FONT_MONO"] = "DejaVu Sans Mono"
 
 # Debug logging
+
 _log_file = "hmsim_startup.log"
 def log(msg):
     try:
@@ -496,65 +507,65 @@ except Exception as e:
                 print(f"  Copying fontconfig from {fontconfig_src}...")
                 shutil.copytree(fontconfig_src, fontconfig_dst, dirs_exist_ok=True)
 
-            # Find and copy a minimal font
+            # Find and copy minimal fonts
             font_dir_src = f"{msys_path}/share/fonts"
             font_dir_dst = os.path.join(dist_dir, "_internal", "share", "fonts")
             os.makedirs(font_dir_dst, exist_ok=True)
 
-            # Look for DejaVu Sans
-            font_found = False
+            # Fonts we want to bundle
+            bundled_fonts = ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSansMono.ttf", "DejaVuSansMono-Bold.ttf"]
+            found_count = 0
             for root, dirs, files in os.walk(font_dir_src):
                 for f in files:
-                    if f == "DejaVuSans.ttf":
+                    if f in bundled_fonts:
                         target = os.path.join(font_dir_dst, f)
                         shutil.copy2(os.path.join(root, f), target)
                         print(f"  Bundled font: {f}")
-                        font_found = True
-                        break
-                if font_found:
-                    break
+                        found_count += 1
 
-            # Create a minimal fonts.conf that points to our local font
+            # Create a robust fonts.conf with aliasing and rendering settings
             fonts_conf_content = f"""<?xml version="1.0"?>
 <!DOCTYPE fontconfig SYSTEM "fonts.dtd">
 <fontconfig>
+    <!-- Use our local font directories -->
     <dir>.</dir>
     <dir>../../share/fonts</dir>
 
-    <!-- Use local font directory -->
-    <cachedir>~/.fontconfig</cachedir>
+    <!-- Use local font cache directory -->
+    <cachedir>../../cache/fontconfig</cachedir>
 
-    <!-- Disable system fonts for consistency -->
-    <!-- (Optional, but ensures only our bundled font is used) -->
+    <!-- Global rendering settings -->
+    <match target="font">
+        <edit name="antialias" mode="assign"><bool>true</bool></edit>
+        <edit name="hinting" mode="assign"><bool>true</bool></edit>
+        <edit name="hintstyle" mode="assign"><const>hintslight</const></edit>
+        <edit name="rgba" mode="assign"><const>rgb</const></edit>
+        <edit name="lcdfilter" mode="assign"><const>lcddefault</const></edit>
+    </match>
 
+    <!-- Map standard aliases to DejaVu -->
     <match target="pattern">
-        <test qual="any" name="family">
-            <string>sans-serif</string>
-        </test>
-        <edit name="family" mode="assign" binding="same">
-            <string>DejaVu Sans</string>
-        </edit>
+        <test name="family" qual="any"><string>sans-serif</string></test>
+        <edit name="family" mode="assign" binding="same"><string>DejaVu Sans</string></edit>
     </match>
 
     <match target="pattern">
-        <test qual="any" name="family">
-            <string>monospace</string>
-        </test>
-        <edit name="family" mode="assign" binding="same">
-            <string>DejaVu Sans</string>
-        </edit>
+        <test name="family" qual="any"><string>serif</string></test>
+        <edit name="family" mode="assign" binding="same"><string>DejaVu Serif</string></edit>
     </match>
 
     <match target="pattern">
-        <edit name="family" mode="prepend" binding="strong">
-            <string>DejaVu Sans</string>
-        </edit>
+        <test name="family" qual="any"><string>monospace</string></test>
+        <edit name="family" mode="assign" binding="same"><string>DejaVu Sans Mono</string></edit>
+    </match>
+
+    <!-- Fallback font -->
+    <match target="pattern">
+        <edit name="family" mode="append" binding="strong"><string>DejaVu Sans</string></edit>
     </match>
 
     <config>
-        <rescan>
-            <int>30</int>
-        </rescan>
+        <rescan><int>30</int></rescan>
     </config>
 </fontconfig>
 """
@@ -562,7 +573,12 @@ except Exception as e:
             os.makedirs(fontconfig_dst, exist_ok=True)
             with open(os.path.join(fontconfig_dst, "fonts.conf"), "w") as f:
                 f.write(fonts_conf_content)
-            print("  Created custom fonts.conf")
+            print("  Created robust fonts.conf")
+
+            # Create the cache directory manually to ensure it exists
+            cache_dst = os.path.join(dist_dir, "_internal", "cache", "fontconfig")
+            os.makedirs(cache_dst, exist_ok=True)
+            print(f"  Created fontconfig cache directory at {cache_dst}")
 
     examples_src = os.path.join(root_dir, "examples")
     examples_dst = os.path.join(dist_dir, "examples")
