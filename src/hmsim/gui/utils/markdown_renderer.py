@@ -97,6 +97,24 @@ def create_text_tags(buffer: Gtk.TextBuffer) -> dict:
 
     tags["list"] = buffer.create_tag("list", left_margin=20)
 
+    if _is_dark_mode:
+        border_fg = "#7f8c8d"
+    else:
+        border_fg = "#34495e"
+
+    tags["hr"] = buffer.create_tag("hr",
+                                   foreground=border_fg,
+                                   pixels_above_lines=8,
+                                   pixels_below_lines=8)
+
+    tags["codeborder"] = buffer.create_tag("codeborder",
+                                           foreground=border_fg,
+                                           family="monospace")
+
+    tags["tableborder"] = buffer.create_tag("tableborder",
+                                            foreground=border_fg,
+                                            family="monospace")
+
     tags["p"] = buffer.create_tag("p", pixels_below_lines=8)
 
     return tags
@@ -158,11 +176,10 @@ def _render_tokens(tokens, buffer, iter_pos, tags, tag_stack):
 
 
 def render_table(rows, buffer, iter_pos, tags):
-    """Render a table as aligned text with pipes and borders."""
+    """Render a table with Unicode box-drawing characters."""
     if not rows:
         return
 
-    # Find max width for each column based on plain text content
     num_cols = max(len(row) for row in rows)
     col_widths = [0] * num_cols
     for row in rows:
@@ -171,45 +188,63 @@ def render_table(rows, buffer, iter_pos, tags):
                 plain_text = _get_plain_text(token)
                 col_widths[i] = max(col_widths[i], len(plain_text))
 
-    # Add padding to widths (1 space each side)
     col_widths = [w + 2 for w in col_widths]
 
-    def render_row(row, is_header=False):
-        buffer.insert(iter_pos, "|")
+    def render_row(row, is_header=False, is_separator=False):
+        if is_separator:
+            left, right = "├", "┤"
+        else:
+            left, right = "│", "│"
+
+        buffer.insert_with_tags(iter_pos, left, tags["tableborder"])
         for i in range(num_cols):
             token = row[i] if i < len(row) else None
             plain_text = _get_plain_text(token) if token else ""
 
-            # Left padding
-            buffer.insert_with_tags(iter_pos, " ", tags["table_header"] if is_header else tags["table"])
+            buffer.insert_with_tags(iter_pos, " ", tags["tableborder"])
 
-            # Content with formatting
             if token and token.children:
                 tag_stack = [tags["table_header"] if is_header else tags["table"]]
                 _render_tokens(token.children, buffer, iter_pos, tags, tag_stack)
             elif token:
                 buffer.insert_with_tags(iter_pos, token.content, tags["table_header"] if is_header else tags["table"])
 
-            # Right padding to align columns
             padding_needed = col_widths[i] - len(plain_text) - 1
-            buffer.insert_with_tags(iter_pos, " " * padding_needed, tags["table_header"] if is_header else tags["table"])
-            buffer.insert(iter_pos, "|")
+            buffer.insert_with_tags(iter_pos, " " * padding_needed, tags["tableborder"])
+            buffer.insert_with_tags(iter_pos, right, tags["tableborder"])
         buffer.insert(iter_pos, "\n")
 
-    # Header Row
-    render_row(rows[0], is_header=True)
+    def render_separator(is_last=False):
+        if is_last:
+            left, mid, right = "└", "┴", "┘"
+        else:
+            left, mid, right = "├", "┼", "┤"
 
-    # Separator Row
-    buffer.insert(iter_pos, "|")
+        buffer.insert_with_tags(iter_pos, left, tags["tableborder"])
+        for w in col_widths:
+            buffer.insert_with_tags(iter_pos, "─" * w, tags["tableborder"])
+            buffer.insert_with_tags(iter_pos, mid, tags["tableborder"])
+        buffer.insert(iter_pos, "\n")
+
+    buffer.insert(iter_pos, "┌")
     for w in col_widths:
-        buffer.insert_with_tags(iter_pos, "-" * w, tags["table"])
-        buffer.insert(iter_pos, "|")
+        buffer.insert_with_tags(iter_pos, "─" * w, tags["tableborder"])
+        buffer.insert(iter_pos, "┬")
     buffer.insert(iter_pos, "\n")
 
-    # Body Rows
+    render_row(rows[0], is_header=True)
+
+    render_separator()
+
     for row in rows[1:]:
         render_row(row)
 
+    buffer.insert(iter_pos, "└")
+    for i, w in enumerate(col_widths):
+        buffer.insert_with_tags(iter_pos, "─" * w, tags["tableborder"])
+        if i < len(col_widths) - 1:
+            buffer.insert(iter_pos, "┴")
+    buffer.insert(iter_pos, "┘")
     buffer.insert(iter_pos, "\n")
 
 
@@ -282,7 +317,19 @@ def apply_markdown_to_buffer(buffer: Gtk.TextBuffer, markdown_text: str):
 
         # Code block and fence handling
         if token.type in ("code_block", "fence"):
-            buffer.insert_with_tags(iter_pos, token.content.strip() + "\n", tags["codeblock"])
+            lines = token.content.strip().split("\n")
+            max_len = max(len(line) for line in lines) if lines else 0
+            content_width = max(max_len, 38)
+            border_width = content_width + 2
+
+            buffer.insert_with_tags(iter_pos, "┌" + "─" * border_width + "┐\n", tags["codeborder"])
+            for line in lines:
+                buffer.insert_with_tags(iter_pos, "│ ", tags["codeborder"])
+                buffer.insert_with_tags(iter_pos, line, tags["codeblock"])
+                padding = content_width - len(line)
+                buffer.insert_with_tags(iter_pos, " " * padding, tags["codeblock"])
+                buffer.insert_with_tags(iter_pos, " │\n", tags["codeborder"])
+            buffer.insert_with_tags(iter_pos, "└" + "─" * border_width + "┘\n", tags["codeborder"])
             buffer.insert(iter_pos, "\n")
             continue
 
@@ -297,7 +344,9 @@ def apply_markdown_to_buffer(buffer: Gtk.TextBuffer, markdown_text: str):
 
         # Horizontal rule handling
         if token.type == "hr":
-            buffer.insert(iter_pos, "─" * 40 + "\n\n")
+            buffer.insert(iter_pos, "\n")
+            buffer.insert_with_tags(iter_pos, "═" * 36 + "\n", tags["hr"])
+            buffer.insert(iter_pos, "\n")
             continue
 
         # Inline content rendering
