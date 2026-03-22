@@ -27,6 +27,7 @@ from hmsim import __version__
 from hmsim.engine.cpu import HMEngine
 from hmsim.engine.report import print_report
 from hmsim.gui.main_window import MainWindow
+from hmsim.gui.widgets.about_dialog import AboutDialog
 
 
 class HMApplication(Gtk.Application):
@@ -148,16 +149,15 @@ class HMApplication(Gtk.Application):
     def _on_about(self, action, param):
         print("Action: about triggered")
         if hasattr(self, 'win'):
-            dialog = Gtk.AboutDialog(
-                transient_for=self.win,
-                modal=True,
+            dialog = AboutDialog(
+                parent=self.win,
                 program_name="HM Simulator",
                 version=__version__,
                 comments="A multi-version simulator for the HM 16-bit processor family (v1-v4)",
                 copyright="Copyright 2026 Khairulmizam Samsudin",
                 authors=["Khairulmizam Samsudin <xource@gmail.com>"],
-                website="https://github.com/hmsim/hmsim",
-                license_type=Gtk.License.APACHE_2_0,
+                website="https://github.com/x0urc3/hmsim",
+                license_type="Apache 2.0",
             )
             dialog.present()
 
