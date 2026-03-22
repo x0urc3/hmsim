@@ -191,9 +191,9 @@ class TestHMv1Engine:
 | HMv4 | + Indirect LOAD/STORE | Adds indirect addressing |
 
 ---
-
 ## 7. References
 
-- ISA Specification: `docs/HM_ISA_Specification.md`
-- Software Specification: `docs/HM_Software_Spec.md`
+- Development Guide: `docs/DEVELOPMENT.md`
+- OpenSpec Specifications: `openspec/specs/`
 - GitHub CI: `.github/workflows/ci.yml`
+

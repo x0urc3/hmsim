@@ -184,7 +184,7 @@ This builds all tools into the `dist/` directory:
 ### Offline Help
 
 The GUI's Help menu uses documentation bundled in the package:
-- Source: `docs/user/Tutorial.md`, `docs/user/hmsim_User_Guide.md`
+- Source: `user/Tutorial.md`, `user/hmsim_User_Guide.md`
 - Bundled to: `dist/_internal/docs/`
 - The application detects running from frozen bundle and locates docs appropriately.
 
@@ -208,6 +208,25 @@ State files use the standard JSON structure defined in `schema.json`. The `state
 ### GUI (`src/hmsim/gui/`)
 A GTK 4 implementation using the Controller-View pattern to separate orchestration from layout. The GUI listens for `state-changed` signals from the `HMEngine` to update its visual components via the Observer pattern.
 
+#### Layout Topology
+The GUI is designed as a professional IDE for architectural exploration, prioritizing clarity and real-time feedback.
+- **Header (Gtk.HeaderBar):**
+    - **Left:** File Operations (New, Open, Save, Save As).
+    - **Center:** Dynamic Window Title (Program Name - Filename*).
+- **Main Content (Gtk.Box - Vertical):**
+    - **MenuBar (Gtk.PopoverMenuBar):** File, Edit (Undo/Redo), Run, Setup, View (Theme), Help menus.
+    - **Toolbar (Gtk.Box):** Reset, Run, Step buttons.
+    - **Paned Content (Gtk.Paned - Horizontal):**
+        - **Left Pane (Editor):** `Gtk.TextView` for assembly input with real-time assembly.
+        - **Right Pane (State):** A vertical stack containing the Active Engine Indicator, Register View, and Memory Grid.
+
+#### State Synchronization (Observer Pattern)
+- **Engine-to-GUI:** Any change in the `HMEngine` state (registers or memory) emits a notification to observers. Visual widgets subscribe to this to update their buffers.
+- **GUI-to-Engine:**
+    - Editing a line in the Assembly Editor triggers `hmasm` to update the corresponding memory address in real-time (with a slight debounce).
+    - Editing a value in the Memory Grid triggers the disassembler to update the Assembly Editor.
+    - Changing the Architecture via the **Setup Dialog** re-initializes the `HMEngine` with the appropriate `ExecutionStrategy` and re-assembles the editor text.
+
 #### Main Orchestration (`main_window.py`)
 The `MainWindow` acts as a lean coordinator. It initializes the UI components and delegates complex logic to specialized controllers.
 
@@ -216,16 +235,18 @@ The `MainWindow` acts as a lean coordinator. It initializes the UI components an
 - **FileController**: Encapsulates all file I/O logic, including `Gtk.FileDialog` interaction, unsaved change safety checks, and session-bound metadata synchronization between the engine and the filesystem.
 
 #### State and History (`state_manager.py`)
-A standalone manager for capturing simulator snapshots and maintaining the undo/redo history stack.
+A standalone manager for capturing simulator snapshots and maintaining the undo/redo history stack. Implements `is_modified` detection by comparing current state to a base baseline.
 
 #### Settings and Persistence (`settings_manager.py`)
 A singleton manager that handles persistent application settings (e.g., theme preference).
 - **Storage**: Settings are stored in a JSON file at `~/.config/hmsim/settings.json` (Linux) or `%APPDATA%\hmsim\settings.json` (Windows).
 - **Theme Persistence**: Coordinates with `MainWindow` to apply the saved theme on startup.
 
-#### Version Management and Setup
-- **`SetupDialog`**: Spawns from the "Setup" menu to configure memory regions and engine architectures.
-- **Hot-Swapping**: When the architecture changes, the controllers orchestrate the preservation of memory and registers while the `HMEngine` is re-initialized with the new strategy.
+#### Specialized Widgets (`src/hmsim/gui/widgets/`)
+- **`setup_dialog.py`**: Configuration for architecture and memory regions. Spawns from the "Setup" menu.
+- **`register_view.py`**: Monospace display of registers and cycles. Supports direct editing.
+- **`memory_view.py`**: `Gtk.TreeView` for 64KB memory with highlighting. Optimized with asynchronous background population.
+- **`editor_view.py`**: Assembly editor with real-time sync and basic syntax highlighting.
 
 ### Markdown Renderer (`src/hmsim/gui/utils/markdown_renderer.py`)
 A custom Markdown-to-GTK-TextBuffer renderer built on `markdown-it-py`. It supports:
