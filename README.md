@@ -87,7 +87,7 @@ Each HM architecture adds new instructions while preserving all previous ones:
 | **HMv3** | `CALL`, `RETURN` | 0xA, 0xB |
 | **HMv4** | `LOAD` (Ind), `STORE` (Ind) | 0x3, 0x4 |
 
-For full cycle counts and descriptions, see the [ISA Specification](docs/reference/HM_ISA_Specification.md).
+For full cycle counts and descriptions, see the [Instruction Set Specification](openspec/specs/isa-v1/spec.md).
 
 ## Getting Started
 
@@ -108,7 +108,7 @@ Download the latest Windows release from the [GitHub Releases](https://github.co
 Extract the zip and run `hmsim.exe` to start the simulator.
 
 #### Other Operating Systems
-For macOS, Linux, or development from source, see the [Development Guide](docs/developer/DEVELOPMENT.md) for build instructions.
+For macOS, Linux, or development from source, see the [Development Guide](docs/DEVELOPMENT.md) for build instructions.
 
 ## Example Programs
 
@@ -127,9 +127,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 - [hmsim User Guide](docs/user/hmsim_User_Guide.md) - Complete reference for the interactive simulator.
 
 ### Technical Reference
-- [ISA Specification](docs/reference/HM_ISA_Specification.md) - Complete opcode and timing reference.
-- [File Format](docs/reference/HMSim_File_Format.md) - `.hm` JSON state file structure.
+- [Instruction Set (OpenSpec)](openspec/specs/isa-v1/spec.md) - Complete opcode and timing reference.
+- [File Format](docs/HMSim_File_Format.md) - `.hm` JSON state file structure.
 
 ### Developer Documentation
-- [Development Guide](docs/developer/DEVELOPMENT.md) - CLI tools and internal architecture.
-- [Software Specification](docs/developer/HM_Software_Spec.md) - Technical requirements and design.
+- [Development Guide](docs/DEVELOPMENT.md) - CLI tools and internal architecture.
